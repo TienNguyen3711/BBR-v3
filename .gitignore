@@ -24,3 +24,7 @@ outputs/
 /qbbr/data/raw/
 /qbbr/data/calibrated/
 requirements.txt
+
+# paper draft, managed separately from the code
+main.tex
+references.bib
