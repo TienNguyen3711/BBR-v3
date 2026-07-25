@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from qbbr.features.telemetry import extract_telemetry_features
-from qbbr.reward import alpha_fair_utility, compute_reward
+from qbbr.reward.alpha_fair import alpha_fair_utility, compute_reward
 
 
 def test_alpha_fair_utility_log_at_alpha_one():

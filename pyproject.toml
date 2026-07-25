@@ -16,6 +16,7 @@ dependencies = [
 include = ["qbbr*"]
 
 [tool.pytest.ini_options]
+testpaths = ["qbbr/tests"]
 addopts = "-m 'not slow'"
 markers = [
     "slow: full-corpus tests over all 2160 dataset files",

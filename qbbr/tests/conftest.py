@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-_DATASET_ROOT = Path(__file__).resolve().parent.parent / "tcp-cc-starlink"
+_DATASET_ROOT = Path(__file__).resolve().parent.parent / "data" / "raw"
 
 
 @pytest.fixture(scope="session")
@@ -28,6 +28,6 @@ def sample_trace(dataset_root):
 
 @pytest.fixture(scope="session")
 def sample_calibration(dataset_root):
-    from qbbr.features.calibration import compute_calibration
+    from qbbr.env.calibration import compute_calibration
 
     return compute_calibration(dataset_root)

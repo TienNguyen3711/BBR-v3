@@ -1,0 +1,7 @@
+# MVP action space (default): the agent overrides only pacing_gain, applied
+# once at the start of each ProbeBW_CRUISE sub-state. See main.tex Sec.
+# "Action Space and Protocol Hook".
+action_space: pacing_gain
+levels: [0.75, 0.9, 1.0, 1.1, 1.25]
+hook: bbr2_set_pacing_rate
+clamp_state: ProbeBW_CRUISE

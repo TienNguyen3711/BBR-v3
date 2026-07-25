@@ -1,0 +1,9 @@
+# Scenario B (coexistence): the agent runs concurrently with the four CCAs
+# over one Starlink link. Fairness/efficiency measured with rho_alpha
+# (qbbr.eval.metrics), swept over alpha to cover throughput-max,
+# proportionally-fair, and max-min regimes. See main.tex Sec.
+# "Evaluation Protocol".
+scenario: coexistence
+ccas: [qbbr, bbr, cubic, vegas, hybla]
+alpha_sweep: [0, 1, 2, .inf]
+runs_per_config: 10

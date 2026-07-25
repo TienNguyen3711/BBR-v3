@@ -1,0 +1,29 @@
+# Base training/algorithm defaults, shared by every experiment config in
+# this directory. Values match the defaults already used in code
+# (qbbr.reward.alpha_fair, main.tex Sec. "Reward and Fairness").
+seed: 0
+gamma: 0.99
+learning_rate: 1.0e-3
+n_layers: 2 # L in main.tex Sec. "Stage 4"; ablation sweeps L in {2, 3}
+
+reward:
+  alpha: 1.0 # alpha-fair exponent; 1.0 = proportional fairness (MVP setting)
+  delta: 1.0 # RTT-ratio delay penalty weight
+  beta: 0.5 # loss-change penalty weight
+  eps: 1.0e-6
+  eps_rtx: 1.0
+
+decision_interval:
+  rule: minrtt_100 # T_dec per main.tex Eq. (1)
+
+episode:
+  duration_s: 300 # matches the base TMC paper's measurement protocol
+  target_episodes: [200, 500]
+
+ablation:
+  alpha: [0.5, 1, 2]
+  delta_beta_center: [1.0, 0.5]
+  n_layers: [2, 3]
+  data_reuploading: [false, true]
+  risk_features: [false, true]
+  core: [quantum, classical]

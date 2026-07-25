@@ -21,12 +21,19 @@ selected via `mode`, not an implementation of the real risk model:
 
 Every call result carries `mode` so a stubbed run can never be silently
 mistaken for the real risk-feature contribution (RQ3 in the design doc).
+
+The individual closed-form components this module stands in for
+(atmospheric attenuation, ISL availability, handover collision + TLE-based
+ETA) are sketched separately in qbbr.risk.atmospheric, qbbr.risk.isl, and
+qbbr.risk.handover -- each currently raises NotImplementedError pending the
+weather/TLE data those equations require; this module is the only one that
+actually produces values today.
 """
 from __future__ import annotations
 
 import pandas as pd
 
-from qbbr.features.normalize import T_ORBIT_MIN
+from qbbr.features.state_builder import T_ORBIT_MIN
 
 _HANDOVER_CYCLE_S = 15.0
 _RETRANSMIT_PROXY_WINDOW = 10

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from qbbr.features.normalize import T_ORBIT_MIN, compute_state_vector
-from qbbr.features.risk import compute_risk_features
+from qbbr.features.state_builder import T_ORBIT_MIN, compute_state_vector
+from qbbr.risk.ptot import compute_risk_features
 from qbbr.features.telemetry import extract_telemetry_features
 
 _STATE_COLS = [

@@ -5,12 +5,12 @@ summary. This is the "coding and running against the dataset" deliverable
 for Phase 1 of the quantum-BBR system design.
 
 Usage:
-    .venv/bin/python scripts/run_eda.py [--dataset-root PATH] [--limit N] [--plot]
+    .venv/bin/python qbbr/scripts/run_eda.py [--dataset-root PATH] [--limit N] [--plot]
 
 Output:
-    calibration/per_location_constants.json   -- per-location/direction Table-1 constants
-    outputs/state_reward_series.csv.gz        -- 1Hz state+reward series for every run
-    outputs/figures/*.png                     -- summary plots, if --plot is passed
+    qbbr/data/calibrated/per_location_constants.json  -- per-location/direction Table-1 constants
+    outputs/state_reward_series.csv.gz                -- 1Hz state+reward series for every run
+    outputs/figures/*.png                              -- summary plots, if --plot is passed
 """
 from __future__ import annotations
 
@@ -21,21 +21,22 @@ from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+PACKAGE_ROOT = Path(__file__).resolve().parent.parent  # .../qbbr
+PROJECT_ROOT = PACKAGE_ROOT.parent  # .../Codebase
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from qbbr.data.catalog import build_catalog, iter_file_records
 from qbbr.data.loader import load_trace
 from qbbr.data.parse import ParseDiagnostics
-from qbbr.features.calibration import compute_calibration, save_calibration
-from qbbr.features.normalize import compute_state_vector
-from qbbr.features.risk import compute_risk_features
+from qbbr.env.calibration import compute_calibration, save_calibration
+from qbbr.features.state_builder import compute_state_vector
+from qbbr.risk.ptot import compute_risk_features
 from qbbr.features.telemetry import extract_telemetry_features
-from qbbr.reward import compute_reward
+from qbbr.reward.alpha_fair import compute_reward
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_DATASET_ROOT = REPO_ROOT / "tcp-cc-starlink"
-CALIBRATION_PATH = REPO_ROOT / "calibration" / "per_location_constants.json"
-OUTPUT_DIR = REPO_ROOT / "outputs"
+DEFAULT_DATASET_ROOT = PACKAGE_ROOT / "data" / "raw"
+CALIBRATION_PATH = PACKAGE_ROOT / "data" / "calibrated" / "per_location_constants.json"
+OUTPUT_DIR = PROJECT_ROOT / "outputs"
 SERIES_PATH = OUTPUT_DIR / "state_reward_series.csv.gz"
 
 
@@ -77,7 +78,7 @@ def run_calibration(dataset_root: Path) -> dict:
             f"  {location:10s} downlink: B_max={d['B_max_mbps']:7.1f} Mbps  "
             f"RTT_min={d['RTT_min_ms']:6.1f} ms  RTT_max={d['RTT_max_ms']:6.1f} ms"
         )
-    print(f"  saved -> {CALIBRATION_PATH.relative_to(REPO_ROOT)}")
+    print(f"  saved -> {CALIBRATION_PATH.relative_to(PROJECT_ROOT)}")
     return calib
 
 
@@ -123,7 +124,7 @@ def run_state_reward_extraction(
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     series.to_csv(SERIES_PATH, index=False, compression="gzip")
-    print(f"  saved -> {SERIES_PATH.relative_to(REPO_ROOT)}")
+    print(f"  saved -> {SERIES_PATH.relative_to(PROJECT_ROOT)}")
     return series
 
 
@@ -166,7 +167,7 @@ def maybe_plot(series: pd.DataFrame) -> None:
     fig.tight_layout()
     out_path = fig_dir / "bbr_state_reward_by_location.png"
     fig.savefig(out_path, dpi=120)
-    print(f"\n  saved plot -> {out_path.relative_to(REPO_ROOT)}")
+    print(f"\n  saved plot -> {out_path.relative_to(PROJECT_ROOT)}")
 
 
 def main() -> None:

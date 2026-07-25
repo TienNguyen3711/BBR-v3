@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from qbbr.features.calibration import compute_calibration
+from qbbr.env.calibration import compute_calibration
 
 
 def test_calibration_ranking_matches_known_paths(dataset_root):

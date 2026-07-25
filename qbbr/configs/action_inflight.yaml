@@ -1,0 +1,8 @@
+# Staged extension (not yet built): inflight_hi/lo control + early ProbeRTT
+# triggering. Deferred to a later phase per main.tex Sec. "Action Space and
+# Protocol Hook". Not read by any code yet -- qbbr.action.registry only
+# supports action_pacing_gain.yaml today.
+action_space: inflight
+status: not_implemented
+levels: [] # TODO: define inflight_hi/lo override levels
+hook: null # TODO: kernel hook for inflight_hi/lo + early ProbeRTT

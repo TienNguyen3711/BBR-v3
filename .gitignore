@@ -23,3 +23,4 @@ outputs/
 /calibration/
 /qbbr/data/raw/
 /qbbr/data/calibrated/
+requirements.txt

@@ -1,0 +1,7 @@
+# Scenario A (isolation): agent-augmented BBR vs. stock BBR-v3, Cubic,
+# Vegas, Hybla, run individually. Metrics mirror the base TMC paper for
+# direct comparability. See main.tex Sec. "Evaluation Protocol".
+scenario: isolation
+ccas: [qbbr, bbr, cubic, vegas, hybla]
+metrics: [throughput, retransmissions, rtt_variance]
+runs_per_config: 10 # main.tex: ">=10 runs at varied times of day"
