@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+outputs/
+.DS_Store
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.log
+*.out
+*.pdf
+
+# raw traces + fitted calibration constants: large / regenerable, kept out of
+# git by design (see qbbr/data/raw, qbbr/data/calibrated)
+/tcp-cc-starlink/
+/calibration/
+/qbbr/data/raw/
+/qbbr/data/calibrated/
