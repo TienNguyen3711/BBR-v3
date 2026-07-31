@@ -4,9 +4,6 @@ from qbbr.env.calibration import compute_calibration
 
 
 def test_calibration_ranking_matches_known_paths(dataset_root):
-    """Sanity-checks ranking against real data, not exact match to the paper's
-    rounded illustrative figures (which Table 1 explicitly says should be
-    re-estimated from the dataset)."""
     calib = compute_calibration(dataset_root)
 
     b_max_downlink = {loc: v["downlink"]["B_max_mbps"] for loc, v in calib.items()}

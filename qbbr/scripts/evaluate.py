@@ -1,13 +1,3 @@
-#!/usr/bin/env python3
-"""CLI: run Scenario A (isolation) or Scenario B (coexistence) evaluation.
-
-Not yet runnable -- depends on qbbr.eval.scenario_a / qbbr.eval.scenario_b,
-which depend in turn on qbbr.env.testbed_env / qbbr.env.fluid_env.
-
-Usage (once implemented):
-    .venv/bin/python qbbr/scripts/evaluate.py --scenario a --config qbbr/configs/eval_scenarioA.yaml
-    .venv/bin/python qbbr/scripts/evaluate.py --scenario b --config qbbr/configs/eval_scenarioB.yaml
-"""
 from __future__ import annotations
 
 import argparse

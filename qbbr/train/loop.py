@@ -1,23 +1,61 @@
-"""Offline A2C training loop: rollout -> advantage -> gradient step.
-
-Wraps a qbbr.env (FluidSimEnv for training, TestbedEnv for sim-to-real
-evaluation) with a qbbr.agents.base_agent.BaseAgent (quantum QA2C or
-classical MLP), collecting qbbr.train.buffer.RolloutBuffer episodes and
-applying Adam updates (parameter-shift gradients on real quantum hardware,
-analytic backprop on the PennyLane simulator during development -- see
-main.tex Sec. "Gradients"). Target: 200-500 episodes per
-configuration-location pair, per main.tex's training methodology.
-
-Not yet implemented -- this is the Phase 3 deliverable, gated on
-qbbr.env.fluid_env and qbbr.agents being implemented first.
-"""
 from __future__ import annotations
 
-from typing import Any
+from pathlib import Path
+from typing import Any, Callable
+
+import numpy as np
+import torch
+
+from qbbr.train.buffer import RolloutBuffer
+from qbbr.train.logging import log_episode
 
 
-def train(agent: Any, env: Any, n_episodes: int, config: dict[str, Any]) -> dict[str, Any]:
-    """Run n_episodes of on-policy A2C training; returns summary training metrics."""
-    raise NotImplementedError(
-        "A2C training loop not yet implemented; see qbbr.train.buffer, qbbr.train.logging."
-    )
+def train(
+    agent: Any,
+    env: Any,
+    n_episodes: int,
+    config: dict[str, Any],
+    run_dir: str | Path | None = None,
+    on_episode: Callable[[int, dict[str, float]], None] | None = None,
+) -> dict[str, Any]:
+
+    seed = config.get("seed")
+    if seed is not None:
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+
+    episode_rewards: list[float] = []
+    mean_rewards: list[float] = []
+    for episode in range(n_episodes):
+        state = env.reset()
+        buffer = RolloutBuffer()
+        episode_reward = 0.0
+        done = False
+        while not done:
+            action, log_prob = agent.act(state)
+            value = agent.value(state)
+            next_state, reward, done, _info = env.step(action)
+            buffer.add(state, action, log_prob, reward, value)
+            state = next_state
+            episode_reward += reward
+
+        update_metrics = agent.update(buffer)
+        summary = {
+            "episode_reward": episode_reward,
+            "episode_length": len(buffer),
+            "mean_reward": episode_reward / max(len(buffer), 1),
+            **update_metrics,
+        }
+        episode_rewards.append(episode_reward)
+        mean_rewards.append(summary["mean_reward"])
+
+        if run_dir is not None:
+            log_episode(run_dir, episode, summary)
+        if on_episode is not None:
+            on_episode(episode, summary)
+
+    return {
+        "n_episodes": n_episodes,
+        "episode_rewards": episode_rewards,
+        "final_mean_reward": mean_rewards[-1] if mean_rewards else float("nan"),
+    }

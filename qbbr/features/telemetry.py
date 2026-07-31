@@ -1,23 +1,3 @@
-"""Stage 1 live-telemetry features (s2, s4) + Stage-1 orchestration.
-
-s4 (queue occupancy, in packets) follows the base paper's M/G/1
-approximation (Eq. 30-32): a queuing-delay estimate q = max(0, RTT -
-RTT_base) drives a busy/idle indicator, which gives an M/G/1 arrival rate,
-a Pollaczek-Khinchine mean waiting time, and finally an average queue size
-via Little's Law (Q = lambda * W_q). RTT_base is a rolling 5th-percentile
-over a 120s window, per the base paper's definition -- reused here as the
-same running baseline for the reward's RTT_min term, rather than a second,
-separately-defined quantity.
-
-The M/G/1 sample window `w` (Eq. 31) is not given a specific value in the
-base paper text available to us; a 10-sample rolling window is used here
-as a documented default, not a value taken from the paper.
-
-`extract_telemetry_features` is the Stage-1 entry point: it combines this
-module's s2/s4 computation with qbbr.features.bbr_internals's s1/s3
-computation into the single raw-feature frame that
-qbbr.features.state_builder normalizes into s_t.
-"""
 from __future__ import annotations
 
 import numpy as np
@@ -55,12 +35,6 @@ def compute_queue_packets(bps: pd.Series, rtt_ms: pd.Series, rtt_base_ms: pd.Ser
 
 
 def extract_telemetry_features(intervals: pd.DataFrame) -> pd.DataFrame:
-    """Compute raw (un-normalized) Stage-1 features from one trace's intervals.
-
-    intervals is expected 1 Hz (one row per second), as produced by
-    qbbr.data.loader.load_trace. RTT_BASE_WINDOW_S is therefore treated as a
-    sample count, not a wall-clock resample.
-    """
     rtt_ms = intervals["rtt_ms"].astype(float)
     bps = intervals["bits_per_second"].astype(float)
 

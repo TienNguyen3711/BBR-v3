@@ -1,9 +1,3 @@
-"""Abstract Gym-style environment interface shared by FluidSimEnv and TestbedEnv.
-
-Both offline training (the fluid-model simulator) and sim-to-real evaluation
-(the real BBR-v3 testbed) implement this same interface, so qbbr.train.loop
-and qbbr.agents never need to know which one they're talking to.
-"""
 from __future__ import annotations
 
 import abc

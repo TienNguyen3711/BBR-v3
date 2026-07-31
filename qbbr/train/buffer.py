@@ -1,12 +1,3 @@
-"""On-policy rollout storage for A2C.
-
-Holds one episode's (state, action, log_prob, reward, value) tuples until
-qbbr.train.loop consumes them for an advantage estimate and gradient
-update, then clears -- A2C is on-policy, so nothing here is replayed
-across episodes.
-
-Not yet implemented.
-"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -22,7 +13,18 @@ class RolloutBuffer:
     values: list[float] = field(default_factory=list)
 
     def add(self, state: Any, action: int, log_prob: float, reward: float, value: float) -> None:
-        raise NotImplementedError("Rollout buffer not yet implemented.")
+        self.states.append(state)
+        self.actions.append(action)
+        self.log_probs.append(log_prob)
+        self.rewards.append(reward)
+        self.values.append(value)
 
     def clear(self) -> None:
-        raise NotImplementedError("Rollout buffer not yet implemented.")
+        self.states.clear()
+        self.actions.clear()
+        self.log_probs.clear()
+        self.rewards.clear()
+        self.values.clear()
+
+    def __len__(self) -> int:
+        return len(self.states)
