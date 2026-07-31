@@ -30,14 +30,6 @@ def test_load_single_uplink_trace(dataset_root):
 
 @pytest.mark.slow
 def test_full_corpus_loads_consistently(dataset_root):
-    # sum_received > 0 holds for the large majority of uplink files, but not
-    # all 1080: measured 68/1080 (~6.3%) have sum_received == 0 despite a
-    # full transfer -- 63 of those are flagged by a top-level "error" field
-    # (interrupted runs), but 5 are otherwise-clean files where the
-    # receiver's final control report apparently never made it into the
-    # JSON. That's a real, rare data-quality quirk, not a parsing bug -- so
-    # this is checked statistically (with headroom above the measured rate)
-    # rather than per-file.
     df = build_catalog(dataset_root)
     uplink_zero_received = 0
     uplink_total = 0

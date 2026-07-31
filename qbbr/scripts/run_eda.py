@@ -1,17 +1,3 @@
-#!/usr/bin/env python3
-"""Phase 1 end-to-end pipeline: parse the full dataset, calibrate, extract
-Stage 1/2 state features + Stage 5 reward for every run, and report a
-summary. This is the "coding and running against the dataset" deliverable
-for Phase 1 of the quantum-BBR system design.
-
-Usage:
-    .venv/bin/python qbbr/scripts/run_eda.py [--dataset-root PATH] [--limit N] [--plot]
-
-Output:
-    qbbr/data/calibrated/per_location_constants.json  -- per-location/direction Table-1 constants
-    outputs/state_reward_series.csv.gz                -- 1Hz state+reward series for every run
-    outputs/figures/*.png                              -- summary plots, if --plot is passed
-"""
 from __future__ import annotations
 
 import argparse
@@ -174,7 +160,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset-root", type=Path, default=DEFAULT_DATASET_ROOT)
     parser.add_argument("--limit", type=int, default=None, help="cap number of files (for fast iteration)")
-    parser.add_argument("--risk-mode", default="stub_constant", choices=["stub_constant", "empirical_proxy"])
+    parser.add_argument(
+        "--risk-mode", default="stub_constant", choices=["stub_constant", "empirical_proxy", "closed_form"]
+    )
     parser.add_argument("--plot", action="store_true")
     args = parser.parse_args()
 

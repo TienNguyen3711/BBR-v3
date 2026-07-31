@@ -1,11 +1,3 @@
-"""Per-location, per-direction calibration constants (Table 1 of the design doc).
-
-Computed from stock BBR-v3 ("bbr") traces only, per location and direction,
-using 1st/99th percentiles rather than the paper's illustrative figures --
-exactly as Table 1 in quantum_bbr_pipeline_v2.tex specifies ("re-estimated
-from the training dataset (per-location 99th percentiles) rather than
-hard-coded").
-"""
 from __future__ import annotations
 
 import json
@@ -19,12 +11,12 @@ from qbbr.data.loader import load_trace
 
 _LOW_PCT = 1.0
 _HIGH_PCT = 99.0
+_MIN_UTILIZATION_FRACTION = 0.05  # safety floor: see utilization_fraction docstring note
 
 
 def compute_calibration(
     dataset_root: str | Path, cca: str = "bbr"
 ) -> dict[str, dict[str, dict[str, float]]]:
-    """Return {location: {direction: {B_max_mbps, RTT_min_ms, RTT_max_ms}}}."""
     catalog = build_catalog(dataset_root)
     subset = catalog[catalog["cca"] == cca]
     if subset.empty:
@@ -40,10 +32,14 @@ def compute_calibration(
         bps = pd.concat(bps_parts)
         rtt = pd.concat(rtt_parts)
 
+        b_max = np.percentile(bps, _HIGH_PCT)
+        utilization_fraction = max(float(np.median(bps) / b_max), _MIN_UTILIZATION_FRACTION)
+
         result.setdefault(location, {})[direction] = {
-            "B_max_mbps": float(np.percentile(bps, _HIGH_PCT) / 1e6),
+            "B_max_mbps": float(b_max / 1e6),
             "RTT_min_ms": float(np.percentile(rtt, _LOW_PCT)),
             "RTT_max_ms": float(np.percentile(rtt, _HIGH_PCT)),
+            "utilization_fraction": utilization_fraction,
         }
     return result
 

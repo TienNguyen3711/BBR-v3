@@ -1,13 +1,9 @@
-"""Shared actor-critic interface for both the quantum and classical cores.
-
-Lets qbbr.train.loop treat QA2CAgent and MLPA2CAgent identically, so an
-RQ4 quantum-vs-classical run differs only in which agent class is
-instantiated -- both are built to the same parameter budget (~36-54 params).
-"""
 from __future__ import annotations
 
 import abc
-from typing import Any
+from typing import Any, Sequence
+
+import torch
 
 
 class BaseAgent(abc.ABC):
@@ -22,3 +18,29 @@ class BaseAgent(abc.ABC):
     @abc.abstractmethod
     def param_count(self) -> int:
         """Total trainable parameter count, for the RQ4 matched-budget comparison."""
+
+
+def discounted_returns(rewards: Sequence[float], gamma: float) -> torch.Tensor:
+    returns = []
+    g = 0.0
+    for r in reversed(rewards):
+        g = r + gamma * g
+        returns.insert(0, g)
+    return torch.tensor(returns, dtype=torch.float32)
+
+
+def a2c_losses(
+    log_probs: torch.Tensor,
+    values: torch.Tensor,
+    returns: torch.Tensor,
+    normalize_advantage: bool = True,
+) -> tuple[torch.Tensor, torch.Tensor]:
+
+    advantage = returns - values
+    if normalize_advantage:
+        actor_advantage = (advantage - advantage.mean()) / (advantage.std(unbiased=False) + 1e-8)
+    else:
+        actor_advantage = advantage
+    actor_loss = -(log_probs * actor_advantage.detach()).mean()
+    critic_loss = advantage.pow(2).mean()
+    return actor_loss, critic_loss

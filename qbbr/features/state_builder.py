@@ -1,11 +1,3 @@
-"""Stage 2: map the 6 raw features to a state vector in [0,1]^6 (Table 1).
-
-Min-max normalization is required by angle encoding: RY(pi*s_i) rotation
-angles must stay in a fixed range, since a value outside [0,1] over-rotates
-the qubit and loses information. Every output column is therefore clipped
-to [0,1] as a safety net, even though the raw quantities should mostly
-already fall in range.
-"""
 from __future__ import annotations
 
 import numpy as np
@@ -25,11 +17,6 @@ def compute_state_vector(
     risk: pd.DataFrame,
     calibration: dict[str, float],
 ) -> pd.DataFrame:
-    """telemetry: output of extract_telemetry_features.
-    risk: output of compute_risk_features (delta_t_ho_min, p_tot columns).
-    calibration: {"B_max_mbps", "RTT_min_ms", "RTT_max_ms"} for this
-    (location, direction), as produced by qbbr.features.calibration.
-    """
     b_max = calibration["B_max_mbps"]
     rtt_min = calibration["RTT_min_ms"]
     rtt_max = calibration["RTT_max_ms"]

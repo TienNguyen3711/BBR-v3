@@ -1,14 +1,3 @@
-#!/usr/bin/env python3
-"""CLI: compute per-location/direction calibration constants from raw traces.
-
-Thin wrapper around qbbr.env.calibration.compute_calibration. See
-qbbr/scripts/run_eda.py for the fuller Phase-1 pipeline (parse diagnostics +
-full state/reward export), which this will fold into once qbbr.env /
-qbbr.train / qbbr.eval exist.
-
-Usage:
-    .venv/bin/python qbbr/scripts/calibrate.py [--dataset-root PATH] [--cca bbr] [--out PATH]
-"""
 from __future__ import annotations
 
 import argparse
