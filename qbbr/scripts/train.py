@@ -13,6 +13,7 @@ PACKAGE_ROOT = Path(__file__).resolve().parent.parent  # .../qbbr
 PROJECT_ROOT = PACKAGE_ROOT.parent  # .../Codebase
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from qbbr.action.registry import dimension_sizes, is_multihead, load_action_space
 from qbbr.agents.classical.mlp_a2c import MLPA2CAgent
 from qbbr.agents.quantum.qa2c import QA2CAgent
 from qbbr.env.calibration import load_calibration
@@ -22,15 +23,22 @@ from qbbr.train.loop import train
 
 DEFAULT_CALIBRATION_PATH = PACKAGE_ROOT / "data" / "calibrated" / "per_location_constants.json"
 DEFAULT_OUT_DIR = PROJECT_ROOT / "outputs" / "runs"
+DEFAULT_ACTION_CONFIG_PATH = PACKAGE_ROOT / "configs" / "action_pacing_gain.yaml"
 
 
-def build_agent(core: str, config: dict, reupload: bool):
+def _action_dims(action_config: dict) -> tuple[int, ...]:
+    if is_multihead(action_config):
+        return tuple(dimension_sizes(action_config))
+    return (len(action_config["levels"]),)
+
+
+def build_agent(core: str, config: dict, reupload: bool, action_dims: tuple[int, ...]):
     n_layers = config.get("n_layers", 2)
     gamma = config.get("gamma", 0.99)
     lr = config.get("learning_rate", 1e-3)
     if core == "quantum":
-        return QA2CAgent(n_layers=n_layers, lr=lr, gamma=gamma, reupload=reupload)
-    return MLPA2CAgent(n_layers=n_layers, lr=lr, gamma=gamma)
+        return QA2CAgent(n_layers=n_layers, action_dims=action_dims, lr=lr, gamma=gamma, reupload=reupload)
+    return MLPA2CAgent(n_layers=n_layers, action_dims=action_dims, lr=lr, gamma=gamma)
 
 
 def main() -> None:
@@ -45,11 +53,14 @@ def main() -> None:
     )
     parser.add_argument("--reupload", action="store_true", help="data re-uploading (quantum core only)")
     parser.add_argument("--calibration-path", type=Path, default=DEFAULT_CALIBRATION_PATH)
+    parser.add_argument("--action-config", type=Path, default=DEFAULT_ACTION_CONFIG_PATH)
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
     args = parser.parse_args()
 
     config = yaml.safe_load(Path(args.config).read_text())
     n_episodes = args.n_episodes or config.get("episode", {}).get("target_episodes", [200])[0]
+    action_config = load_action_space(args.action_config)
+    action_dims = _action_dims(action_config)
 
     # Seeded here, before the agent's weights are initialized: train()'s own
     # seeding only covers the rollout/update phase, which is too late to
@@ -64,11 +75,12 @@ def main() -> None:
         args.location,
         args.direction,
         calibration,
+        action_config=action_config,
         risk_mode=args.risk_mode,
         episode_s=config.get("episode", {}).get("duration_s", 300.0),
         reward_kwargs=config.get("reward", {}),
     )
-    agent = build_agent(args.core, config, args.reupload)
+    agent = build_agent(args.core, config, args.reupload, action_dims)
 
     run_config = {**config, "location": args.location, "direction": args.direction, "core": args.core}
     run_dir = start_run(run_config, args.out_dir)

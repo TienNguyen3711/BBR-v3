@@ -105,13 +105,7 @@ def estimate_handover_cadence_s(
     duration_hours: float = _DEFAULT_DURATION_HOURS,
     step_s: float = _DEFAULT_STEP_S,
 ) -> list[HandoverCadenceEstimate]:
-    """Per-shell single-satellite pass-duration statistics for a ground station (default: Burwood).
 
-    See module docstring: this is a physical upper bound on how rarely a
-    handover could be avoided, derived from the base paper's own published
-    constellation geometry -- not Starlink's actual (unpublished, likely
-    more frequent) handover schedule.
-    """
     ts = load.timescale()
     observer = wgs84.latlon(lat, lon)
     satellites_by_shell = build_shell_satellites(ts.now(), n_sats_per_shell)
@@ -136,9 +130,5 @@ def estimate_handover_cadence_s(
 
 
 def compute_handover_failure_probability(p_rb: float, p_prach: float) -> float:
-    """p^ho: probability a single handover attempt fails."""
     raise NotImplementedError(
-        "Eq. 19 handover *failure* model needs per-attempt resource-block/PRACH "
-        "contention data Starlink doesn't publish -- unlike the ETA/cadence functions "
-        "above, this part remains blocked; see qbbr.risk.ptot for the interim proxy."
     )

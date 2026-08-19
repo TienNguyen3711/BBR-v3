@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "qbbr"
 version = "0.1.0"
-description = "Risk-aware quantum DRL data/state pipeline for BBR-v3 over Starlink"
+description = "Evaluation pipeline for learned pacing_gain adaptation of BBR-v3 over Starlink (classical and quantum RL cores)"
 requires-python = ">=3.9"
 dependencies = [
     "numpy",

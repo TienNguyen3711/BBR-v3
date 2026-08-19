@@ -1,18 +1,25 @@
 from __future__ import annotations
 import pandas as pd
-from qbbr.features.state_builder import T_ORBIT_MIN
+from qbbr.features.state_builder import HANDOVER_ETA_SCALE_MIN
 
 _HANDOVER_CYCLE_S = 15.0  # empirically validated, not merely assumed -- see module docstring
 _RETRANSMIT_PROXY_WINDOW = 10
 _RETRANSMIT_PROXY_CAP = 5.0  # retransmits/interval considered "high risk" for the proxy
 _ATTENUATION_THRESHOLD_DB = 3.0  # M in p^at(M): a representative fade-margin threshold; not
-_STUB_DELTA_T_HO_MIN = 0.5 * T_ORBIT_MIN
+_STUB_DELTA_T_HO_MIN = 0.5 * HANDOVER_ETA_SCALE_MIN
 _STUB_P_TOT = 0.5
 
 _closed_form_p_tot_cache: float | None = None
 
 
-def _closed_form_p_tot() -> float:
+def closed_form_p_tot() -> float:
+    """Real climatological atmospheric-failure baseline (ITU-R physics, cached).
+
+    Public: also used as the environment's ground-truth loss baseline (see
+    env/fluid_sim.py's synthetic_ground_truth_p_tot base_p argument), not
+    just as the "closed_form" observed-feature value -- so the agent's best
+    proxy and the actual simulated reality share the same real baseline.
+    """
     global _closed_form_p_tot_cache
     if _closed_form_p_tot_cache is None:
         from qbbr.risk.atmospheric import compute_atmospheric_failure_probability
@@ -40,7 +47,7 @@ def compute_risk_features(telemetry: pd.DataFrame, mode: str = "stub_constant") 
         seconds_to_next_handover = _HANDOVER_CYCLE_S - (t_start % _HANDOVER_CYCLE_S)
         delta_t_ho_min = seconds_to_next_handover / 60.0
 
-        p_tot = pd.Series([_closed_form_p_tot()] * n, index=telemetry.index)
+        p_tot = pd.Series([closed_form_p_tot()] * n, index=telemetry.index)
     else:
         raise ValueError(f"unknown risk mode: {mode!r}")
 

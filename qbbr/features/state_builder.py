@@ -3,7 +3,14 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-T_ORBIT_MIN = 5.4  # approx. Starlink orbital period used for s5's ETA scale
+HANDOVER_ETA_SCALE_MIN = 15.0 / 60.0  # = 0.25 min; matches qbbr.risk.ptot._HANDOVER_CYCLE_S
+# (the validated 15s reconfiguration cadence, Sec. VI-B). s5's numerator
+# (delta_t_ho_min) is a countdown on that same 15s clock, so it must be
+# normalized by the matching cycle length to span a real [0,1] range.
+# Previously normalized by the ~5.4min orbital period (an unrelated
+# timescale carried over from an earlier design), which compressed s5 into
+# ~[0.95, 1.0] -- an almost-constant "always urgent" signal regardless of
+# actual timing, wasting one of the six state-vector qubits.
 V_OVER_BDP_CAP = 2.5  # covers BBR's 5/4 probe; values > 1 already mean queue buildup
 Q_CAP_PACKETS = 50.0  # saturation cap observed in the base paper's Fig. 12-13
 
@@ -26,7 +33,7 @@ def compute_state_vector(
     s2 = (telemetry["rtt_ms"] - rtt_min) / rtt_span if rtt_span > 0 else telemetry["rtt_ms"] * 0.0
     s3 = telemetry["v_over_bdp"] / V_OVER_BDP_CAP
     s4 = telemetry["q_packets"] / Q_CAP_PACKETS
-    s5 = 1.0 - (risk["delta_t_ho_min"] / T_ORBIT_MIN)
+    s5 = 1.0 - (risk["delta_t_ho_min"] / HANDOVER_ETA_SCALE_MIN)
     s6 = risk["p_tot"]
 
     return pd.DataFrame(
