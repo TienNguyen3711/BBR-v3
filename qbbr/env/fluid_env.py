@@ -3,26 +3,41 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
-from qbbr.action.registry import level_for_action, load_action_space, n_actions
+from qbbr.action.registry import levels_for_action, load_action_space, n_actions
 from qbbr.env.base_env import BaseEnv
 from qbbr.env.fluid_sim import (
     MSS_BYTES,
     FluidParams,
     FluidState,
+    PhaseProfile,
+    ecn_marked,
+    in_reconfig_freeze_window,
     step_fluid_state,
     synthetic_ground_truth_p_tot,
 )
 from qbbr.features.bbr_internals import compute_bhat_mbps
 from qbbr.features.state_builder import compute_state_vector
 from qbbr.reward.alpha_fair import compute_reward
-from qbbr.risk.ptot import compute_risk_features
+from qbbr.risk.ptot import closed_form_p_tot, compute_risk_features
 
 _DEFAULT_ACTION_CONFIG_PATH = Path(__file__).resolve().parent.parent / "configs" / "action_pacing_gain.yaml"
 _SUBSTEP_S = 0.02  # internal fluid_sim integration step, independent of T_dec
 _BHAT_WINDOW_S = 10.0  # matches qbbr.features.bbr_internals' 10-sample window at real traces' 1Hz rate
 _STATE_COLS = ["s1_bhat", "s2_rtt_ratio", "s3_inflight_bdp", "s4_queue", "s5_handover_eta", "s6_p_tot"]
+
+_HANDOVER_PHASE_PROFILE = PhaseProfile(mean_phase_s=10.5, r_bar=0.7368)
+
+_EMA_ALPHA = 0.5  # weight on the newly-chosen level each decision, vs. (1-alpha) on
+# the running effective value. DNCCQ-PPO's EMA-smoothed action-magnitude technique
+# (Yu et al., Eq. 4-5/9-11) applies compounding smoothing to damp abrupt action
+# transitions, which can otherwise cause self-inflicted, oscillation-driven
+# retransmits; adapted here to qbbr's per-decision discrete levels rather than
+# their continuous direction+magnitude formulation, so 0.5 is a deliberately
+# chosen moderate middle ground, not their paper's own alpha value (whose
+# convention isn't directly comparable to this per-dimension formulation).
 
 
 def minrtt_100_decision_interval_s(min_rtt_ms: float) -> float:
@@ -61,17 +76,46 @@ class FluidSimEnv(BaseEnv):
         rtt_rtp_s = self.calibration["RTT_min_ms"] / 1000.0
         x_btl_bps = self.calibration["B_max_mbps"] * 1e6 / 8.0
         utilization_fraction = self.calibration.get("utilization_fraction", 1.0)
+
+        dwn_retransmit_rate_pps = self.calibration.get("dwn_retransmit_rate_pps", FluidParams.__dataclass_fields__["dwn_retransmit_rate_pps"].default)
+        drawdown_activate_mult = self.calibration.get("drawdown_activate_mult", FluidParams.__dataclass_fields__["drawdown_activate_mult"].default)
         self.params = FluidParams(
-            x_btl_bps=x_btl_bps, rtt_rtp_s=rtt_rtp_s, utilization_fraction=utilization_fraction
+            x_btl_bps=x_btl_bps, rtt_rtp_s=rtt_rtp_s, utilization_fraction=utilization_fraction,
+            dwn_retransmit_rate_pps=dwn_retransmit_rate_pps, drawdown_activate_mult=drawdown_activate_mult,
+            phase_profile=_HANDOVER_PHASE_PROFILE,
         )
+        self._phase_offset_s = 0.0  # redrawn per episode in reset()
+
+        self._ground_truth_base_p = closed_form_p_tot()
 
         self._state: FluidState | None = None
         self._history: list[dict[str, float]] = []
 
     def reset(self, seed: int | None = None) -> Any:
-        self._state = FluidState(t_s=0.0, v_bytes=self.params.bdp_bytes, i_dwn=0.0, i_crs=1.0)
+        rng = np.random.RandomState(seed) if seed is not None else np.random
+        self._phase_offset_s = float(rng.uniform(0.0, 15.0))
+
+        # EMA state for action smoothing, keyed the same way levels_for_action()
+        # keys its dict; initialized to each dimension's stock/no-op value so the
+        # first decision of the episode is smoothed toward "no override" rather
+        # than an arbitrary starting point.
+        self._ema_levels = {
+            "pacing_gain": 1.0,
+            "inflight_hi_mult": self.params.bdp_hi_mult,
+            "inflight_lo_mult": self.params.bdp_lo_mult,
+            "drawdown_activate_relative_mult": 1.0,
+        }
+
+        # v_bytes=0/i_crs=0/startup_done=False: a fresh episode is a true cold
+        # start, opting into the STARTUP-phase prefix (see step_fluid_state) --
+        # not an already-established connection at steady state (the pre-
+        # STARTUP-prefix default, still used by FluidState()'s own defaults
+        # and every direct construction elsewhere, e.g. unit tests).
+        self._state = FluidState(t_s=0.0, v_bytes=0.0, i_dwn=0.0, i_crs=0.0, startup_done=False)
         self._history = []
-        row = self._telemetry_row(t_start=0.0, state=self._state, delivered_bytes=0.0, retransmits=0.0, t_dec_s=1.0)
+        row = self._telemetry_row(
+            t_start=self._phase_offset_s, state=self._state, delivered_bytes=0.0, retransmits=0.0, t_dec_s=1.0
+        )
         self._history.append(row)
         self._update_bhat(t_dec_s=1.0)
 
@@ -84,24 +128,53 @@ class FluidSimEnv(BaseEnv):
         if self._state is None:
             raise RuntimeError("call reset() before step()")
 
-        pacing_gain = level_for_action(self._action_config, action)
+        levels = levels_for_action(self._action_config, action)
+        for dim, chosen in levels.items():
+            if dim in self._ema_levels:
+                self._ema_levels[dim] = _EMA_ALPHA * chosen + (1.0 - _EMA_ALPHA) * self._ema_levels[dim]
+
+        # Smoothed (EMA) values are what actually get applied -- see _EMA_ALPHA's
+        # comment. None means this action space doesn't control that dimension
+        # (unchanged from before smoothing existed: step_fluid_state falls back
+        # to params' stock default in that case).
+        pacing_gain = self._ema_levels["pacing_gain"] if "pacing_gain" in levels else 1.0
+        inflight_hi_mult = self._ema_levels["inflight_hi_mult"] if "inflight_hi_mult" in levels else None
+        inflight_lo_mult = self._ema_levels["inflight_lo_mult"] if "inflight_lo_mult" in levels else None
+        drawdown_activate_mult = None
+        if "drawdown_activate_relative_mult" in levels:
+            drawdown_activate_mult = self._ema_levels["drawdown_activate_relative_mult"] * self.params.drawdown_activate_mult
         t_dec_s = minrtt_100_decision_interval_s(self.calibration["RTT_min_ms"])
 
-        t_start = self._state.t_s
+        t_start = self._state.t_s + self._phase_offset_s
         state = self._state
         delivered_total = 0.0
         retransmits_total = 0.0
+        ecn_marked_s = 0.0
         remaining = t_dec_s
         while remaining > 1e-9:
             dt = min(self.substep_s, remaining)
-            p_tot = synthetic_ground_truth_p_tot(state.t_s)
-            state, delivered, retransmits = step_fluid_state(state, pacing_gain, dt, self.params, p_tot)
+            p_tot = synthetic_ground_truth_p_tot(state.t_s, base_p=self._ground_truth_base_p)
+            if in_reconfig_freeze_window(state.t_s, self._phase_offset_s, self.params.phase_profile):
+                step_pacing_gain, step_inflight_hi, step_inflight_lo, step_drawdown = 1.0, None, None, None
+            else:
+                step_pacing_gain, step_inflight_hi, step_inflight_lo, step_drawdown = (
+                    pacing_gain, inflight_hi_mult, inflight_lo_mult, drawdown_activate_mult,
+                )
+            # n_flows=1, flow_index=0 (defaults): this is a single isolated BBR
+            # flow (Scenario A), i.e. i=1, N=1 in Eq. 22's 1-indexed i in {1,...,N}.
+            state, delivered, retransmits = step_fluid_state(
+                state, step_pacing_gain, dt, self.params, p_tot, phase_offset_s=self._phase_offset_s,
+                inflight_hi_mult_override=step_inflight_hi, inflight_lo_mult_override=step_inflight_lo,
+                drawdown_activate_mult_override=step_drawdown,
+            )
             delivered_total += delivered
             retransmits_total += retransmits
+            if ecn_marked(state.v_bytes, self.params.bdp_bytes):
+                ecn_marked_s += dt
             remaining -= dt
         self._state = state
 
-        row = self._telemetry_row(t_start, state, delivered_total, retransmits_total, t_dec_s)
+        row = self._telemetry_row(t_start, state, delivered_total, retransmits_total, t_dec_s, ecn_marked_s)
         self._history.append(row)
         self._update_bhat(t_dec_s)
 
@@ -116,6 +189,7 @@ class FluidSimEnv(BaseEnv):
         info = {
             "pacing_gain": pacing_gain,
             "t_dec_s": t_dec_s,
+            "t_start": t_start,
             "delivered_bytes": delivered_total,
             "retransmits": retransmits_total,
             "rtt_ms": row["rtt_ms"],
@@ -125,19 +199,21 @@ class FluidSimEnv(BaseEnv):
         return s_t, r_t, done, info
 
     def _telemetry_row(
-        self, t_start: float, state: FluidState, delivered_bytes: float, retransmits: float, t_dec_s: float
+        self, t_start: float, state: FluidState, delivered_bytes: float, retransmits: float, t_dec_s: float,
+        ecn_marked_s: float = 0.0,
     ) -> dict[str, float]:
         bdp = self.params.bdp_bytes
         queue_delay_ms = max(state.v_bytes - bdp, 0.0) / self.params.sustained_x_btl_bps * 1000.0
         return {
             "t_start": t_start,
-            "b_hat_mbps": 0.0,  
+            "b_hat_mbps": 0.0,
             "rtt_ms": self.params.rtt_rtp_s * 1000.0 + queue_delay_ms,
             "rtt_base_ms": self.params.rtt_rtp_s * 1000.0,
             "v_over_bdp": state.v_bytes / bdp,
             "q_packets": max(state.v_bytes - bdp, 0.0) / MSS_BYTES,
             "bits_per_second": delivered_bytes * 8.0 / t_dec_s,
             "retransmits": retransmits,
+            "ecn_mark_fraction": ecn_marked_s / t_dec_s if t_dec_s > 0 else 0.0,
         }
 
     def _update_bhat(self, t_dec_s: float) -> None:

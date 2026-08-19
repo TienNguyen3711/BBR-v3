@@ -2,10 +2,19 @@ from __future__ import annotations
 
 import math
 
+import pytest
+
 from qbbr.env.fluid_sim import (
+    STARTUP_EXIT_MULT,
+    STARTUP_GAIN,
+    STARTUP_MAX_DURATION_S,
     FluidParams,
     FluidState,
+    PhaseProfile,
+    ecn_marked,
+    in_reconfig_freeze_window,
     probe_bw_interval_s,
+    retransmit_phase_multiplier,
     sigmoid,
     step_fluid_state,
     synthetic_ground_truth_p_tot,
@@ -27,8 +36,21 @@ def test_sigmoid_bounds_and_no_overflow():
 
 
 def test_probe_bw_interval_is_positive_and_capped():
-    assert probe_bw_interval_s(0.05) == min(62 * 0.05, 2.0)
-    assert probe_bw_interval_s(10.0) <= 2.0 + 1.0  # capped near 2-3s for high-RTT flows
+    # Eq. 22 is 1-indexed (i in {1,...,N}); a single isolated flow is i=1, N=1,
+    # so the cap term is 2+1/1=3.0, not 2.0.
+    assert probe_bw_interval_s(0.05) == min(62 * 0.05, 3.0)
+    assert probe_bw_interval_s(10.0) <= 3.0  # capped near 2-3s for high-RTT flows
+
+
+def test_probe_bw_interval_staggers_across_parallel_flows():
+    # Eq. 22: for N parallel BBR flows, flow i's cap term is 2+i/N -- distinct
+    # per flow, so they don't all probe in lockstep. High RTT so the cap binds.
+    high_rtt_s = 10.0
+    intervals = [probe_bw_interval_s(high_rtt_s, n_flows=4, flow_index=i) for i in range(4)]
+    assert intervals == sorted(intervals)
+    assert len(set(intervals)) == 4
+    assert intervals[0] == 2.0 + 1 / 4
+    assert intervals[-1] == 2.0 + 4 / 4
 
 
 def test_synthetic_p_tot_stays_in_reasonable_range():
@@ -77,3 +99,222 @@ def test_p_tot_above_threshold_pushes_toward_drawdown():
         state_risky, _, _ = step_fluid_state(state_risky, 1.0, dt, _PARAMS, p_tot=0.5)
         state_calm, _, _ = step_fluid_state(state_calm, 1.0, dt, _PARAMS, p_tot=0.001)
     assert state_risky.i_dwn > state_calm.i_dwn
+
+
+def test_phase_multiplier_averages_to_one_over_a_full_cycle():
+    profile = PhaseProfile(mean_phase_s=10.5, r_bar=0.7368)
+    ts = [i * 15.0 / 1000 for i in range(1000)]
+    mean_m = sum(retransmit_phase_multiplier(t, profile) for t in ts) / len(ts)
+    assert abs(mean_m - 1.0) < 1e-3
+
+
+def test_phase_multiplier_peaks_at_mean_phase_and_troughs_at_opposite():
+    profile = PhaseProfile(mean_phase_s=10.5, r_bar=0.7368)
+    at_peak = retransmit_phase_multiplier(10.5, profile)
+    at_trough = retransmit_phase_multiplier(3.0, profile)  # 10.5 - 7.5, half a cycle away
+    assert at_peak > 3.0  # strong concentration (R_bar=0.74) gives a sharp peak
+    assert at_trough < 0.1
+    assert at_peak > retransmit_phase_multiplier(10.5 + 1.0, profile) > at_trough
+
+
+def test_phase_multiplier_disabled_by_default_gives_uniform_rate():
+    assert retransmit_phase_multiplier(0.0, None) == 1.0
+    assert retransmit_phase_multiplier(7.3, None) == 1.0
+
+
+def test_dwn_retransmit_rate_pps_scales_retransmits_linearly():
+    state = FluidState(t_s=0.0, v_bytes=_PARAMS.bdp_bytes, i_dwn=0.5, i_crs=0.5)
+    dt = 0.02
+    params_1x = FluidParams(x_btl_bps=200e6 / 8.0, rtt_rtp_s=0.05, dwn_retransmit_rate_pps=10.0)
+    params_3x = FluidParams(x_btl_bps=200e6 / 8.0, rtt_rtp_s=0.05, dwn_retransmit_rate_pps=30.0)
+    s1, _d1, rtx_1x = step_fluid_state(state, 1.0, dt, params_1x, p_tot=0.001)
+    s3, _d3, rtx_3x = step_fluid_state(state, 1.0, dt, params_3x, p_tot=0.001)
+    assert s1.i_dwn == pytest.approx(s3.i_dwn)  # same bdp -> same i_dwn dynamics, confirming no feedback
+    dwn_component_increase = s1.i_dwn * (30.0 - 10.0) * dt
+    assert rtx_3x == pytest.approx(rtx_1x + dwn_component_increase)
+
+
+def test_phase_offset_and_profile_change_retransmit_rate_deterministically():
+    params = FluidParams(
+        x_btl_bps=200e6 / 8.0, rtt_rtp_s=0.05, dwn_retransmit_rate_pps=20.0,
+        phase_profile=PhaseProfile(mean_phase_s=10.5, r_bar=0.7368),
+    )
+    state = FluidState(t_s=10.5, v_bytes=_PARAMS.bdp_bytes, i_dwn=0.5, i_crs=0.5)
+    _s_peak, _d, rtx_at_peak = step_fluid_state(state, 1.0, 0.02, params, p_tot=0.001, phase_offset_s=0.0)
+    _s_trough, _d, rtx_at_trough = step_fluid_state(state, 1.0, 0.02, params, p_tot=0.001, phase_offset_s=-7.5)
+    assert rtx_at_peak > rtx_at_trough
+
+
+def test_inflight_hi_override_changes_dwn_deactivation_threshold():
+    bdp = _PARAMS.bdp_bytes
+    state = FluidState(t_s=0.0, v_bytes=bdp, i_dwn=0.5, i_crs=0.0)
+    dt = 0.02
+    s_low, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001, inflight_hi_mult_override=1.0)
+    s_high, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001, inflight_hi_mult_override=2.0)
+    assert s_low.i_dwn > s_high.i_dwn
+
+
+def test_inflight_hi_override_none_matches_params_default():
+    bdp = _PARAMS.bdp_bytes
+    state = FluidState(t_s=0.0, v_bytes=bdp, i_dwn=0.5, i_crs=0.0)
+    dt = 0.02
+    s_default, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001)
+    s_explicit, _d, _r = step_fluid_state(
+        state, 1.0, dt, _PARAMS, p_tot=0.001, inflight_hi_mult_override=_PARAMS.bdp_hi_mult
+    )
+    assert s_default.i_dwn == pytest.approx(s_explicit.i_dwn)
+
+
+def test_inflight_lo_override_changes_crs_deactivation_threshold():
+    bdp = _PARAMS.bdp_bytes
+    state = FluidState(t_s=0.0, v_bytes=bdp, i_dwn=0.0, i_crs=0.5)
+    dt = 0.02
+    s_low, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001, inflight_lo_mult_override=0.75)
+    s_high, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001, inflight_lo_mult_override=1.25)
+    assert s_high.i_crs > s_low.i_crs
+
+
+def test_inflight_lo_override_none_matches_params_default():
+    bdp = _PARAMS.bdp_bytes
+    state = FluidState(t_s=0.0, v_bytes=bdp, i_dwn=0.0, i_crs=0.5)
+    dt = 0.02
+    s_default, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001)
+    s_explicit, _d, _r = step_fluid_state(
+        state, 1.0, dt, _PARAMS, p_tot=0.001, inflight_lo_mult_override=_PARAMS.bdp_lo_mult
+    )
+    assert s_default.i_crs == pytest.approx(s_explicit.i_crs)
+
+
+def test_drawdown_activate_override_changes_dwn_activation_threshold():
+    bdp = _PARAMS.bdp_bytes
+    state = FluidState(t_s=0.0, v_bytes=bdp, i_dwn=0.0, i_crs=1.0)
+    dt = 0.02
+    s_low, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001, drawdown_activate_mult_override=0.5)
+    s_high, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001, drawdown_activate_mult_override=1.25)
+    assert s_low.i_dwn > s_high.i_dwn
+
+
+def test_drawdown_activate_override_none_matches_params_default():
+    bdp = _PARAMS.bdp_bytes
+    state = FluidState(t_s=0.0, v_bytes=bdp, i_dwn=0.0, i_crs=1.0)
+    dt = 0.02
+    s_default, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001)
+    s_explicit, _d, _r = step_fluid_state(
+        state, 1.0, dt, _PARAMS, p_tot=0.001, drawdown_activate_mult_override=_PARAMS.drawdown_activate_mult
+    )
+    assert s_default.i_dwn == pytest.approx(s_explicit.i_dwn)
+
+
+def test_ecn_marked_true_above_threshold_false_below():
+    bdp = _PARAMS.bdp_bytes
+    assert ecn_marked(bdp * 1.01, bdp) is True
+    assert ecn_marked(bdp * 0.99, bdp) is False
+
+
+def test_ecn_marked_respects_custom_threshold_mult():
+    bdp = _PARAMS.bdp_bytes
+    assert ecn_marked(bdp * 1.2, bdp, threshold_mult=1.5) is False
+    assert ecn_marked(bdp * 1.6, bdp, threshold_mult=1.5) is True
+
+
+def test_startup_default_field_is_done_for_backward_compat():
+    assert FluidState().startup_done is True
+
+
+def test_startup_uses_startup_gain_ignoring_agent_pacing_gain():
+    state_startup = FluidState(t_s=0.0, v_bytes=0.0, i_dwn=0.0, i_crs=0.0, startup_done=False)
+    state_cruise_low_gain = FluidState(t_s=0.0, v_bytes=0.0, i_dwn=0.0, i_crs=1.0, startup_done=True)
+    dt = 0.02
+    s_startup, _d, _r = step_fluid_state(state_startup, 0.1, dt, _PARAMS, p_tot=0.001)
+    s_cruise, _d, _r = step_fluid_state(state_cruise_low_gain, 0.1, dt, _PARAMS, p_tot=0.001)
+    assert s_startup.v_bytes > s_cruise.v_bytes
+
+
+def test_startup_exits_when_volume_crosses_exit_threshold():
+    bdp = _PARAMS.bdp_bytes
+    state = FluidState(t_s=0.0, v_bytes=STARTUP_EXIT_MULT * bdp * 0.99, i_dwn=0.0, i_crs=0.5, startup_done=False)
+    dt = 0.02
+    new_state, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001)
+    assert new_state.startup_done is True
+
+
+def test_startup_stays_active_when_volume_is_far_below_exit_threshold():
+    state = FluidState(t_s=0.0, v_bytes=0.0, i_dwn=0.0, i_crs=0.0, startup_done=False)
+    dt = 0.02
+    new_state, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001)
+    assert new_state.startup_done is False
+
+
+def test_startup_injection_matches_startup_gain_exactly():
+    state = FluidState(t_s=0.0, v_bytes=0.0, i_dwn=0.0, i_crs=0.0, startup_done=False)
+    dt = 0.001  # small enough that injected bytes stay under one substep's capacity_bytes
+    capacity_bps = 1e6
+    new_state, delivered, _r = step_fluid_state(
+        state, 1.0, dt, _PARAMS, p_tot=0.001, capacity_bps_override=capacity_bps
+    )
+    expected_injected = capacity_bps * STARTUP_GAIN * dt
+    expected_delivered = min(capacity_bps * dt, expected_injected)
+    assert delivered == pytest.approx(expected_delivered)
+    assert new_state.v_bytes == pytest.approx(expected_injected - expected_delivered)
+
+
+def test_startup_ignores_inflight_and_drawdown_overrides():
+    state = FluidState(t_s=0.0, v_bytes=_PARAMS.bdp_bytes, i_dwn=0.0, i_crs=0.5, startup_done=False)
+    dt = 0.02
+    s_with_override, _d, _r = step_fluid_state(
+        state, 1.0, dt, _PARAMS, p_tot=0.001,
+        inflight_hi_mult_override=1.0, inflight_lo_mult_override=0.5, drawdown_activate_mult_override=0.1,
+    )
+    s_without_override, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001)
+    assert s_with_override.i_dwn == pytest.approx(s_without_override.i_dwn)
+    assert s_with_override.i_crs == pytest.approx(s_without_override.i_crs)
+    assert s_with_override.v_bytes == pytest.approx(s_without_override.v_bytes)
+
+
+def test_startup_max_duration_fallback_exit():
+    state = FluidState(
+        t_s=STARTUP_MAX_DURATION_S - 0.01, v_bytes=0.0, i_dwn=0.0, i_crs=0.0, startup_done=False
+    )
+    dt = 0.02
+    new_state, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001, capacity_bps_override=0.0)
+    assert new_state.startup_done is True
+
+
+_FREEZE_PROFILE = PhaseProfile(mean_phase_s=10.5, r_bar=0.7368)
+
+
+def test_in_reconfig_freeze_window_true_at_mean_phase():
+    assert in_reconfig_freeze_window(t_s=10.5, phase_offset_s=0.0, phase_profile=_FREEZE_PROFILE)
+
+
+def test_in_reconfig_freeze_window_true_within_half_width():
+    assert in_reconfig_freeze_window(t_s=10.5 + 0.9, phase_offset_s=0.0, phase_profile=_FREEZE_PROFILE)
+    assert in_reconfig_freeze_window(t_s=10.5 - 0.9, phase_offset_s=0.0, phase_profile=_FREEZE_PROFILE)
+
+
+def test_in_reconfig_freeze_window_false_outside_half_width():
+    assert not in_reconfig_freeze_window(t_s=10.5 + 1.1, phase_offset_s=0.0, phase_profile=_FREEZE_PROFILE)
+    assert not in_reconfig_freeze_window(t_s=10.5 - 1.1, phase_offset_s=0.0, phase_profile=_FREEZE_PROFILE)
+    assert not in_reconfig_freeze_window(t_s=3.0, phase_offset_s=0.0, phase_profile=_FREEZE_PROFILE)
+
+
+def test_in_reconfig_freeze_window_wraps_across_cycle_boundary():
+    profile = PhaseProfile(mean_phase_s=0.2, r_bar=0.7368)
+    assert in_reconfig_freeze_window(t_s=14.9, phase_offset_s=0.0, phase_profile=profile)
+
+
+def test_in_reconfig_freeze_window_none_profile_disables_it():
+    assert not in_reconfig_freeze_window(t_s=10.5, phase_offset_s=0.0, phase_profile=None)
+
+
+def test_in_reconfig_freeze_window_respects_phase_offset():
+    assert in_reconfig_freeze_window(t_s=0.0, phase_offset_s=10.5, phase_profile=_FREEZE_PROFILE)
+
+
+def test_step_fluid_state_forces_stock_pacing_gain_inside_freeze_window():
+    bdp = _PARAMS.bdp_bytes
+    state = FluidState(t_s=10.5, v_bytes=bdp, i_dwn=0.0, i_crs=1.0)
+    dt = 0.02
+    aggressive, _d, _r = step_fluid_state(state, 1.25, dt, _PARAMS, p_tot=0.001)
+    frozen, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001)
+    assert aggressive.v_bytes != frozen.v_bytes  # sanity: the two calls really do differ
