@@ -12,7 +12,7 @@ _STUB_P_TOT = 0.5
 _closed_form_p_tot_cache: float | None = None
 
 
-def _closed_form_p_tot() -> float:
+def closed_form_p_tot() -> float:
     global _closed_form_p_tot_cache
     if _closed_form_p_tot_cache is None:
         from qbbr.risk.atmospheric import compute_atmospheric_failure_probability
@@ -40,7 +40,7 @@ def compute_risk_features(telemetry: pd.DataFrame, mode: str = "stub_constant") 
         seconds_to_next_handover = _HANDOVER_CYCLE_S - (t_start % _HANDOVER_CYCLE_S)
         delta_t_ho_min = seconds_to_next_handover / 60.0
 
-        p_tot = pd.Series([_closed_form_p_tot()] * n, index=telemetry.index)
+        p_tot = pd.Series([closed_form_p_tot()] * n, index=telemetry.index)
     else:
         raise ValueError(f"unknown risk mode: {mode!r}")
 
