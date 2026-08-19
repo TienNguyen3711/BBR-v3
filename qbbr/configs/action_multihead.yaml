@@ -1,0 +1,72 @@
+# Multi-head action space: pacing_gain (existing) plus inflight_hi/inflight_lo
+# (TMC paper Eq. 28: these are the parameters that bound BBR's ProbeBW
+# congestion window and, per the paper's own "New Insights" section, are
+# what BBR uses to "mitigate persistent queue buildup and bufferbloat" --
+# directly relevant to RQ1's retransmission-reduction goal, which the
+# pacing_gain-only action space could not move beyond ~London (see
+# main.tex Sec. VI-C: raising beta 4x left every location's throughput/
+# retransmit outcome unchanged, evidence the action space itself, not the
+# reward weighting, was the binding constraint).
+#
+# inflight_hi/lo levels are floored at their fluid_sim.py defaults (2.0 /
+# 1.0), not allowed to shrink below them. A first full retraining pass
+# with a symmetric [1.5..2.5]/[0.75..1.25] range let every trained agent
+# converge to a *smaller*-than-default inflight_hi/lo -- it lowers RTT
+# (directly rewarded every step by the reward's delta*log(RTT/RTT_min)
+# term, eq:reward in main.tex) at the cost of a persistently *higher*
+# retransmit rate, which the reward's l_t term structurally cannot see
+# because l_t is a step-to-step retransmit-rate *delta*, not a *level*
+# -- a deliberate design choice (main.tex Sec. sec:reward, "Robustness to
+# baseline loss") to avoid conflating Starlink's non-congestive losses
+# with congestion, not a bug to fix here. Restricting the action range to
+# expansion-only removes that exploit while keeping the reward as
+# published; index 0 on both dimensions is the exact old single-head
+# default, so it remains a safe fallback the policy can always fall back
+# to.
+#
+# Each dimension gets its own actor head (see qbbr.agents.*.act()); the
+# three sampled indices are packed into one flat integer (mixed-radix,
+# qbbr.action.registry.encode_flat_action) so the existing single-int
+# action contract (BaseEnv.step, RolloutBuffer, train/loop.py) needs no
+# changes elsewhere.
+action_space: multihead
+dimensions:
+  pacing_gain:
+    levels: [0.75, 0.9, 1.0, 1.1, 1.25]
+    hook: bbr2_set_pacing_rate
+    clamp_state: ProbeBW_CRUISE
+  inflight_hi_mult:
+    # multiple of B_bar_DP; default (index 0) matches fluid_sim.FluidParams'
+    # bdp_hi_mult default (itself matching this project's reading of the
+    # TMC paper's model, Eq. 26/28). Expansion-only -- see note above.
+    levels: [2.0, 2.25, 2.5, 2.75, 3.0]
+    hook: bbr2_set_inflight_hi
+    clamp_state: ProbeBW_CRUISE
+  inflight_lo_mult:
+    # multiple of B_bar_DP; default (index 0) matches bdp_lo_mult's
+    # default. Expansion-only -- see note above.
+    levels: [1.0, 1.125, 1.25, 1.375, 1.5]
+    hook: bbr2_set_inflight_lo
+    clamp_state: ProbeBW_CRUISE
+
+# A 4th dimension, drawdown_activate_relative_mult (a relative multiplier on
+# params.drawdown_activate_mult -- real BBR-v3's PROBE_BW:UP exit criterion,
+# confirmed by Gomez et al. and Scherrer et al.), was tried and REMOVED after
+# a small-scale (60-episode) sanity training pass showed every location
+# converging to the same extreme (raise-the-threshold) level ~50% of the
+# time -- the same uniform, location-independent exploit signature as the
+# original symmetric inflight_hi/lo range. Unlike inflight_hi/lo, this one
+# has no safe "restrict the range" fix: it directly gates the simulator's
+# retransmit-generation term (retransmits = i_dwn * dwn_rate_now * dt in
+# fluid_sim.step_fluid_state), so the direction that would actually help
+# RQ1 (raising the threshold, fewer measured retransmits) IS the exploitable
+# direction, and the safe direction (lowering it) mechanically increases
+# retransmits by construction, making the dimension useless for RQ1's goal
+# either way. fluid_sim.py's drawdown_activate_mult_override plumbing is
+# left in place (harmless when unused, exercised by its own unit tests) in
+# case a future action-space design can express this more safely.
+#
+# EMA-smoothed action application (env/fluid_env.py's _EMA_ALPHA) is a
+# separate, unrelated change applied alongside this experiment -- see
+# qbbr.env.fluid_env's module-level comment -- and is unaffected by the
+# above; it stayed in.
