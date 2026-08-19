@@ -9,7 +9,7 @@ from qbbr.eval.scenario_a import run_scenario_a, simulated_agent_stats
 
 _EXPECTED_KEYS = {
     "throughput_mbps_median", "throughput_mbps_iqr",
-    "rtt_ms_median", "rtt_ms_iqr",
+    "rtt_ms_median", "rtt_ms_iqr", "rtt_ms_p95",
     "retransmits_per_s_median", "retransmits_per_s_iqr",
 }
 

@@ -24,7 +24,16 @@ def min_per_flow_throughput(x_achieved: Sequence[float]) -> float:
 
 
 def alpha_fair_efficiency_ratio(x_achieved: Sequence[float], alpha: float, eps: float = EPSILON) -> float:
-
+    """WARNING: mathematically unbounded at alpha=2 -- U_alpha(x)=(x+eps)^(1-alpha)/(1-alpha)
+    becomes -1/(x+eps) there, which diverges toward -inf as any single flow's
+    throughput approaches 0, so a near-starved flow can push the returned ratio
+    far outside the (0,1] range this metric is otherwise documented to have
+    (observed up to ~173 pre-exclusion in RQ2; see main.tex Sec. RQ2 and
+    qbbr/scripts/eval_rq2_parallel.py's ALPHA_LABELS comment for the full
+    derivation). alpha=1's log utility only diverges logarithmically at the same
+    limit and stays well-behaved; alpha=0,inf don't route through this term.
+    Callers sweeping alpha should exclude 2.0 unless every x_achieved[i] is
+    bounded well away from 0."""
     x_achieved = np.asarray(x_achieved, dtype=float)
     n = len(x_achieved)
     total_capacity = float(x_achieved.sum())
@@ -39,17 +48,32 @@ def alpha_fair_efficiency_ratio(x_achieved: Sequence[float], alpha: float, eps: 
 
 
 def real_cca_distribution_stats(
-    dataset_root: str | Path, location: str, direction: str, cca: str
+    dataset_root: str | Path, location: str, direction: str, cca: str, category: str = "sequential"
 ) -> dict[str, float]:
+    """Real per-CCA throughput/RTT/retransmit distribution from the raw dataset.
+
+    category selects "sequential" (single dedicated flow, no contention) or
+    "competitive" (parallel multi-CCA runs sharing one link) -- these are
+    physically different scenarios with very different throughput, so they
+    must not be pooled together. Defaults to "sequential" since that is what
+    a single-flow FluidSimEnv comparison (validate_simulator.py, scenario_a)
+    represents.
+    """
     from qbbr.data.catalog import build_catalog, iter_file_records
     from qbbr.data.loader import load_trace
 
     catalog = build_catalog(dataset_root)
     subset = catalog[
-        (catalog["cca"] == cca) & (catalog["location"] == location) & (catalog["direction"] == direction)
+        (catalog["cca"] == cca)
+        & (catalog["location"] == location)
+        & (catalog["direction"] == direction)
+        & (catalog["category"] == category)
     ]
     if subset.empty:
-        raise ValueError(f"no traces found for cca={cca!r}, location={location!r}, direction={direction!r}")
+        raise ValueError(
+            f"no traces found for cca={cca!r}, location={location!r}, "
+            f"direction={direction!r}, category={category!r}"
+        )
 
     bps_all, rtt_all, rtx_all = [], [], []
     for record in iter_file_records(subset):
@@ -65,6 +89,42 @@ def real_cca_distribution_stats(
         "throughput_mbps_iqr": float(bps.quantile(0.75) / 1e6 - bps.quantile(0.25) / 1e6),
         "rtt_ms_median": float(rtt.median()),
         "rtt_ms_iqr": float(rtt.quantile(0.75) - rtt.quantile(0.25)),
+        "rtt_ms_p95": float(rtt.quantile(0.95)),
         "retransmits_per_s_median": float(rtx.median()),
         "retransmits_per_s_iqr": float(rtx.quantile(0.75) - rtx.quantile(0.25)),
     }
+
+
+def real_cca_per_run_medians(
+    dataset_root: str | Path, location: str, direction: str, cca: str, category: str = "sequential"
+) -> dict[str, list[float]]:
+    """One median per TRACE FILE (not pooled across files, unlike
+    real_cca_distribution_stats above) -- the real-data analogue of one
+    trained agent's per-seed evaluation summary, needed for a fair n-vs-n
+    Mann-Whitney comparison against qbbr's per-seed medians (RQ1). Each
+    (location, direction, cca, category) cell has exactly 10 trace files in
+    this dataset, matching the paper's >=10-seed protocol on the qbbr side.
+    """
+    from qbbr.data.catalog import build_catalog, iter_file_records
+    from qbbr.data.loader import load_trace
+
+    catalog = build_catalog(dataset_root)
+    subset = catalog[
+        (catalog["cca"] == cca)
+        & (catalog["location"] == location)
+        & (catalog["direction"] == direction)
+        & (catalog["category"] == category)
+    ]
+    if subset.empty:
+        raise ValueError(
+            f"no traces found for cca={cca!r}, location={location!r}, "
+            f"direction={direction!r}, category={category!r}"
+        )
+
+    medians: dict[str, list[float]] = {"throughput_mbps": [], "rtt_ms": [], "retransmits_per_s": []}
+    for record in iter_file_records(subset):
+        trace = load_trace(record)
+        medians["throughput_mbps"].append(float(trace.intervals["bits_per_second"].median() / 1e6))
+        medians["rtt_ms"].append(float(trace.intervals["rtt_ms"].median()))
+        medians["retransmits_per_s"].append(float(trace.intervals["retransmits"].median()))
+    return medians
