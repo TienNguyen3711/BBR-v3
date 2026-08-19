@@ -18,6 +18,7 @@ def _summarize(bps: pd.Series, rtt: pd.Series, rtx_per_s: pd.Series) -> dict[str
         "throughput_mbps_iqr": float(bps.quantile(0.75) / 1e6 - bps.quantile(0.25) / 1e6),
         "rtt_ms_median": float(rtt.median()),
         "rtt_ms_iqr": float(rtt.quantile(0.75) - rtt.quantile(0.25)),
+        "rtt_ms_p95": float(rtt.quantile(0.95)),
         "retransmits_per_s_median": float(rtx_per_s.median()),
         "retransmits_per_s_iqr": float(rtx_per_s.quantile(0.75) - rtx_per_s.quantile(0.25)),
     }
@@ -31,11 +32,14 @@ def simulated_agent_stats(
     n_episodes: int,
     episode_s: float,
     risk_mode: str = "stub_constant",
+    action_config: Any = None,
 ) -> dict[str, float]:
 
     bps_all, rtt_all, rtx_per_s_all = [], [], []
     for _ep in range(n_episodes):
-        env = FluidSimEnv(location, direction, calibration, episode_s=episode_s, risk_mode=risk_mode)
+        env = FluidSimEnv(
+            location, direction, calibration, action_config=action_config, episode_s=episode_s, risk_mode=risk_mode
+        )
         state = env.reset()
         done = False
         while not done:
@@ -58,10 +62,13 @@ def run_scenario_a(
     episode_s: float = 300.0,
     risk_mode: str = "stub_constant",
     comparison_ccas: tuple[str, ...] = DEFAULT_COMPARISON_CCAS,
+    action_config: Any = None,
 ) -> dict[str, dict[str, float]]:
 
     results = {
-        "qbbr": simulated_agent_stats(agent, location, direction, calibration, n_episodes, episode_s, risk_mode)
+        "qbbr": simulated_agent_stats(
+            agent, location, direction, calibration, n_episodes, episode_s, risk_mode, action_config
+        )
     }
     for cca in comparison_ccas:
         results[cca] = real_cca_distribution_stats(dataset_root, location, direction, cca)

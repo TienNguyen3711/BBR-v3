@@ -54,6 +54,9 @@ def train(
         if on_episode is not None:
             on_episode(episode, summary)
 
+    if run_dir is not None:
+        agent.save(Path(run_dir) / "checkpoint.pt")
+
     return {
         "n_episodes": n_episodes,
         "episode_rewards": episode_rewards,

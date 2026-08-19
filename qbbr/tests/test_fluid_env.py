@@ -43,6 +43,82 @@ def test_step_returns_well_formed_transition(sample_calibration):
     assert info["t_dec_s"] > 0.0
 
 
+def test_reconfig_freeze_window_overrides_aggressive_action(sample_calibration):
+    # Force the env's clock to sit exactly on the calibrated retransmit
+    # concentration phase (mean_phase_s=10.5, see fluid_env._HANDOVER_PHASE_PROFILE)
+    # with zero phase offset, so the whole decision interval falls inside
+    # the freeze window. An aggressive pacing_gain=1.25 (index 4) should
+    # then produce an identical transition to the neutral pacing_gain=1.0
+    # (index 2), since fluid_env.py substitutes pacing_gain=1.0 for every
+    # substep inside the freeze window regardless of the chosen action.
+    from qbbr.env.fluid_sim import FluidState
+
+    env_neutral = FluidSimEnv("Sydney", "downlink", sample_calibration)
+    env_neutral.reset()
+    env_neutral._phase_offset_s = 0.0
+    env_neutral._state = FluidState(t_s=10.5, v_bytes=env_neutral.params.bdp_bytes, i_dwn=0.0, i_crs=1.0)
+
+    env_aggressive = FluidSimEnv("Sydney", "downlink", sample_calibration)
+    env_aggressive.reset()
+    env_aggressive._phase_offset_s = 0.0
+    env_aggressive._state = FluidState(t_s=10.5, v_bytes=env_aggressive.params.bdp_bytes, i_dwn=0.0, i_crs=1.0)
+
+    _s_n, _r_n, _d_n, info_neutral = env_neutral.step(2)  # pacing_gain=1.0
+    _s_a, _r_a, _d_a, info_aggressive = env_aggressive.step(4)  # pacing_gain=1.25, should be frozen to 1.0
+
+    assert info_neutral["delivered_bytes"] == pytest.approx(info_aggressive["delivered_bytes"])
+    assert info_neutral["retransmits"] == pytest.approx(info_aggressive["retransmits"])
+
+
+def test_reconfig_freeze_window_does_not_affect_actions_outside_it(sample_calibration):
+    # Same setup but starting far from mean_phase_s (t_s=3.0, >1s half-width
+    # away): an aggressive pacing_gain should now actually differ from
+    # neutral, confirming the freeze is localized rather than a global
+    # no-op bug that always forces pacing_gain=1.0.
+    from qbbr.env.fluid_sim import FluidState
+
+    env_neutral = FluidSimEnv("Sydney", "downlink", sample_calibration)
+    env_neutral.reset()
+    env_neutral._phase_offset_s = 0.0
+    env_neutral._state = FluidState(t_s=3.0, v_bytes=env_neutral.params.bdp_bytes, i_dwn=0.0, i_crs=1.0)
+
+    env_aggressive = FluidSimEnv("Sydney", "downlink", sample_calibration)
+    env_aggressive.reset()
+    env_aggressive._phase_offset_s = 0.0
+    env_aggressive._state = FluidState(t_s=3.0, v_bytes=env_aggressive.params.bdp_bytes, i_dwn=0.0, i_crs=1.0)
+
+    env_neutral.step(2)  # pacing_gain=1.0
+    env_aggressive.step(4)  # pacing_gain=1.25, not frozen here
+
+    # delivered_bytes alone can saturate at capacity regardless of
+    # pacing_gain (Sydney's short RTT means the queue is already full at
+    # v_bytes=bdp), masking the difference -- v_bytes (queue occupancy)
+    # is the more sensitive signal: a higher pacing_gain injects more
+    # bytes than capacity can drain, growing the queue even when delivered
+    # throughput is already capacity-capped.
+    assert env_aggressive._state.v_bytes != pytest.approx(env_neutral._state.v_bytes)
+
+
+def test_ema_smoothing_damps_first_step_then_converges(sample_calibration):
+    # First step choosing an aggressive pacing_gain=1.25 (action index 4)
+    # should apply something between the stock start (1.0) and 1.25, not
+    # 1.25 outright (_EMA_ALPHA=0.5: effective = 0.5*1.25 + 0.5*1.0 =
+    # 1.125). Repeating the same action should move the effective value
+    # closer to 1.25 each step, converging rather than jumping.
+    from qbbr.env.fluid_sim import FluidState
+
+    env = FluidSimEnv("Sydney", "downlink", sample_calibration)
+    env.reset(seed=0)
+    env._phase_offset_s = 0.0  # t_s stays well outside the freeze window (mean_phase_s=10.5, +-1s) for these 2 steps
+    env._state = FluidState(t_s=0.0, v_bytes=env.params.bdp_bytes, i_dwn=0.0, i_crs=1.0)
+
+    _s1, _r1, _d1, info1 = env.step(4)  # pacing_gain=1.25
+    assert info1["pacing_gain"] == pytest.approx(1.125)
+    _s2, _r2, _d2, info2 = env.step(4)
+    assert info2["pacing_gain"] == pytest.approx(0.5 * 1.25 + 0.5 * 1.125)
+    assert info2["pacing_gain"] > info1["pacing_gain"]
+
+
 def test_episode_terminates_at_episode_length(sample_calibration):
     env = FluidSimEnv("Sydney", "downlink", sample_calibration, episode_s=0.5)
     env.reset()

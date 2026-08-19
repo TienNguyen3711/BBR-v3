@@ -11,11 +11,13 @@ PACKAGE_ROOT = Path(__file__).resolve().parent.parent  # .../qbbr
 PROJECT_ROOT = PACKAGE_ROOT.parent  # .../Codebase
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from qbbr.action.registry import load_action_space
 from qbbr.env.calibration import load_calibration
 from qbbr.eval.ablation import ablation_grid, run_ablation, save_ablation_results
 
 DEFAULT_CALIBRATION_PATH = PACKAGE_ROOT / "data" / "calibrated" / "per_location_constants.json"
 DEFAULT_OUT_DIR = PROJECT_ROOT / "outputs" / "ablation"
+DEFAULT_ACTION_CONFIG_PATH = PACKAGE_ROOT / "configs" / "action_pacing_gain.yaml"
 
 
 def _parse_bool_list(raw: str) -> list[bool]:
@@ -49,7 +51,13 @@ def main() -> None:
     parser.add_argument("--risk-features", type=_parse_bool_list, default=None, help="e.g. false or false,true")
     parser.add_argument("--core", type=_parse_str_list, default=None, help="e.g. quantum or quantum,classical")
     parser.add_argument("--calibration-path", type=Path, default=DEFAULT_CALIBRATION_PATH)
+    parser.add_argument("--action-config", type=Path, default=DEFAULT_ACTION_CONFIG_PATH)
     parser.add_argument("--out", type=Path, default=None, help="default: outputs/ablation/<timestamp>.json")
+    parser.add_argument(
+        "--checkpoint-root", type=Path, default=None,
+        help="if set, save each grid point's trained agents under <root>/<point>/seed<N>.pt "
+             "for later Scenario A/B evaluation",
+    )
     args = parser.parse_args()
 
     config = yaml.safe_load(Path(args.config).read_text())
@@ -73,6 +81,7 @@ def main() -> None:
         print(f"  {point}")
 
     calibration = load_calibration(args.calibration_path)
+    action_config = load_action_space(args.action_config)
 
     t0 = time.time()
 
@@ -87,6 +96,7 @@ def main() -> None:
     results = run_ablation(
         config, args.location, args.direction, calibration,
         n_episodes=n_episodes, n_runs=args.n_runs, base_seed=args.base_seed, on_point=on_point,
+        checkpoint_root=args.checkpoint_root, action_config=action_config,
     )
 
     out_path = args.out or (DEFAULT_OUT_DIR / f"{time.strftime('%Y%m%dT%H%M%S')}.json")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from qbbr.eval.ablation import (
+    _point_dirname,
     ablation_grid,
     load_ablation_results,
     run_ablation,
@@ -69,6 +70,46 @@ def test_run_ablation_point_seed_makes_samples_reproducible(sample_calibration):
         calibration=sample_calibration, n_episodes=2, n_runs=2, base_seed=7,
     )
     assert run_ablation_point(**kwargs)["samples"] == run_ablation_point(**kwargs)["samples"]
+
+
+def test_run_ablation_point_saves_one_checkpoint_per_seed(tmp_path, sample_calibration):
+    point = {
+        "alpha": 1.0, "delta": 1.0, "beta": 0.5,
+        "n_layers": 2, "data_reuploading": False, "risk_features": False, "core": "classical",
+    }
+    run_ablation_point(
+        point, _TOY_CONFIG, "Sydney", "downlink", sample_calibration,
+        n_episodes=2, n_runs=3, base_seed=5, checkpoint_dir=tmp_path,
+    )
+    saved = sorted(p.name for p in tmp_path.glob("*.pt"))
+    assert saved == ["seed5.pt", "seed6.pt", "seed7.pt"]
+
+
+def test_run_ablation_point_saves_nothing_when_checkpoint_dir_is_none(tmp_path, sample_calibration):
+    point = {
+        "alpha": 1.0, "delta": 1.0, "beta": 0.5,
+        "n_layers": 2, "data_reuploading": False, "risk_features": False, "core": "classical",
+    }
+    run_ablation_point(
+        point, _TOY_CONFIG, "Sydney", "downlink", sample_calibration, n_episodes=2, n_runs=2,
+    )
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_run_ablation_uses_one_subdirectory_per_grid_point(tmp_path, sample_calibration):
+    small_config = {**_TOY_CONFIG, "ablation": {**_TOY_CONFIG["ablation"], "alpha": [0.5, 1], "n_layers": [2],
+                                                 "data_reuploading": [False], "risk_features": [False],
+                                                 "core": ["classical"]}}
+    run_ablation(
+        small_config, "Sydney", "downlink", sample_calibration,
+        n_episodes=2, n_runs=1, checkpoint_root=tmp_path,
+    )
+    grid = list(ablation_grid(small_config))
+    expected_dirs = {_point_dirname(point) for point in grid}
+    actual_dirs = {p.name for p in tmp_path.iterdir()}
+    assert actual_dirs == expected_dirs
+    for point_dir in tmp_path.iterdir():
+        assert (point_dir / "seed0.pt").exists()
 
 
 def test_run_ablation_calls_on_point_once_per_grid_point_and_covers_whole_grid(sample_calibration):

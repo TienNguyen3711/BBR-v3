@@ -53,9 +53,6 @@ def test_custom_competing_cca_subset_is_respected(sample_calibration):
 
 
 def test_agent_flow_dominates_over_a_short_run(sample_calibration):
-    # Qualitative sanity check, matching the real dataset's own pattern
-    # (BBR-family dominates loss-reactive Cubic/Hybla): not an exact-number
-    # assertion, just that the agent isn't starved to zero.
     env = MultiFlowFluidEnv("Sydney", "downlink", sample_calibration, episode_s=10.0)
     env.reset()
     done = False
