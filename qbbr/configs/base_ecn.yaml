@@ -1,0 +1,39 @@
+# Identical to base.yaml except reward.gamma is nonzero, enabling the
+# ECN-style level congestion penalty (qbbr.env.fluid_sim.ecn_marked,
+# qbbr.reward.alpha_fair.compute_reward's gamma term). See main.tex
+# Sec. rq1b-extensions for why this term was added: a LEVEL-based
+# congestion-only signal, complementary to l_t's delta-only loss penalty,
+# targeting the volume/congestion pathway identified as dominant in
+# Sec. rq1b-mechanism.
+#
+# NOTE: reward.gamma (this file's new term) is unrelated to the top-level
+# gamma below (the RL discount factor) -- same Greek letter, different
+# namespace, coincidental naming collision. reward.gamma follows the
+# alpha/delta/beta naming convention already used for reward weights.
+seed: 0
+gamma: 0.99
+learning_rate: 1.0e-3
+n_layers: 2
+
+reward:
+  alpha: 1.0
+  delta: 1.0
+  beta: 0.5
+  gamma: 0.5 # ECN-style level congestion penalty weight (new); 0.0 in base.yaml
+  eps: 1.0e-6
+  eps_rtx: 1.0
+
+decision_interval:
+  rule: minrtt_100
+
+episode:
+  duration_s: 300
+  target_episodes: [200, 500]
+
+ablation:
+  alpha: [0.5, 1, 2]
+  delta_beta_center: [1.0, 0.5]
+  n_layers: [2, 3]
+  data_reuploading: [false, true]
+  risk_features: [false, true]
+  core: [quantum, classical]
