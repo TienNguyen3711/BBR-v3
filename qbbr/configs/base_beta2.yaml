@@ -1,0 +1,33 @@
+# Same as base.yaml except beta (loss-change penalty weight): raised from
+# 0.5 to 2.0 (4x) to test whether RQ1's mostly-failing retransmit-reduction
+# margin (main.tex Sec. VI-C: only London clears the >=20% threshold at the
+# default beta) is a reward-weighting problem rather than an action-space
+# ceiling -- throughput retention was never the binding constraint (99-104%
+# everywhere), so there is headroom to trade some of it for more aggressive
+# loss avoidance.
+seed: 0
+gamma: 0.99
+learning_rate: 1.0e-3
+n_layers: 2
+
+reward:
+  alpha: 1.0
+  delta: 1.0
+  beta: 2.0 # was 0.5 in base.yaml
+  eps: 1.0e-6
+  eps_rtx: 1.0
+
+decision_interval:
+  rule: minrtt_100
+
+episode:
+  duration_s: 300
+  target_episodes: [200, 500]
+
+ablation:
+  alpha: [0.5, 1, 2]
+  delta_beta_center: [1.0, 2.0]
+  n_layers: [2, 3]
+  data_reuploading: [false, true]
+  risk_features: [false, true]
+  core: [quantum, classical]
