@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+from pathlib import Path
 from typing import Any, Sequence
 
 import torch
@@ -18,6 +19,19 @@ class BaseAgent(abc.ABC):
     @abc.abstractmethod
     def param_count(self) -> int:
         """Total trainable parameter count, for the RQ4 matched-budget comparison."""
+
+    @abc.abstractmethod
+    def save(self, path: str | Path) -> None:
+        """Persist actor/critic/optimizer weights to path (torch.save)."""
+
+    @abc.abstractmethod
+    def load(self, path: str | Path) -> None:
+        """Load weights saved by save() into this already-constructed agent.
+
+        The agent must already be built with matching hyperparameters
+        (n_layers, reupload, ...); this only restores weights, not
+        architecture.
+        """
 
 
 def discounted_returns(rewards: Sequence[float], gamma: float) -> torch.Tensor:
