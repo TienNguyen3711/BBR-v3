@@ -26,7 +26,7 @@ from qbbr.risk.ptot import closed_form_p_tot, compute_risk_features
 _DEFAULT_ACTION_CONFIG_PATH = Path(__file__).resolve().parent.parent / "configs" / "action_pacing_gain.yaml"
 _SUBSTEP_S = 0.02  # internal fluid_sim integration step, independent of T_dec
 _BHAT_WINDOW_S = 10.0  # matches qbbr.features.bbr_internals' 10-sample window at real traces' 1Hz rate
-_STATE_COLS = ["s1_bhat", "s2_rtt_ratio", "s3_inflight_bdp", "s4_queue", "s5_handover_eta", "s6_p_tot"]
+_STATE_COLS = ["s1_bhat", "s2_rtt_ratio", "s3_inflight_bdp", "s4_queue", "s5_handover_eta", "s6_p_tot", "s7_reconfig_phase"]
 
 _HANDOVER_PHASE_PROFILE = PhaseProfile(mean_phase_s=10.5, r_bar=0.7368)
 
@@ -57,10 +57,17 @@ class FluidSimEnv(BaseEnv):
         episode_s: float = 300.0,
         substep_s: float = _SUBSTEP_S,
         reward_kwargs: dict[str, float] | None = None,
+        ablate_s7: bool = False,
     ) -> None:
         self.location = location
         self.direction = direction
         self.calibration = calibration[location][direction]
+        # ablation switch for the Point-2 causal isolation study: when True,
+        # s7_reconfig_phase is fixed at its neutral midpoint (0.5) instead of
+        # tracking the real wall-clock reconfig phase, holding every other
+        # dimension (incl. observation_dim / param_count) identical so the
+        # only thing that changes is whether the agent can observe phase.
+        self.ablate_s7 = ablate_s7
 
         if action_config is None:
             action_config = _DEFAULT_ACTION_CONFIG_PATH
@@ -121,7 +128,11 @@ class FluidSimEnv(BaseEnv):
 
         window = pd.DataFrame(self._history[-2:])
         risk = compute_risk_features(window, mode=self.risk_mode)
-        state_df = compute_state_vector(window, risk, self.calibration)
+        state_df = compute_state_vector(
+            window, risk, self.calibration,
+            reconfig_cycle_s=self.params.phase_profile.cycle_s,
+            reconfig_mean_phase_s=self.params.phase_profile.mean_phase_s,
+        )
         return self._extract_state(state_df)
 
     def step(self, action: int) -> tuple[Any, float, bool, dict]:
@@ -180,7 +191,11 @@ class FluidSimEnv(BaseEnv):
 
         window = pd.DataFrame(self._history[-2:])
         risk = compute_risk_features(window, mode=self.risk_mode)
-        state_df = compute_state_vector(window, risk, self.calibration)
+        state_df = compute_state_vector(
+            window, risk, self.calibration,
+            reconfig_cycle_s=self.params.phase_profile.cycle_s,
+            reconfig_mean_phase_s=self.params.phase_profile.mean_phase_s,
+        )
         reward_series = compute_reward(window, **self.reward_kwargs)
 
         s_t = self._extract_state(state_df)
@@ -221,8 +236,9 @@ class FluidSimEnv(BaseEnv):
         window_samples = max(1, round(_BHAT_WINDOW_S / t_dec_s))
         self._history[-1]["b_hat_mbps"] = float(compute_bhat_mbps(bps_history, window=window_samples).iloc[-1])
 
-    @staticmethod
-    def _extract_state(state_df: pd.DataFrame):
+    def _extract_state(self, state_df: pd.DataFrame):
+        if self.ablate_s7:
+            state_df = state_df.assign(s7_reconfig_phase=0.5)
         return state_df.iloc[-1][_STATE_COLS].to_numpy(dtype=float)
 
     @property
@@ -231,4 +247,4 @@ class FluidSimEnv(BaseEnv):
 
     @property
     def observation_dim(self) -> int:
-        return 6
+        return len(_STATE_COLS)

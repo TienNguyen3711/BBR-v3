@@ -44,6 +44,11 @@ def main() -> None:
         "--risk-mode", choices=["stub_constant", "empirical_proxy", "closed_form"], default="stub_constant"
     )
     parser.add_argument("--reupload", action="store_true", help="data re-uploading (quantum core only)")
+    parser.add_argument(
+        "--ablate-s7", action="store_true",
+        help="freeze s7_reconfig_phase at its neutral midpoint (0.5) instead of the real wall-clock phase, "
+             "for the Point-2 causal-isolation ablation study",
+    )
     parser.add_argument("--calibration-path", type=Path, default=DEFAULT_CALIBRATION_PATH)
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
     args = parser.parse_args()
@@ -67,10 +72,14 @@ def main() -> None:
         risk_mode=args.risk_mode,
         episode_s=config.get("episode", {}).get("duration_s", 300.0),
         reward_kwargs=config.get("reward", {}),
+        ablate_s7=args.ablate_s7,
     )
     agent = build_agent(args.core, config, args.reupload)
 
-    run_config = {**config, "location": args.location, "direction": args.direction, "core": args.core}
+    run_config = {
+        **config, "location": args.location, "direction": args.direction, "core": args.core,
+        "ablate_s7": args.ablate_s7,
+    }
     run_dir = start_run(run_config, args.out_dir)
     print(f"run -> {run_dir}")
     print(f"{args.core} agent, param_count={agent.param_count()}, {n_episodes} episodes")

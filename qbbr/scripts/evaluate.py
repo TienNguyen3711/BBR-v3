@@ -29,10 +29,12 @@ def _action_dims(action_config: dict) -> tuple[int, ...]:
     return (len(action_config["levels"]),)
 
 
-def build_agent(core: str, n_layers: int, reupload: bool, action_dims: tuple[int, ...]) -> QA2CAgent | MLPA2CAgent:
+def build_agent(
+    core: str, n_layers: int, reupload: bool, action_dims: tuple[int, ...], n_qubits: int
+) -> QA2CAgent | MLPA2CAgent:
     if core == "quantum":
-        return QA2CAgent(n_layers=n_layers, action_dims=action_dims, reupload=reupload)
-    return MLPA2CAgent(n_layers=n_layers, action_dims=action_dims)
+        return QA2CAgent(n_qubits=n_qubits, n_layers=n_layers, action_dims=action_dims, reupload=reupload)
+    return MLPA2CAgent(n_qubits=n_qubits, n_layers=n_layers, action_dims=action_dims)
 
 
 def main() -> None:
@@ -43,6 +45,10 @@ def main() -> None:
     parser.add_argument("--core", choices=["quantum", "classical"], required=True)
     parser.add_argument("--n-layers", type=int, default=2)
     parser.add_argument("--reupload", action="store_true", help="data re-uploading (quantum core only)")
+    parser.add_argument(
+        "--ablate-s7", action="store_true",
+        help="must match the --ablate-s7 setting the checkpoint was trained with (Point-2 ablation study)",
+    )
     parser.add_argument("--location", required=True)
     parser.add_argument("--direction", required=True, choices=["downlink", "uplink"])
     parser.add_argument("--risk-mode", choices=["stub_constant", "empirical_proxy", "closed_form"],
@@ -61,18 +67,22 @@ def main() -> None:
     calibration = load_calibration(args.calibration_path)
     action_config = load_action_space(args.action_config)
     action_dims = _action_dims(action_config)
+    # FluidSimEnv (scenario a) exposes 7 state features; MultiFlowFluidEnv
+    # (scenario b) adds s8_fairness_ratio on top, so a scenario-b-trained
+    # checkpoint needs one more input than a scenario-a one.
+    n_qubits = 8 if args.scenario == "b" else 7
 
-    agent = build_agent(args.core, args.n_layers, args.reupload, action_dims)
+    agent = build_agent(args.core, args.n_layers, args.reupload, action_dims, n_qubits)
     agent.load(args.checkpoint)
     print(f"loaded {args.core} agent (n_layers={args.n_layers}, reupload={args.reupload}, "
-          f"action_dims={action_dims}) from {args.checkpoint}")
+          f"action_dims={action_dims}, n_qubits={n_qubits}) from {args.checkpoint}")
 
     if args.scenario == "a":
         comparison_ccas = tuple(c for c in config.get("ccas", []) if c != "qbbr")
         result = run_scenario_a(
             agent, args.location, args.direction, calibration, args.dataset_root,
             n_episodes=n_episodes, episode_s=args.episode_s, risk_mode=args.risk_mode,
-            comparison_ccas=comparison_ccas, action_config=action_config,
+            comparison_ccas=comparison_ccas, action_config=action_config, ablate_s7=args.ablate_s7,
         )
         for name, stats in result.items():
             print(f"  {name:8s} throughput={stats['throughput_mbps_median']:8.1f}Mbps  "

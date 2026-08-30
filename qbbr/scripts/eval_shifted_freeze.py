@@ -1,28 +1,3 @@
-"""Corrected shifted-freeze test (supersedes the earlier single-offset check,
-which was invalid -- it patched the single shared _HANDOVER_PHASE_PROFILE
-object that BOTH in_reconfig_freeze_window (fluid_env.step()) and
-retransmit_phase_multiplier (fluid_sim.step_fluid_state) read from, so
-freeze's window and the retransmit-concentration point moved together and
-could never show a difference regardless of whether freeze is genuinely
-phase-specific).
-
-This version decouples them: retransmit_phase_multiplier always sees the
-REAL calibrated profile (mean_phase_s=10.5, r_bar=0.7368, unpatched --
-retransmits concentrate here regardless of what freeze does), while
-in_reconfig_freeze_window is monkeypatched (via the qbbr.env.fluid_env
-module-level name it's imported under) to check against a DECOY profile
-whose mean_phase_s is swept across several offsets spread around the 15s
-cycle, mirroring the circular-shift null already used for the Rayleigh
-test (validate_handover_cadence.py) but applied to the freeze intervention
-rather than to an observable.
-
-Freeze-at-real-phase (10.5, included as one of the sweep points) beating
-the decoy offsets -> phase-specific signal, the anticipatory claim holds.
-Freeze-at-real-phase indistinguishable from the decoys -> freeze is
-generic "do less x% of the time" regularization/variance reduction, no
-anticipatory content, matching what the earlier (invalid) test suggested
-but now on a methodologically sound footing.
-"""
 from __future__ import annotations
 
 import json

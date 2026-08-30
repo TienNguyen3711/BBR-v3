@@ -1,0 +1,31 @@
+# Robustness check: does activating the reward's already-built ECN-style
+# LEVEL term (gamma * ecn_mark_fraction, qbbr.reward.alpha_fair) -- which
+# defaults to gamma=0.0 in every published RQ1-4 result, i.e. never
+# actually exercised -- close any retransmit-reducing pathway that the
+# published reward's delta-only l_t term structurally cannot see (the same
+# structural blind spot that let the now-fixed inflight_hi/lo exploit
+# through)? gamma=5.0 chosen to be clearly non-negligible against the
+# utility term's typical scale (log(mbps) ~= 4.6-5.3 for 100-200 Mbps)
+# given ecn_mark_fraction in [0,1] -- mirrors pilot_beta12.yaml's approach
+# of picking an aggressive value to give the check its best chance of
+# detecting an effect, not a value tuned to already agree with the
+# published reward.
+seed: 0
+gamma: 0.99
+learning_rate: 1.0e-3
+n_layers: 2
+
+reward:
+  alpha: 1.0
+  delta: 1.0
+  beta: 0.5
+  gamma: 5.0
+  eps: 1.0e-6
+  eps_rtx: 1.0
+
+decision_interval:
+  rule: minrtt_100
+
+episode:
+  duration_s: 300
+  target_episodes: [200, 500]

@@ -1,0 +1,25 @@
+# Control config for pilot_beta12.yaml: identical in every respect except
+# reward.beta (published default 0.5, not the recalibrated 12.0), so the
+# pilot can isolate the effect of the reward reweighting from any other
+# difference (episode count, seed, etc.) rather than comparing against the
+# original RQ1-4 runs, which used different episode counts and possibly a
+# different code version (see memory: RQ1-4 checkpoints predate several
+# since-committed fixes).
+seed: 0
+gamma: 0.99
+learning_rate: 1.0e-3
+n_layers: 2
+
+reward:
+  alpha: 1.0
+  delta: 1.0
+  beta: 0.5
+  eps: 1.0e-6
+  eps_rtx: 1.0
+
+decision_interval:
+  rule: minrtt_100
+
+episode:
+  duration_s: 300
+  target_episodes: [80]

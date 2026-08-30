@@ -33,12 +33,14 @@ def simulated_agent_stats(
     episode_s: float,
     risk_mode: str = "stub_constant",
     action_config: Any = None,
+    ablate_s7: bool = False,
 ) -> dict[str, float]:
 
     bps_all, rtt_all, rtx_per_s_all = [], [], []
     for _ep in range(n_episodes):
         env = FluidSimEnv(
-            location, direction, calibration, action_config=action_config, episode_s=episode_s, risk_mode=risk_mode
+            location, direction, calibration, action_config=action_config, episode_s=episode_s, risk_mode=risk_mode,
+            ablate_s7=ablate_s7,
         )
         state = env.reset()
         done = False
@@ -63,11 +65,12 @@ def run_scenario_a(
     risk_mode: str = "stub_constant",
     comparison_ccas: tuple[str, ...] = DEFAULT_COMPARISON_CCAS,
     action_config: Any = None,
+    ablate_s7: bool = False,
 ) -> dict[str, dict[str, float]]:
 
     results = {
         "qbbr": simulated_agent_stats(
-            agent, location, direction, calibration, n_episodes, episode_s, risk_mode, action_config
+            agent, location, direction, calibration, n_episodes, episode_s, risk_mode, action_config, ablate_s7
         )
     }
     for cca in comparison_ccas:

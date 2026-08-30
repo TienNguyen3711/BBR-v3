@@ -7,11 +7,6 @@ from qbbr.action import bbr_hook
 
 @pytest.fixture(autouse=True)
 def _redirect_debugfs_paths(tmp_path, monkeypatch):
-    """Point the module's assumed debugfs paths at real tmp files.
-
-    This tests our own read/write contract logic, not the (nonexistent
-    here) kernel side -- see bbr_hook's module docstring.
-    """
     gain_path = tmp_path / "pacing_gain_override"
     cruise_path = tmp_path / "cruise_active"
     monkeypatch.setattr(bbr_hook, "_PACING_GAIN_OVERRIDE_PATH", gain_path)

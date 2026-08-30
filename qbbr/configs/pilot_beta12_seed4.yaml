@@ -1,0 +1,17 @@
+# Auto-generated seed variant for the 10-seed rigor pass. seed=4, target_episodes=[200].
+seed: 4
+gamma: 0.99
+learning_rate: 0.001
+n_layers: 2
+reward:
+  alpha: 1.0
+  delta: 1.0
+  beta: 12.0
+  eps: 1.0e-06
+  eps_rtx: 1.0
+decision_interval:
+  rule: minrtt_100
+episode:
+  duration_s: 300
+  target_episodes:
+  - 200

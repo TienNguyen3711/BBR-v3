@@ -1,0 +1,30 @@
+# Pilot config testing whether training with a beta-recalibrated reward
+# (beta=12, vs. the published default 0.5 in base.yaml) discovers a
+# retransmit-reducing policy that a hand-scripted sustained pacing_gain
+# throttle already found the published reward does not consistently
+# reward -- see outputs/reward_decomposition_sustained_throttle.json for
+# the term-by-term diagnosis and outputs/beta_overcorrection_check.json
+# for the calibration's safety check (beta=12 still correctly rejects an
+# even blunter always-throttle policy that tanks throughput ~21%).
+# NOT the published reward -- do not compare directly to RQ1-4 results
+# without noting this difference. Pilot-scale episode count (not the
+# 200/500 target_episodes RQ1a used) -- meant as a fast sanity check, not
+# a reportable result on its own.
+seed: 0
+gamma: 0.99
+learning_rate: 1.0e-3
+n_layers: 2
+
+reward:
+  alpha: 1.0
+  delta: 1.0
+  beta: 12.0
+  eps: 1.0e-6
+  eps_rtx: 1.0
+
+decision_interval:
+  rule: minrtt_100
+
+episode:
+  duration_s: 300
+  target_episodes: [80]

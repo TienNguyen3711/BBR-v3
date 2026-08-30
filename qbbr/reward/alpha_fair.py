@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Sequence
+
 import numpy as np
 import pandas as pd
 
@@ -47,3 +49,36 @@ def compute_reward(
     delay_term = delta * np.log((rtt_t + eps) / (rtt_min + eps))
 
     return utility - delay_term - beta * l_t - gamma * ecn_mark_fraction
+
+
+def compute_multi_flow_reward(
+    telemetry: pd.DataFrame,
+    flow_throughputs_mbps: Sequence[float],
+    alpha: float = DEFAULT_ALPHA,
+    delta: float = DEFAULT_DELTA,
+    beta: float = DEFAULT_BETA,
+    gamma: float = DEFAULT_GAMMA,
+    eps: float = EPSILON,
+    eps_rtx: float = EPSILON_RTX,
+) -> float:
+    """Scenario-B analogue of compute_reward: replaces the single-flow
+    utility term with the alpha-fair utility SUMMED across all flows
+    (agent + competing CCAs) at the current decision, so training directly
+    optimizes the same objective qbbr.eval.metrics.alpha_fair_efficiency_ratio
+    reports at evaluation time. Delay/loss-change/ECN terms stay agent-only
+    -- they are operational costs the agent alone controls, not something to
+    sum across flows it doesn't control.
+    """
+    rtt_t = telemetry["rtt_ms"].astype(float)
+    rtt_min = telemetry["rtt_base_ms"].astype(float)
+
+    rtx = telemetry["retransmits"].astype(float)
+    rtx_prev = rtx.shift(1)
+    l_t = ((rtx - rtx_prev) / (rtx_prev + eps_rtx)).fillna(0.0)
+    ecn_mark_fraction = telemetry["ecn_mark_fraction"].astype(float) if "ecn_mark_fraction" in telemetry else 0.0
+
+    utility_sum = float(alpha_fair_utility(pd.Series(flow_throughputs_mbps, dtype=float), alpha, eps).sum())
+    delay_term = delta * np.log((rtt_t + eps) / (rtt_min + eps))
+
+    reward_series = utility_sum - delay_term - beta * l_t - gamma * ecn_mark_fraction
+    return float(reward_series.iloc[-1])

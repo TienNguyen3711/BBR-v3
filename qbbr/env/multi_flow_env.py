@@ -23,15 +23,19 @@ from qbbr.env.fluid_sim import (
     synthetic_capacity_fraction,
     synthetic_ground_truth_p_tot,
 )
+from qbbr.eval.metrics import min_per_flow_throughput
 from qbbr.features.bbr_internals import compute_bhat_mbps
 from qbbr.features.state_builder import compute_state_vector
-from qbbr.reward.alpha_fair import compute_reward
+from qbbr.reward.alpha_fair import EPSILON, compute_multi_flow_reward
 from qbbr.risk.ptot import closed_form_p_tot, compute_risk_features
 
 _DEFAULT_ACTION_CONFIG_PATH = Path(__file__).resolve().parent.parent / "configs" / "action_pacing_gain.yaml"
 _SUBSTEP_S = 0.02
 _BHAT_WINDOW_S = 10.0
-_STATE_COLS = ["s1_bhat", "s2_rtt_ratio", "s3_inflight_bdp", "s4_queue", "s5_handover_eta", "s6_p_tot"]
+_STATE_COLS = [
+    "s1_bhat", "s2_rtt_ratio", "s3_inflight_bdp", "s4_queue", "s5_handover_eta", "s6_p_tot",
+    "s7_reconfig_phase", "s8_fairness_ratio",
+]
 _DEFAULT_COMPETING_CCAS = ("cubic", "vegas", "hybla")
 _AGENT_KEY = "__agent__"
 _QUEUE_DELAY_SCALE_S = 0.05  # simple linear proxy: shared queueing delay per unit oversubscription
@@ -122,7 +126,12 @@ class MultiFlowFluidEnv(BaseEnv):
 
         window = pd.DataFrame(self._history[-2:])
         risk = compute_risk_features(window, mode=self.risk_mode)
-        state_df = compute_state_vector(window, risk, self.calibration)
+        state_df = compute_state_vector(
+            window, risk, self.calibration,
+            reconfig_cycle_s=self.params.phase_profile.cycle_s,
+            reconfig_mean_phase_s=self.params.phase_profile.mean_phase_s,
+            fairness_ratio=1.0,  # no flow has delivered anything yet; neutral until the first real step
+        )
         return self._extract_state(state_df)
 
     def step(self, action: int) -> tuple[Any, float, bool, dict]:
@@ -218,18 +227,26 @@ class MultiFlowFluidEnv(BaseEnv):
         self._history.append(row)
         self._update_bhat(t_dec_s)
 
-        window = pd.DataFrame(self._history[-2:])
-        risk = compute_risk_features(window, mode=self.risk_mode)
-        state_df = compute_state_vector(window, risk, self.calibration)
-        reward_series = compute_reward(window, **self.reward_kwargs)
-
-        s_t = self._extract_state(state_df)
-        r_t = float(reward_series.iloc[-1])
-        done = agent_state.t_s >= self.episode_s
-
         flow_throughput_bps = {"qbbr": agent_delivered_total * 8.0 / t_dec_s}
         for name in self.competing_ccas:
             flow_throughput_bps[name] = flow_delivered_totals[name] * 8.0 / t_dec_s
+        fairness_ratio = min_per_flow_throughput(list(flow_throughput_bps.values())) / (
+            flow_throughput_bps["qbbr"] + EPSILON
+        )
+
+        window = pd.DataFrame(self._history[-2:])
+        risk = compute_risk_features(window, mode=self.risk_mode)
+        state_df = compute_state_vector(
+            window, risk, self.calibration,
+            reconfig_cycle_s=self.params.phase_profile.cycle_s,
+            reconfig_mean_phase_s=self.params.phase_profile.mean_phase_s,
+            fairness_ratio=fairness_ratio,
+        )
+        flow_throughputs_mbps = [v / 1e6 for v in flow_throughput_bps.values()]
+        r_t = compute_multi_flow_reward(window, flow_throughputs_mbps, **self.reward_kwargs)
+
+        s_t = self._extract_state(state_df)
+        done = agent_state.t_s >= self.episode_s
 
         info = {
             "pacing_gain": pacing_gain,
@@ -275,4 +292,4 @@ class MultiFlowFluidEnv(BaseEnv):
 
     @property
     def observation_dim(self) -> int:
-        return 6
+        return len(_STATE_COLS)
