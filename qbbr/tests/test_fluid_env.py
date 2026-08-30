@@ -17,10 +17,10 @@ def test_minrtt_100_rule_matches_main_tex_eq1():
     assert minrtt_100_decision_interval_s(100.0) == pytest.approx(0.2)
 
 
-def test_reset_returns_valid_6dim_state(sample_calibration):
+def test_reset_returns_valid_7dim_state(sample_calibration):
     env = FluidSimEnv("Sydney", "downlink", sample_calibration)
     s0 = env.reset()
-    assert s0.shape == (6,)
+    assert s0.shape == (7,)
     assert np.isfinite(s0).all()
     assert (s0 >= 0.0).all() and (s0 <= 1.0).all()
 
@@ -28,14 +28,14 @@ def test_reset_returns_valid_6dim_state(sample_calibration):
 def test_action_space_size_matches_pacing_gain_config(sample_calibration):
     env = FluidSimEnv("Sydney", "downlink", sample_calibration)
     assert env.action_space_size == 5
-    assert env.observation_dim == 6
+    assert env.observation_dim == 7
 
 
 def test_step_returns_well_formed_transition(sample_calibration):
     env = FluidSimEnv("Sydney", "downlink", sample_calibration)
     env.reset()
     s, r, done, info = env.step(2)  # index 2 -> pacing_gain 1.0
-    assert s.shape == (6,)
+    assert s.shape == (7,)
     assert (s >= 0.0).all() and (s <= 1.0).all()
     assert math.isfinite(r)
     assert isinstance(done, bool) or isinstance(done, np.bool_)
@@ -152,6 +152,19 @@ def test_reward_kwargs_reach_compute_reward(sample_calibration):
     _, r_default, _, _ = env_default.step(2)
     _, r_no_penalty, _, _ = env_no_loss_penalty.step(2)
     assert r_no_penalty >= r_default
+
+
+def test_ablate_s7_freezes_the_phase_feature_at_its_neutral_midpoint(sample_calibration):
+    env = FluidSimEnv("Sydney", "downlink", sample_calibration, ablate_s7=True)
+    s0 = env.reset()
+    assert s0[6] == pytest.approx(0.5)  # s7_reconfig_phase is _STATE_COLS[6]
+    s, _r, _done, _info = env.step(2)
+    assert s[6] == pytest.approx(0.5)
+
+
+def test_ablate_s7_defaults_to_off_preserving_live_phase_tracking(sample_calibration):
+    env = FluidSimEnv("Sydney", "downlink", sample_calibration)
+    assert env.ablate_s7 is False
 
 
 def test_runs_for_every_calibrated_location_direction(sample_calibration):

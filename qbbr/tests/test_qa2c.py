@@ -13,7 +13,7 @@ from qbbr.train.buffer import RolloutBuffer
 def _random_rollout(agent, n_steps=12):
     buf = RolloutBuffer()
     for _ in range(n_steps):
-        s = np.random.rand(6)
+        s = np.random.rand(7)
         a, log_prob = agent.act(s)
         v = agent.value(s)
         buf.add(s, a, log_prob, reward=float(np.random.randn()), value=v)
@@ -22,24 +22,24 @@ def _random_rollout(agent, n_steps=12):
 
 def test_param_count_matches_main_tex_formula():
     agent = QA2CAgent(n_layers=2)
-    # 2x(18*L quantum circuit) + 6x5+5 actor head + 1x1+1 critic head
-    assert agent.param_count() == 2 * 36 + 35 + 2
+    # 2x(n_qubits*3*L quantum circuit) + 7x5+5 actor head + 1x1+1 critic head
+    assert agent.param_count() == 2 * 42 + 40 + 2
 
     agent3 = QA2CAgent(n_layers=3)
-    assert agent3.param_count() == 2 * 54 + 35 + 2
+    assert agent3.param_count() == 2 * 63 + 40 + 2
 
 
 def test_act_returns_valid_action_and_log_prob():
     agent = QA2CAgent()
     for _ in range(10):
-        action, log_prob = agent.act(np.random.rand(6))
+        action, log_prob = agent.act(np.random.rand(7))
         assert 0 <= action < agent.action_dims[0]
         assert np.isfinite(log_prob)
 
 
 def test_value_returns_finite_scalar():
     agent = QA2CAgent()
-    v = agent.value(np.random.rand(6))
+    v = agent.value(np.random.rand(7))
     assert isinstance(v, float)
     assert np.isfinite(v)
 
@@ -85,7 +85,7 @@ def test_update_works_with_normalize_advantage_disabled():
 def test_save_then_load_restores_exact_behavior(tmp_path):
     torch.manual_seed(0)
     agent = QA2CAgent()
-    state = np.random.rand(6)
+    state = np.random.rand(7)
     value_before = agent.value(state)
     path = tmp_path / "checkpoint.pt"
     agent.save(path)
@@ -101,7 +101,7 @@ def test_save_then_load_restores_exact_behavior(tmp_path):
 def test_load_legacy_single_head_checkpoint_restores_exact_behavior(tmp_path):
     torch.manual_seed(0)
     agent = QA2CAgent(action_dims=(5,))
-    state = np.random.rand(6)
+    state = np.random.rand(7)
     state_t = torch.as_tensor(state, dtype=torch.float32)
     logits_before = agent._actor_logits(state_t)[0].detach().clone()
     value_before = agent.value(state)
@@ -143,7 +143,7 @@ def test_multihead_action_dims_produces_flat_action_in_range():
     agent = QA2CAgent(action_dims=(5, 5, 5))
     assert len(agent.actor_heads) == 3
     for _ in range(30):
-        action, log_prob = agent.act(np.random.rand(6))
+        action, log_prob = agent.act(np.random.rand(7))
         assert 0 <= action < 125
         assert np.isfinite(log_prob)
 
@@ -162,6 +162,6 @@ def test_multihead_update_actually_changes_the_weights():
 def test_multihead_param_count_adds_two_more_heads():
     agent5 = QA2CAgent(n_layers=2, action_dims=(5,))
     agent555 = QA2CAgent(n_layers=2, action_dims=(5, 5, 5))
-    # same trunk/critic; actor_heads grows from one Linear(6,5) to three
-    extra_heads_params = 2 * (6 * 5 + 5)  # two more Linear(6,5) heads
+    # same trunk/critic; actor_heads grows from one Linear(7,5) to three
+    extra_heads_params = 2 * (7 * 5 + 5)  # two more Linear(7,5) heads
     assert agent555.param_count() == agent5.param_count() + extra_heads_params

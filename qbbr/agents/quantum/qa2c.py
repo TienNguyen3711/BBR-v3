@@ -15,7 +15,7 @@ class QA2CAgent(BaseAgent):
 
     def __init__(
         self,
-        n_qubits: int = 6,
+        n_qubits: int = 7,
         n_layers: int = 2,
         action_dims: tuple[int, ...] = (5,),
         lr: float = 1e-3,

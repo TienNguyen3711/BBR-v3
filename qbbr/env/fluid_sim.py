@@ -22,8 +22,12 @@ def ecn_marked(v_bytes: float, bdp: float, threshold_mult: float = ECN_MARK_THRE
     return v_bytes > threshold_mult * bdp
 
 
-STARTUP_GAIN = 2.89  # real BBR STARTUP's cwnd_gain/pacing_gain constant (2/ln(2), historically
-# approximated as 2.89 in BBR's own implementation and confirmed by Gomez et al.'s measurement).
+STARTUP_GAIN = 2.77  # BBR-v3 STARTUP *pacing* gain. BBR-v1/v2 used 2/ln(2) ~= 2.89; BBR-v3
+# recalibrated the pacing gain to 2.77 via analytic re-derivation (Gomez et al. Sec. 2.5.2).
+# This is a fluid (rate) model, so the injection multiplier IS a pacing-rate gain -- the separate
+# BBR-v3 cwnd_gain recalibration (2.89 -> 2.0) has no analogue here (no congestion window), and
+# the revised loss-based STARTUP exit (6 vs 8 loss events per round) is likewise not modelled:
+# STARTUP here exits on volume (STARTUP_EXIT_MULT) or STARTUP_MAX_DURATION_S, not on loss counting.
 # Applied as the ENTIRE injection multiplier during STARTUP (bypassing the normal
 # i_crs*pacing_gain + (1-i_crs)*stock_multiplier blend below) -- the agent does not control
 # pacing during STARTUP in real BBR-v3 either, matching main.tex's design (overrides apply only

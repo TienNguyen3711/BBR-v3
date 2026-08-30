@@ -13,7 +13,7 @@ from qbbr.train.buffer import RolloutBuffer
 def _random_rollout(agent, n_steps=12):
     buf = RolloutBuffer()
     for _ in range(n_steps):
-        s = np.random.rand(6)
+        s = np.random.rand(7)
         a, log_prob = agent.act(s)
         v = agent.value(s)
         buf.add(s, a, log_prob, reward=float(np.random.randn()), value=v)
@@ -41,7 +41,7 @@ def test_param_count_is_within_reach_of_default_budget():
 def test_act_returns_valid_action_and_log_prob():
     agent = MLPA2CAgent()
     for _ in range(10):
-        action, log_prob = agent.act(np.random.rand(6))
+        action, log_prob = agent.act(np.random.rand(7))
         assert 0 <= action < 5
         assert np.isfinite(log_prob)
 
@@ -72,7 +72,7 @@ def test_update_works_with_normalize_advantage_disabled():
 def test_save_then_load_restores_exact_behavior(tmp_path):
     torch.manual_seed(0)
     agent = MLPA2CAgent()
-    state = np.random.rand(6)
+    state = np.random.rand(7)
     value_before = agent.value(state)
     path = tmp_path / "checkpoint.pt"
     agent.save(path)
@@ -88,7 +88,7 @@ def test_save_then_load_restores_exact_behavior(tmp_path):
 def test_load_legacy_single_head_checkpoint_restores_exact_behavior(tmp_path):
     torch.manual_seed(0)
     agent = MLPA2CAgent(action_dims=(5,))
-    state = np.random.rand(6)
+    state = np.random.rand(7)
     state_t = torch.as_tensor(state, dtype=torch.float32)
     logits_before = agent._actor_logits(state_t)[0].detach().clone()
     value_before = agent.value(state)
@@ -130,7 +130,7 @@ def test_multihead_action_dims_produces_flat_action_in_range():
     agent = MLPA2CAgent(action_dims=(5, 5, 5))
     assert len(agent.actor_heads) == 3
     for _ in range(30):
-        action, log_prob = agent.act(np.random.rand(6))
+        action, log_prob = agent.act(np.random.rand(7))
         assert 0 <= action < 125
         assert np.isfinite(log_prob)
 
@@ -151,5 +151,5 @@ def test_single_head_action_dims_matches_flat_action_semantics():
     # multihead agent: flat action == the single head's sampled index.
     agent = MLPA2CAgent(action_dims=(5,))
     for _ in range(10):
-        action, _log_prob = agent.act(np.random.rand(6))
+        action, _log_prob = agent.act(np.random.rand(7))
         assert 0 <= action < 5

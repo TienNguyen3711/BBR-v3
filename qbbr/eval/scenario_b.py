@@ -23,14 +23,15 @@ def run_scenario_b(
     risk_mode: str = "stub_constant",
     alpha_sweep: tuple[float, ...] = DEFAULT_ALPHA_SWEEP,
     competing_ccas: tuple[str, ...] = DEFAULT_COMPETING_CCAS,
+    action_config: Any = None,
 ) -> dict[str, Any]:
     flow_names = ("qbbr", *competing_ccas)
     per_episode_mean_bps = {name: [] for name in flow_names}
 
     for _ep in range(n_episodes):
         env = MultiFlowFluidEnv(
-            location, direction, calibration, risk_mode=risk_mode, episode_s=episode_s,
-            competing_ccas=competing_ccas,
+            location, direction, calibration, action_config=action_config, risk_mode=risk_mode,
+            episode_s=episode_s, competing_ccas=competing_ccas,
         )
         state = env.reset()
         done = False

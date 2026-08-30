@@ -1,23 +1,3 @@
-"""RQ3 (risk-feature contribution): evaluates the risk-on (closed_form) vs.
-risk-off (stub_constant) checkpoint pairs -- same action space, same
-episode/reward dynamics, same seeds 0-9, the only difference is whether
-s5/s6 carry real signal (closed_form) or a constant placeholder
-(stub_constant) during BOTH training and evaluation.
-
-Statistical design: mirrors eval_rq1_parallel.py exactly -- qbbr's 10
-per-seed medians (risk-on) vs. qbbr's 10 per-seed medians (risk-off),
-Mann-Whitney U, per location. This is the pre-registered design in
-main.tex Sec. "RQ3: Risk-Feature Contribution" ("seeds matched pairwise to
-the risk-on runs" refers to using the SAME seed range 0-9 as a controlled
-comparison, not a paired statistical test -- the pre-registered analysis
-plan itself names Mann-Whitney, not Wilcoxon signed-rank, and is honored
-as originally written rather than substituted post-hoc).
-
-Pre-registered RQ3 decision rule (main.tex Sec. V-C): strong correlation
-retains s5/s6 as a core contribution; weak correlation demotes them to
-ablation-only status, which is itself a reportable finding on proxy
-validity, not a failure to hide.
-"""
 from __future__ import annotations
 
 import argparse

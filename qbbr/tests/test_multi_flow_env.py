@@ -6,10 +6,10 @@ import pytest
 from qbbr.env.multi_flow_env import MultiFlowFluidEnv
 
 
-def test_reset_returns_valid_6dim_state(sample_calibration):
+def test_reset_returns_valid_8dim_state(sample_calibration):
     env = MultiFlowFluidEnv("Sydney", "downlink", sample_calibration)
     s0 = env.reset()
-    assert s0.shape == (6,)
+    assert s0.shape == (8,)
     assert np.isfinite(s0).all()
     assert (s0 >= 0.0).all() and (s0 <= 1.0).all()
 
@@ -18,7 +18,7 @@ def test_step_returns_well_formed_transition_with_per_flow_throughput(sample_cal
     env = MultiFlowFluidEnv("Sydney", "downlink", sample_calibration, episode_s=30.0)
     env.reset()
     s, r, done, info = env.step(2)
-    assert s.shape == (6,)
+    assert s.shape == (8,)
     assert (s >= 0.0).all() and (s <= 1.0).all()
     assert np.isfinite(r)
     assert set(info["flow_throughput_bps"].keys()) == {"qbbr", "cubic", "vegas", "hybla"}
