@@ -3,7 +3,11 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-T_ORBIT_MIN = 5.4  # approx. Starlink orbital period used for s5's ETA scale
+# The handover proxy is intentionally slower than the 15-second reconfiguration
+# clock used by s7.  It is a configurable modelling timescale, not Starlink's
+# physical orbital period.
+HANDOVER_CYCLE_MIN = 5.4
+T_ORBIT_MIN = HANDOVER_CYCLE_MIN  # backwards-compatible name for existing callers
 V_OVER_BDP_CAP = 2.5  # covers BBR's 5/4 probe; values > 1 already mean queue buildup
 Q_CAP_PACKETS = 50.0  # saturation cap observed in the base paper's Fig. 12-13
 
