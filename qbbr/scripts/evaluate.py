@@ -13,6 +13,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from qbbr.action.registry import dimension_sizes, is_multihead, load_action_space
 from qbbr.agents.classical.mlp_a2c import MLPA2CAgent
+from qbbr.agents.matching import build_full_parameter_matched_classical
 from qbbr.agents.quantum.qa2c import QA2CAgent
 from qbbr.env.calibration import load_calibration
 from qbbr.eval.scenario_a import run_scenario_a
@@ -30,10 +31,15 @@ def _action_dims(action_config: dict) -> tuple[int, ...]:
 
 
 def build_agent(
-    core: str, n_layers: int, reupload: bool, action_dims: tuple[int, ...], n_qubits: int
+    core: str, n_layers: int, reupload: bool, action_dims: tuple[int, ...], n_qubits: int, rq4_full_match: bool = False,
 ) -> QA2CAgent | MLPA2CAgent:
     if core == "quantum":
         return QA2CAgent(n_qubits=n_qubits, n_layers=n_layers, action_dims=action_dims, reupload=reupload)
+    if rq4_full_match:
+        agent, _match = build_full_parameter_matched_classical(
+            n_qubits=n_qubits, n_layers=n_layers, action_dims=action_dims, reupload=reupload
+        )
+        return agent
     return MLPA2CAgent(n_qubits=n_qubits, n_layers=n_layers, action_dims=action_dims)
 
 
@@ -45,6 +51,11 @@ def main() -> None:
     parser.add_argument("--core", choices=["quantum", "classical"], required=True)
     parser.add_argument("--n-layers", type=int, default=2)
     parser.add_argument("--reupload", action="store_true", help="data re-uploading (quantum core only)")
+    parser.add_argument(
+        "--rq4-full-match",
+        action="store_true",
+        help="construct the exact full-agent-matched classical architecture used for a new RQ4 run",
+    )
     parser.add_argument(
         "--ablate-s7", action="store_true",
         help="must match the --ablate-s7 setting the checkpoint was trained with (Point-2 ablation study)",
@@ -72,7 +83,9 @@ def main() -> None:
     # checkpoint needs one more input than a scenario-a one.
     n_qubits = 8 if args.scenario == "b" else 7
 
-    agent = build_agent(args.core, args.n_layers, args.reupload, action_dims, n_qubits)
+    if args.rq4_full_match and args.core != "classical":
+        raise ValueError("--rq4-full-match applies only to the classical RQ4 arm")
+    agent = build_agent(args.core, args.n_layers, args.reupload, action_dims, n_qubits, args.rq4_full_match)
     agent.load(args.checkpoint)
     print(f"loaded {args.core} agent (n_layers={args.n_layers}, reupload={args.reupload}, "
           f"action_dims={action_dims}, n_qubits={n_qubits}) from {args.checkpoint}")

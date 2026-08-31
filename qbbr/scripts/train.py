@@ -14,6 +14,7 @@ PROJECT_ROOT = PACKAGE_ROOT.parent  # .../Codebase
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from qbbr.agents.classical.mlp_a2c import MLPA2CAgent
+from qbbr.agents.matching import build_full_parameter_matched_classical
 from qbbr.agents.quantum.qa2c import QA2CAgent
 from qbbr.env.calibration import load_calibration
 from qbbr.env.fluid_env import FluidSimEnv
@@ -24,12 +25,17 @@ DEFAULT_CALIBRATION_PATH = PACKAGE_ROOT / "data" / "calibrated" / "per_location_
 DEFAULT_OUT_DIR = PROJECT_ROOT / "outputs" / "runs"
 
 
-def build_agent(core: str, config: dict, reupload: bool):
+def build_agent(core: str, config: dict, reupload: bool, rq4_full_match: bool = False):
     n_layers = config.get("n_layers", 2)
     gamma = config.get("gamma", 0.99)
     lr = config.get("learning_rate", 1e-3)
     if core == "quantum":
         return QA2CAgent(n_layers=n_layers, lr=lr, gamma=gamma, reupload=reupload)
+    if rq4_full_match:
+        agent, _match = build_full_parameter_matched_classical(
+            n_layers=n_layers, lr=lr, gamma=gamma, reupload=reupload
+        )
+        return agent
     return MLPA2CAgent(n_layers=n_layers, lr=lr, gamma=gamma)
 
 
@@ -46,6 +52,11 @@ def main() -> None:
         default="stub_constant",
     )
     parser.add_argument("--reupload", action="store_true", help="data re-uploading (quantum core only)")
+    parser.add_argument(
+        "--rq4-full-match",
+        action="store_true",
+        help="for a classical Scenario-A RQ4 run, require an exact full-agent parameter match to QA2C",
+    )
     parser.add_argument(
         "--ablate-s7", action="store_true",
         help="freeze s7_reconfig_phase at its neutral midpoint (0.5) instead of the real wall-clock phase, "
@@ -76,11 +87,13 @@ def main() -> None:
         reward_kwargs=config.get("reward", {}),
         ablate_s7=args.ablate_s7,
     )
-    agent = build_agent(args.core, config, args.reupload)
+    if args.rq4_full_match and args.core != "classical":
+        raise ValueError("--rq4-full-match applies only to the classical RQ4 arm")
+    agent = build_agent(args.core, config, args.reupload, args.rq4_full_match)
 
     run_config = {
         **config, "location": args.location, "direction": args.direction, "core": args.core,
-        "ablate_s7": args.ablate_s7,
+        "ablate_s7": args.ablate_s7, "rq4_full_match": args.rq4_full_match,
     }
     run_dir = start_run(run_config, args.out_dir)
     print(f"run -> {run_dir}")

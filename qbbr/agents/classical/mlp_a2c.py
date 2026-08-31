@@ -26,6 +26,8 @@ class MLPA2CAgent(BaseAgent):
         action_dims: tuple[int, ...] = (5,),
         n_layers: int = 2,
         param_budget: int | None = None,
+        actor_hidden: int | None = None,
+        critic_hidden: int | None = None,
         lr: float = 1e-3,
         gamma: float = 0.99,
         normalize_advantage: bool = True,
@@ -35,8 +37,14 @@ class MLPA2CAgent(BaseAgent):
         self.gamma = gamma
         self.normalize_advantage = normalize_advantage
 
-        actor_hidden = _best_hidden_size(n_qubits, sum(self.action_dims), target)
-        critic_hidden = _best_hidden_size(n_qubits, 1, target)
+        if actor_hidden is None:
+            actor_hidden = _best_hidden_size(n_qubits, sum(self.action_dims), target)
+        if critic_hidden is None:
+            critic_hidden = _best_hidden_size(n_qubits, 1, target)
+        if actor_hidden < 1 or critic_hidden < 1:
+            raise ValueError("actor_hidden and critic_hidden must be positive")
+        self.actor_hidden = actor_hidden
+        self.critic_hidden = critic_hidden
         self.actor_trunk = nn.Sequential(nn.Linear(n_qubits, actor_hidden), nn.Tanh())
         self.actor_heads = nn.ModuleList([nn.Linear(actor_hidden, d) for d in self.action_dims])
         self.critic = nn.Sequential(
