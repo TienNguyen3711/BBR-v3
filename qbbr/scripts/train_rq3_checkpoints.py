@@ -124,9 +124,13 @@ def main() -> None:
             job = futures[future]
             r = future.result()
             elapsed = time.time() - t0
+            try:
+                shown = Path(r["checkpoint"]).relative_to(PROJECT_ROOT)
+            except ValueError:
+                shown = r["checkpoint"]
             print(f"[{i}/{len(jobs)}] {elapsed:7.1f}s  {job['location']:10s} seed={job['seed']}  "
                   f"run_time={r['elapsed_s']:6.1f}s  final_mean_reward={r['final_mean_reward']:.3f}  "
-                  f"-> {Path(r['checkpoint']).relative_to(PROJECT_ROOT)}")
+                  f"-> {shown}")
 
     print(f"\ndone in {time.time() - t0:.1f}s. checkpoints -> "
           f"{args.out_root}/classical/<location>/seed<N>.pt")
