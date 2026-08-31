@@ -48,7 +48,7 @@ def main() -> None:
     parser.add_argument("--core", choices=["quantum", "classical"], default="classical")
     parser.add_argument("--n-episodes", type=int, default=None, help="default: config's episode.target_episodes[0]")
     parser.add_argument(
-        "--risk-mode", choices=["stub_constant", "empirical_proxy", "closed_form"], default="closed_form"
+        "--risk-mode", choices=["stub_constant", "empirical_proxy", "closed_form", "closed_form_dynamic"], default="closed_form"
     )
     parser.add_argument("--reupload", action="store_true", help="data re-uploading (quantum core only)")
     parser.add_argument("--calibration-path", type=Path, default=DEFAULT_CALIBRATION_PATH)

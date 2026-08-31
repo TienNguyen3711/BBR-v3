@@ -161,7 +161,7 @@ def main() -> None:
     parser.add_argument("--dataset-root", type=Path, default=DEFAULT_DATASET_ROOT)
     parser.add_argument("--limit", type=int, default=None, help="cap number of files (for fast iteration)")
     parser.add_argument(
-        "--risk-mode", default="stub_constant", choices=["stub_constant", "empirical_proxy", "closed_form"]
+        "--risk-mode", default="stub_constant", choices=["stub_constant", "empirical_proxy", "closed_form", "closed_form_dynamic"]
     )
     parser.add_argument("--plot", action="store_true")
     args = parser.parse_args()

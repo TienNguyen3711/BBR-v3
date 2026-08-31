@@ -11,6 +11,7 @@ import torch
 from qbbr.action.registry import dimension_sizes, is_multihead
 from qbbr.agents.base_agent import BaseAgent
 from qbbr.agents.classical.mlp_a2c import MLPA2CAgent
+from qbbr.agents.matching import build_full_parameter_matched_classical
 from qbbr.agents.quantum.qa2c import QA2CAgent
 from qbbr.env.fluid_env import FluidSimEnv
 from qbbr.eval.stats import summarize_median_iqr
@@ -58,7 +59,10 @@ def _build_agent(
             n_layers=point["n_layers"], action_dims=action_dims, gamma=gamma, lr=lr,
             reupload=point["data_reuploading"],
         )
-    return MLPA2CAgent(n_layers=point["n_layers"], action_dims=action_dims, gamma=gamma, lr=lr)
+    agent, _match = build_full_parameter_matched_classical(
+        n_layers=point["n_layers"], action_dims=action_dims, gamma=gamma, lr=lr,
+    )
+    return agent
 
 
 def run_ablation_point(

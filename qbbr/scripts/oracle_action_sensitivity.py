@@ -23,7 +23,7 @@ def main() -> None:
     parser.add_argument("--direction", choices=["downlink", "uplink"], default="downlink")
     parser.add_argument("--seeds", type=int, nargs="+", default=[1001, 1002, 1003])
     parser.add_argument("--episode-s", type=float, default=300.0)
-    parser.add_argument("--risk-mode", choices=["stub_constant", "empirical_proxy", "closed_form"], default="closed_form")
+    parser.add_argument("--risk-mode", choices=["stub_constant", "empirical_proxy", "closed_form", "closed_form_dynamic"], default="closed_form")
     parser.add_argument("--throughput-retention", type=float, default=0.95)
     parser.add_argument("--action-config", type=Path, default=DEFAULT_ACTION_CONFIG_PATH)
     parser.add_argument("--calibration-path", type=Path, default=DEFAULT_CALIBRATION_PATH)

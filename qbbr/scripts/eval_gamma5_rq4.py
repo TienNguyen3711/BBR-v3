@@ -78,17 +78,27 @@ def main() -> None:
         rtx_reduction_vs_bbr = 1.0 - q_rtx_med / bbr_rtx_med if bbr_rtx_med > 0 else float("nan")
         tput_retention_vs_bbr = q_tput_med / bbr_tput_med if bbr_tput_med > 0 else float("nan")
         _u, p_q_vs_c = scipy_stats.mannwhitneyu(rtx_q, rtx_c, alternative="two-sided") if len(set(rtx_q + rtx_c)) > 1 else (None, 1.0)
+        # RQ1a's actual significance test: quantum (n=3) vs. real stock BBR-v3 (n=10),
+        # not quantum vs. classical -- this is what an RQ1a-style pass/fail needs.
+        bbr_rtx_list = bbr["retransmits_per_s"]
+        if len(set(rtx_q + bbr_rtx_list)) > 1:
+            _u, p_q_vs_bbr = scipy_stats.mannwhitneyu(rtx_q, bbr_rtx_list, alternative="two-sided")
+        else:
+            p_q_vs_bbr = 1.0
+        rq1a_pass = bool(rtx_reduction_vs_bbr >= 0.20 and tput_retention_vs_bbr >= 0.95 and p_q_vs_bbr < 0.05)
 
         row = {
             "location": location,
             "quantum_gamma5_rtx_median": q_rtx_med, "classical_gamma5_rtx_median": c_rtx_med,
             "bbr_rtx_median": bbr_rtx_med, "retransmit_reduction_vs_bbr": rtx_reduction_vs_bbr,
             "throughput_retention_vs_bbr": tput_retention_vs_bbr, "p_quantum_vs_classical": float(p_q_vs_c),
+            "p_quantum_vs_bbr": float(p_q_vs_bbr), "rq1a_criteria_pass": rq1a_pass,
         }
         report.append(row)
+        flag = "PASS" if rq1a_pass else "FAIL"
         print(f"{location:10s}  quantum_rtx={q_rtx_med:6.3f}  classical_rtx={c_rtx_med:6.3f}  bbr_rtx={bbr_rtx_med:6.2f}  "
               f"rtx_reduction(vs bbr)={rtx_reduction_vs_bbr:+7.1%}  tput_retention={tput_retention_vs_bbr:6.1%}  "
-              f"p(quantum vs classical)={p_q_vs_c:.4f}\n")
+              f"p(quantum vs classical)={p_q_vs_c:.4f}  p(quantum vs bbr)={p_q_vs_bbr:.4f}  [{flag}]\n")
 
     OUT_PATH.write_text(json.dumps({"meta": {"n_seeds": N_SEEDS, "n_episodes": N_EPISODES, "gamma": 5.0,
                                               "locations_complete": LOCATIONS, "sydney_pending": False},
