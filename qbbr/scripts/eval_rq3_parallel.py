@@ -45,16 +45,17 @@ def _eval_one_job(job: dict[str, Any]) -> dict[str, Any]:
 def build_jobs(
     direction: str, calibration_path: Path, n_layers: int, n_episodes: int, episode_s: float,
     action_config: dict[str, Any], action_dims: tuple[int, ...],
-    risk_on_checkpoint_root: Path, risk_off_checkpoint_root: Path,
+    risk_on_checkpoint_root: Path, risk_off_checkpoint_root: Path, risk_on_mode: str,
+    locations: list[str], n_seeds: int,
 ) -> list[dict[str, Any]]:
     jobs = []
     arms = [
-        ("risk_on", risk_on_checkpoint_root, "closed_form"),
+        ("risk_on", risk_on_checkpoint_root, risk_on_mode),
         ("risk_off", risk_off_checkpoint_root, "stub_constant"),
     ]
-    for location in LOCATIONS:
+    for location in locations:
         for arm, checkpoint_root, risk_mode in arms:
-            for seed in range(N_SEEDS):
+            for seed in range(n_seeds):
                 checkpoint = Path(checkpoint_root) / "classical" / location / f"seed{seed}.pt"
                 jobs.append({
                     "location": location, "arm": arm, "seed": seed, "direction": direction,
@@ -77,7 +78,17 @@ def main() -> None:
     parser.add_argument("--direction", default="downlink", choices=["downlink", "uplink"])
     parser.add_argument("--risk-on-checkpoint-root", type=Path, required=True)
     parser.add_argument("--risk-off-checkpoint-root", type=Path, required=True)
+    parser.add_argument(
+        "--risk-on-mode",
+        choices=["closed_form", "closed_form_dynamic"],
+        default="closed_form",
+        help="risk feature used to train the risk-on checkpoints; defaults to the archived RQ3 mode",
+    )
     parser.add_argument("--calibration-path", type=Path, default=DEFAULT_CALIBRATION_PATH)
+    parser.add_argument("--locations", nargs="+", default=LOCATIONS,
+                        help="subset of locations to evaluate (default: all six)")
+    parser.add_argument("--n-seeds", type=int, default=N_SEEDS,
+                        help="number of per-location seeds (seed0..seedN-1); default 10, the full protocol")
     parser.add_argument("--n-layers", type=int, default=2)
     parser.add_argument("--n-episodes", type=int, default=N_EPISODES)
     parser.add_argument("--episode-s", type=float, default=300.0)
@@ -95,9 +106,10 @@ def main() -> None:
 
     jobs = build_jobs(
         args.direction, args.calibration_path, args.n_layers, args.n_episodes, args.episode_s,
-        action_config, action_dims, args.risk_on_checkpoint_root, args.risk_off_checkpoint_root,
+        action_config, action_dims, args.risk_on_checkpoint_root, args.risk_off_checkpoint_root, args.risk_on_mode,
+        args.locations, args.n_seeds,
     )
-    print(f"{len(jobs)} eval job(s): {len(LOCATIONS)} location(s) x 2 arm(s) x {N_SEEDS} seed(s), "
+    print(f"{len(jobs)} eval job(s): {len(args.locations)} location(s) x 2 arm(s) x {args.n_seeds} seed(s), "
           f"{args.n_episodes} episodes each, max_workers={args.max_workers}")
 
     t0 = time.time()
@@ -118,9 +130,9 @@ def main() -> None:
                   f"rtx/s={r['retransmits_per_s_median']:6.2f}")
 
     report = []
-    print(f"\n{'=' * 100}\nRQ3: risk-on (closed_form) vs. risk-off (stub_constant), classical core, "
+    print(f"\n{'=' * 100}\nRQ3: risk-on ({args.risk_on_mode}) vs. risk-off (stub_constant), classical core, "
           f"Mann-Whitney p<{ALPHA}\n{'=' * 100}")
-    for location in LOCATIONS:
+    for location in args.locations:
         on = results[(location, "risk_on")]
         off = results[(location, "risk_off")]
 
@@ -149,8 +161,9 @@ def main() -> None:
 
     out_payload = {
         "meta": {
-            "direction": args.direction, "n_seeds": N_SEEDS, "n_episodes": args.n_episodes,
-            "alpha": ALPHA, "total_elapsed_s": time.time() - t0,
+            "direction": args.direction, "n_seeds": args.n_seeds, "locations": list(args.locations),
+            "n_episodes": args.n_episodes,
+            "alpha": ALPHA, "risk_on_mode": args.risk_on_mode, "total_elapsed_s": time.time() - t0,
         },
         "rq3": report,
     }

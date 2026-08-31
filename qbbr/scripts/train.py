@@ -41,7 +41,9 @@ def main() -> None:
     parser.add_argument("--core", choices=["quantum", "classical"], default="quantum")
     parser.add_argument("--n-episodes", type=int, default=None, help="default: config's episode.target_episodes[0]")
     parser.add_argument(
-        "--risk-mode", choices=["stub_constant", "empirical_proxy", "closed_form"], default="stub_constant"
+        "--risk-mode",
+        choices=["stub_constant", "empirical_proxy", "closed_form", "closed_form_dynamic"],
+        default="stub_constant",
     )
     parser.add_argument("--reupload", action="store_true", help="data re-uploading (quantum core only)")
     parser.add_argument(

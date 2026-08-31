@@ -51,7 +51,7 @@ def main() -> None:
     )
     parser.add_argument("--location", required=True)
     parser.add_argument("--direction", required=True, choices=["downlink", "uplink"])
-    parser.add_argument("--risk-mode", choices=["stub_constant", "empirical_proxy", "closed_form"],
+    parser.add_argument("--risk-mode", choices=["stub_constant", "empirical_proxy", "closed_form", "closed_form_dynamic"],
                          default="closed_form")
     parser.add_argument("--episode-s", type=float, default=300.0)
     parser.add_argument("--calibration-path", type=Path, default=DEFAULT_CALIBRATION_PATH)
