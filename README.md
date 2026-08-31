@@ -14,6 +14,12 @@ them let a learned agent adapt that budget productively.
 pending supervisor sign-off — see `main.tex`'s title-block comment and
 `outputs/supervisor_meeting_questions.md`.
 
+**Branch `align/rq3-rq4-docs` (2026-08-31):** adds two finished-but-unrun code
+paths — a `closed_form_dynamic` RQ3 risk model (atmospheric + ISL + handover
+hazard) and exact full-agent parameter matching for RQ4 (`qbbr/agents/matching.py`,
+`--rq4-full-match`) — plus this doc alignment. Reported RQ1–RQ4 numbers are
+unchanged; see "Deferred: full-protocol runs" below.
+
 ## Findings, in one paragraph
 
 `pacing_gain` alone (RQ1a, pre-registered) cuts retransmissions at 1 of 6
@@ -34,7 +40,8 @@ qbbr/
   action/     action-space registry (pacing_gain-only, multi-head, inflight)
   agents/
     classical/  MLP actor-critic (mlp_a2c.py)
-    quantum/    6-qubit quantum actor-critic (qa2c.py, ansatz.py)
+    quantum/    7-qubit quantum actor-critic (qa2c.py, ansatz.py)
+    matching.py exact full-agent parameter match for RQ4 (classical <-> quantum)
   configs/    action spaces + reward variants (YAML)
   data/       raw traces (gitignored) + per-location calibration constants
   env/        fluid-model simulator (fluid_sim.py, fluid_env.py = Scenario A,
@@ -46,7 +53,7 @@ qbbr/
   risk/       closed-form risk model (atmospheric, ISL, handover)
   scripts/    training, evaluation, calibration, and diagnostic entry points
   train/      A2C training loop, rollout buffer
-  tests/      pytest suite (227 tests)
+  tests/      pytest suite (248 tests)
 
 main.tex / main.pdf   paper draft (source is gitignored; PDF is build output)
 outputs/              generated reports, tables, and meeting-prep docs (gitignored)
@@ -78,15 +85,57 @@ Each RQ has its own parallel evaluation script under `qbbr/scripts/`:
 |---|---|---|
 | RQ1a/RQ1b | `eval_rq1_parallel.py` | pacing_gain-only vs. stock BBR-v3, both cores |
 | RQ2 | `eval_rq2_parallel.py` | coexistence, alpha in {0, 1, inf} (alpha=2 excluded — see script comment) |
-| RQ3 | `eval_rq3_parallel.py`* | risk-on (`closed_form`) vs. risk-off (`stub_constant`) |
+| RQ3 | `train_rq3_checkpoints.py` then `eval_rq3_parallel.py` | risk-on (`closed_form` / `closed_form_dynamic`) vs. risk-off (`stub_constant`) |
 | RQ4 | via `train.py` + `evaluate.py`, `--core classical\|quantum` | single grid point run so far (alpha=1, L=2, no re-uploading) |
-| boundary-freeze | `eval_boundary_freeze_perseed.py`* | per-seed effect size/IQR, baseline vs. freeze extension |
-| shifted-freeze control | `eval_shifted_freeze.py`* | decoy-phase control for the boundary-freeze mechanism |
+| boundary-freeze | `eval_boundary_freeze_perseed.py` | per-seed effect size/IQR, baseline vs. freeze extension |
+| shifted-freeze control | `eval_shifted_freeze.py` | decoy-phase control for the boundary-freeze mechanism |
 
-\* Not yet merged into a PR branch — these three exist only as ad-hoc
-diagnostic scripts written during analysis; recreate from `outputs/*.json`
-provenance and this project's history, or ask before re-running RQ3 or the
-freeze diagnostics.
+The RQ3, boundary-freeze and shifted-freeze scripts are post-hoc/exploratory
+(added after RQ1a's results) and are committed on `main`. They rebuild their
+own checkpoints/reports from scratch — ask before re-running RQ3 or the freeze
+diagnostics, since each retrains checkpoints.
+
+`closed_form` remains the archived atmospheric-only risk feature used by the
+reported RQ3 runs. `closed_form_dynamic` is the replacement candidate for new
+experiments: it composes the atmospheric and representative-ISL baselines with
+a bounded time-to-handover hazard. It changes the risk-on distribution, so it
+requires newly trained risk-on checkpoints and must not be compared directly
+with archived `closed_form` checkpoints.
+
+For a new Scenario-A RQ4 run, train the classical arm with
+`--rq4-full-match` and use the same flag when loading that checkpoint for
+evaluation. This enforces equality of **all** trainable actor and critic
+parameters with the corresponding QA2C core; it is intentionally incompatible
+with the archived RQ4 classical checkpoints.
+
+### Deferred: full-protocol runs for the new code paths
+
+The `closed_form_dynamic` RQ3 mode and the `--rq4-full-match` RQ4 baseline are
+wired and tested but **not** run at the 10-seed protocol. Ready-to-run:
+
+```
+# RQ3 with the dynamic risk model (6 cities x 10 seeds) -- retrains both arms
+python -m qbbr.scripts.train_rq3_checkpoints --risk-mode closed_form_dynamic \
+    --out-root outputs/checkpoints_rq3_dynamic/risk_on
+python -m qbbr.scripts.train_rq3_checkpoints --risk-mode stub_constant \
+    --out-root outputs/checkpoints_rq3_dynamic/risk_off
+python -m qbbr.scripts.eval_rq3_parallel \
+    --risk-on-checkpoint-root outputs/checkpoints_rq3_dynamic/risk_on \
+    --risk-off-checkpoint-root outputs/checkpoints_rq3_dynamic/risk_off \
+    --risk-on-mode closed_form_dynamic --out outputs/rq3_dynamic_report.json
+
+# RQ4 L=2/L=3 x re-uploading grid, full-agent-matched classical arm
+python -m qbbr.scripts.run_ablation --config qbbr/configs/base.yaml \
+    --location <city> --direction downlink --n-runs 10 --n-episodes 200 \
+    --alpha 1 --n-layers 2,3 --reupload false,true --core quantum,classical \
+    --checkpoint-root outputs/ablation_rq4_full
+```
+
+`train_rq3_checkpoints.py` and `eval_rq3_parallel.py` both take `--locations`
+and `--seeds` / `--n-seeds` for smaller pilot subsets. The RQ4 `L=3` cells
+cost ~7-8x compute/episode; completing that grid vs. reporting the current
+point as a scoped limitation is a decision pending with the supervisor
+(`outputs/supervisor_meeting_questions.md`, Q2).
 
 `validate_simulator.py` and `validate_handover_cadence.py` reproduce the
 trace-calibration and handover-cadence validation reported in `main.tex`
@@ -111,9 +160,10 @@ to load them.
 - The simulator's RTT dispersion is narrower than the real traces
   (see `main.tex` Sec. "Trace-Calibrated Fluid-Model Simulator") — median
   comparisons are supported, tail/variance claims are not.
-- Branch hygiene: this project has accumulated several `agent/*` worktree
-  branches (evaluation-harness, multiflow-alpha-fair, multihead-action-agents,
-  simulator-calibration-validation) plus `feature/pipeline-completion`, now
-  merged into `main`. A few scripts (marked \* above) were written directly
-  against a working tree and never went through a PR; recreate or re-derive
-  them before relying on them being present in a fresh clone.
+- Branch hygiene: the `agent/*` worktree branches and `feature/pipeline-completion`
+  are fully merged into `main` and can be deleted. `feature/gamma5-sweep-uplink-eval`
+  carries the gamma-sweep / uplink-eval / oracle work (referenced by `main.tex`)
+  and is not yet merged to `main`. `align/rq3-rq4-docs` branches off it and adds
+  the `closed_form_dynamic` RQ3 mode, RQ4 full-agent parameter matching, and this
+  doc pass. All evaluation/diagnostic scripts are committed (no working-tree-only
+  scripts remain).
