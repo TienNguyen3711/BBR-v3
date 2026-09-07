@@ -1,0 +1,12 @@
+# Forced fixed-action test before any successor model training.
+run:
+  locations: [London, Mumbai, Ohio, SaoPaulo, Sydney, Tokyo]
+  directions: [uplink, downlink]
+  seeds: [0, 1, 2]
+  duration_s: 30.0
+  fixed_action_indices: [0, 1, 2, 3, 4]
+go_no_go:
+  # Below this, simulator action selection has no material throughput signal.
+  minimum_throughput_span_pct: 0.5
+  # A degradation-only span cannot justify throughput-maximising RL training.
+  minimum_improvement_vs_stock_pct: 0.1
