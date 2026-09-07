@@ -1,0 +1,56 @@
+# Canonical full recurrent-QDQN ablation protocol. It shares the primary MDP,
+# but never substitutes for the QA2C/A2C primary successor result.
+protocol_id: full-recurrent-qdqn-ablation-simulator-proxy-v1
+algorithm_role: ablation_only_not_primary_successor
+evidence_tier: simulator_proxy_only
+evidence_statement: >-
+  This ablation is not field evidence and cannot support a Starlink performance
+  claim until collection, telemetry, path-stability and recovery-calibration
+  gates in active_study_protocol.yaml have passed.
+control:
+  reward_contract: supervisor-locked-throughput-only-v1
+  action_set_contract: native-rl-bbr-v3-canonical-7state-fixed-actions
+  fixed_action_count: 5
+  stock_action: 2
+agent:
+  history_window: 8
+  latent_dim: 3
+  variational_layers: 1
+  learning_rate: 0.001
+  discount_factor: 0.99
+  replay_capacity: 10000
+  priority_alpha: 0.6
+  importance_beta: 0.4
+  baseline_action: 2
+  min_relative_q_advantage: 0.02
+  min_absolute_q_advantage: 0.10
+  empirical_certification_min_samples: 16
+  min_empirical_reward_advantage: 0.0
+simulator:
+  risk_mode: stub_constant
+  dynamics_overrides: {bandwidth_estimate_recovery_s: 3.0}
+  dynamics_evidence: uncalibrated_post_handover_bandwidth_estimate_proxy
+training:
+  locations: [London, Mumbai, Ohio, SaoPaulo, Sydney, Tokyo]
+  directions: [downlink, uplink]
+  training_seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  episodes: 200
+  duration_s: 300.0
+  batch_size: 16
+  warmup_steps: 32
+  update_every: 4
+  target_sync_every: 50
+  epsilon_start: 0.50
+  epsilon_end: 0.01
+  reward_scale_mbps: 100.0
+  checkpoint_every_episodes: 25
+  resume: true
+evaluation:
+  holdout_seeds: [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009]
+bootstrap: {resamples: 10000, confidence: 0.95, seed: 20260905}
+selection_criteria:
+  min_median_throughput_delta_vs_stock_pct: 0.0
+  min_bootstrap_ci_lower_pct: 0.0
+  min_positive_training_seed_fraction: 0.70
+  max_low_gain_action_share: 0.10
+  max_mean_action_js_divergence: 0.20

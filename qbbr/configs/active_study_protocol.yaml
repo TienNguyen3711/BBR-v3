@@ -1,0 +1,30 @@
+# This is a readiness contract, not evidence that the experiments have run.
+study_id: native-rl-bbr-starlink-v1
+evidence_rule: field-measured results must be labelled separately from legacy simulation results
+collection:
+  minimum_independent_terminals: 2
+  minimum_geographic_locations: 2
+  longitudinal_capture: multi_week
+  required_physical_telemetry: [elevation_deg, weather, handover_event, snr_db]
+  required_path_evidence: [path_fingerprint, traceroute, mtr]
+model_validation:
+  required_scenarios: all_locations_x_both_directions
+  transition_metrics: [precision, recall, f1]
+  queue_metrics: [service_cv_squared, exponential_ks_statistic, exponential_ks_pvalue, measured_arrival_rate_pps]
+  packet_trace_lambda_crosscheck: required
+control:
+  contract: native_rl_bbr_contract.yaml
+  native_action_inventory: native_bbr_actions.yaml
+  reward_contract: supervisor-locked-throughput-only-v1
+  fixed_bbr_action_config: action_pacing_gain.yaml
+  prohibit_action_set_expansion: true
+benchmark:
+  required_ccas: [bbr-v3, cubic, hybla, vegas]
+  additional_ccas_when_available: [bbr-v1, bbr-v2, copa, pcc]
+  directions: [uplink, downlink]
+  flow_modes: [individual, parallel, true_mixed_bottleneck]
+  true_mixed_bottleneck_required: true
+  application_profiles: [video_streaming, voip, gaming]
+reporting:
+  required_metrics: [throughput, retransmissions, rtt_variance, queue_behavior, fairness]
+  prohibit_legacy_simulator_as_testbed_evidence: true

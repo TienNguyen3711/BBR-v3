@@ -98,6 +98,22 @@ class FluidParams:
     relax_rate_hz: float = 4.0  # how fast i_dwn/i_crs relax toward their sigmoid targets
     dwn_retransmit_rate_pps: float = _DWN_RETRANSMIT_RATE_PPS  # calibrated per-location; see env/calibration.py
     phase_profile: PhaseProfile | None = None  # shared across locations (Sec. VI-B pooled measurement)
+    # Disabled by default to preserve legacy results. When positive, this is
+    # the recovery time constant of BBR's delivery-bandwidth estimate after a
+    # handover capacity dip. It must be calibrated from observed telemetry
+    # before it can be treated as a field-model parameter.
+    bandwidth_estimate_recovery_s: float = 0.0
+    # Disabled by default (legacy: delivered throughput was pinned at the
+    # bottleneck for any pacing gain >= 1, so over-pacing was free on
+    # throughput and only cost retransmits). When positive, sustained
+    # over-pacing that drives BBR into DRAIN (high i_dwn) also depresses
+    # delivered throughput -- effective capacity is scaled by
+    # (1 - drain_throughput_penalty * i_dwn). This is BBR's own behaviour
+    # (inflight clamps, the pipe partially drains); it makes "always
+    # aggressive" strictly worse on throughput than a gain that is only
+    # raised when it is needed. It is a modelling parameter, not a fitted
+    # Starlink constant, until calibrated against observed DRAIN episodes.
+    drain_throughput_penalty: float = 0.0
 
     @property
     def sustained_x_btl_bps(self) -> float:
@@ -130,6 +146,7 @@ class FluidState:
     # behavior: every existing caller that constructs FluidState without this field, e.g. every
     # unit test written before STARTUP was added, is unaffected). Only FluidSimEnv.reset() sets
     # this False, opting a fresh episode into the STARTUP-phase prefix (see step_fluid_state).
+    bbr_bw_est_bps: float = 0.0  # zero means use instantaneous capacity (legacy path)
 
 
 def sigmoid(x: float, k: float = 8.0) -> float:
@@ -267,7 +284,10 @@ def bbr_offered_rate_bps(
         else state.i_crs * pacing_gain + (1.0 - state.i_crs) * stock_multiplier
     )
     full_capacity_bps = params.sustained_x_btl_bps * synthetic_capacity_fraction(state.t_s)
-    return full_capacity_bps * multiplier
+    bw_estimate_bps = (
+        state.bbr_bw_est_bps if state.bbr_bw_est_bps > 0.0 else full_capacity_bps
+    ) if params.bandwidth_estimate_recovery_s > 0.0 else full_capacity_bps
+    return bw_estimate_bps * multiplier
 
 
 def step_fluid_state(
@@ -342,12 +362,38 @@ def step_fluid_state(
         capacity_bps_now = capacity_bps_override
     else:
         capacity_bps_now = params.sustained_x_btl_bps * synthetic_capacity_fraction(state.t_s)
-    pacing_rate_bps = capacity_bps_now * multiplier
+    recovery_enabled = params.bandwidth_estimate_recovery_s > 0.0
+    # Legacy pacing used instantaneous capacity, so a positive gain could
+    # never recover an under-estimated bottleneck after a capacity event. The
+    # optional successor path paces from the lagged BBR delivery estimate.
+    bw_estimate_bps = (
+        state.bbr_bw_est_bps if state.bbr_bw_est_bps > 0.0 else capacity_bps_now
+    ) if recovery_enabled else capacity_bps_now
+    pacing_rate_bps = bw_estimate_bps * multiplier
 
     injected_bytes = pacing_rate_bps * dt_s
-    capacity_bytes = capacity_bps_now * dt_s
+    # Sustained over-pacing that has driven BBR into DRAIN (high i_dwn) also
+    # depresses delivered throughput, not just retransmits: effective capacity
+    # is scaled down while the pipe drains. drain_throughput_penalty=0 (legacy)
+    # keeps delivery pinned at the raw bottleneck for any gain >= 1.
+    effective_capacity_bps = capacity_bps_now * max(
+        1.0 - params.drain_throughput_penalty * i_dwn, 0.05
+    )
+    capacity_bytes = effective_capacity_bps * dt_s
     delivered_bytes = min(capacity_bytes, state.v_bytes + injected_bytes)
     v_bytes = max(state.v_bytes + injected_bytes - delivered_bytes, 0.0)
+
+    if recovery_enabled:
+        # Dips are observed promptly; recovery is deliberately lagged. This
+        # produces a bounded ProbeBW underfill window where the *existing*
+        # fixed pacing gains can differ in delivered throughput.
+        if capacity_bps_now <= bw_estimate_bps:
+            next_bw_estimate_bps = capacity_bps_now
+        else:
+            recovery = min(1.0, dt_s / params.bandwidth_estimate_recovery_s)
+            next_bw_estimate_bps = bw_estimate_bps + recovery * (capacity_bps_now - bw_estimate_bps)
+    else:
+        next_bw_estimate_bps = 0.0
 
     dwn_rate_now = params.dwn_retransmit_rate_pps * retransmit_phase_multiplier(
         state.t_s + phase_offset_s, params.phase_profile
@@ -373,5 +419,6 @@ def step_fluid_state(
         i_crs=i_crs,
         t_since_probe_s=t_since_probe_s,
         startup_done=startup_done_now,
+        bbr_bw_est_bps=next_bw_estimate_bps,
     )
     return new_state, delivered_bytes, retransmits

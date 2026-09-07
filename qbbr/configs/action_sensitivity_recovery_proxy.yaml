@@ -1,0 +1,15 @@
+# Sensitivity-only successor dynamics proxy. The time constant is deliberately
+# not called calibrated: it must be fitted from observed BBR delivery-rate and
+# handover traces before field use.
+run:
+  locations: [London, Mumbai, Ohio, SaoPaulo, Sydney, Tokyo]
+  directions: [uplink, downlink]
+  seeds: [0, 1, 2]
+  duration_s: 30.0
+  fixed_action_indices: [0, 1, 2, 3, 4]
+dynamics_overrides:
+  bandwidth_estimate_recovery_s: 3.0
+dynamics_evidence: uncalibrated_post_handover_bandwidth_estimate_proxy
+go_no_go:
+  minimum_throughput_span_pct: 0.5
+  minimum_improvement_vs_stock_pct: 0.1

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,7 @@ from qbbr.env.fluid_sim import (
 from qbbr.features.bbr_internals import compute_bhat_mbps
 from qbbr.features.state_builder import compute_state_vector
 from qbbr.reward.alpha_fair import compute_reward
+from qbbr.reward.throughput_only import compute_throughput_only_reward
 from qbbr.risk.ptot import closed_form_p_tot, compute_risk_features
 
 _DEFAULT_ACTION_CONFIG_PATH = Path(__file__).resolve().parent.parent / "configs" / "action_pacing_gain.yaml"
@@ -29,6 +31,7 @@ _BHAT_WINDOW_S = 10.0  # matches qbbr.features.bbr_internals' 10-sample window a
 _STATE_COLS = ["s1_bhat", "s2_rtt_ratio", "s3_inflight_bdp", "s4_queue", "s5_handover_eta", "s6_p_tot", "s7_reconfig_phase"]
 
 _HANDOVER_PHASE_PROFILE = PhaseProfile(mean_phase_s=10.5, r_bar=0.7368)
+_CRUISE_MASK_MIN = 0.5  # i_crs below this = not in ProbeBW_CRUISE; see probe_bw_phase_gate
 
 _EMA_ALPHA = 0.5  # weight on the newly-chosen level each decision, vs. (1-alpha) on
 # the running effective value. DNCCQ-PPO's EMA-smoothed action-magnitude technique
@@ -57,7 +60,10 @@ class FluidSimEnv(BaseEnv):
         episode_s: float = 300.0,
         substep_s: float = _SUBSTEP_S,
         reward_kwargs: dict[str, float] | None = None,
+        reward_mode: Literal["legacy_alpha_fair", "throughput_only"] = "legacy_alpha_fair",
+        dynamics_overrides: dict[str, float] | None = None,
         ablate_s7: bool = False,
+        probe_bw_phase_gate: bool = False,
     ) -> None:
         self.location = location
         self.direction = direction
@@ -68,6 +74,12 @@ class FluidSimEnv(BaseEnv):
         # dimension (incl. observation_dim / param_count) identical so the
         # only thing that changes is whether the agent can observe phase.
         self.ablate_s7 = ablate_s7
+        # When True, non-stock native gains are only offered while BBR is
+        # genuinely in ProbeBW_CRUISE (i_crs high). This matches the audited
+        # contract (Table II: the non-1.0 gains are "PROBE_BW only") and stops
+        # the agent from issuing a gain override every decision interval
+        # regardless of BBR phase.
+        self.probe_bw_phase_gate = probe_bw_phase_gate
 
         if action_config is None:
             action_config = _DEFAULT_ACTION_CONFIG_PATH
@@ -79,6 +91,11 @@ class FluidSimEnv(BaseEnv):
         self.episode_s = episode_s
         self.substep_s = substep_s
         self.reward_kwargs = reward_kwargs or {}
+        if reward_mode not in {"legacy_alpha_fair", "throughput_only"}:
+            raise ValueError("reward_mode must be 'legacy_alpha_fair' or 'throughput_only'")
+        # The historic simulator remains reproducible by default.  New QRL
+        # pilots opt into the supervisor-approved throughput-only contract.
+        self.reward_mode = reward_mode
 
         rtt_rtp_s = self.calibration["RTT_min_ms"] / 1000.0
         x_btl_bps = self.calibration["B_max_mbps"] * 1e6 / 8.0
@@ -91,6 +108,12 @@ class FluidSimEnv(BaseEnv):
             dwn_retransmit_rate_pps=dwn_retransmit_rate_pps, drawdown_activate_mult=drawdown_activate_mult,
             phase_profile=_HANDOVER_PHASE_PROFILE,
         )
+        if dynamics_overrides:
+            allowed = set(FluidParams.__dataclass_fields__)
+            unknown = set(dynamics_overrides) - allowed
+            if unknown:
+                raise ValueError(f"Unknown fluid dynamics overrides: {sorted(unknown)}")
+            self.params = replace(self.params, **dynamics_overrides)
         self._phase_offset_s = 0.0  # redrawn per episode in reset()
 
         self._ground_truth_base_p = closed_form_p_tot()
@@ -118,7 +141,11 @@ class FluidSimEnv(BaseEnv):
         # not an already-established connection at steady state (the pre-
         # STARTUP-prefix default, still used by FluidState()'s own defaults
         # and every direct construction elsewhere, e.g. unit tests).
-        self._state = FluidState(t_s=0.0, v_bytes=0.0, i_dwn=0.0, i_crs=0.0, startup_done=False)
+        initial_bw_estimate = self.params.sustained_x_btl_bps if self.params.bandwidth_estimate_recovery_s > 0.0 else 0.0
+        self._state = FluidState(
+            t_s=0.0, v_bytes=0.0, i_dwn=0.0, i_crs=0.0, startup_done=False,
+            bbr_bw_est_bps=initial_bw_estimate,
+        )
         self._history = []
         row = self._telemetry_row(
             t_start=self._phase_offset_s, state=self._state, delivered_bytes=0.0, retransmits=0.0, t_dec_s=1.0
@@ -196,7 +223,11 @@ class FluidSimEnv(BaseEnv):
             reconfig_cycle_s=self.params.phase_profile.cycle_s,
             reconfig_mean_phase_s=self.params.phase_profile.mean_phase_s,
         )
-        reward_series = compute_reward(window, **self.reward_kwargs)
+        reward_series = (
+            compute_throughput_only_reward(window)
+            if self.reward_mode == "throughput_only"
+            else compute_reward(window, **self.reward_kwargs)
+        )
 
         s_t = self._extract_state(state_df)
         r_t = float(reward_series.iloc[-1])
@@ -210,6 +241,7 @@ class FluidSimEnv(BaseEnv):
             "rtt_ms": row["rtt_ms"],
             "i_dwn": state.i_dwn,
             "i_crs": state.i_crs,
+            "bbr_bw_est_bps": state.bbr_bw_est_bps,
         }
         return s_t, r_t, done, info
 
@@ -244,6 +276,34 @@ class FluidSimEnv(BaseEnv):
     @property
     def action_space_size(self) -> int:
         return n_actions(self._action_config)
+
+    def allowed_action_indices(self) -> tuple[int, ...]:
+        """Expose the simulator's BBR-state gate to every masked QRL learner.
+
+        During STARTUP, and inside the modelled reconfiguration freeze, an
+        override cannot take effect.  The agent is therefore offered only the
+        existing stock 1.0 pacing choice.  Outside those periods the frozen
+        action configuration is available unchanged.  This is a mask over the
+        existing inventory, not an added action or a new control variable.
+        """
+
+        if self._state is None:
+            raise RuntimeError("call reset() before querying available actions")
+        stock = next(
+            (
+                index
+                for index in range(self.action_space_size)
+                if levels_for_action(self._action_config, index).get("pacing_gain") == 1.0
+            ),
+            0,
+        )
+        frozen = in_reconfig_freeze_window(
+            self._state.t_s, self._phase_offset_s, self.params.phase_profile
+        )
+        off_cruise = self.probe_bw_phase_gate and self._state.i_crs < _CRUISE_MASK_MIN
+        if not self._state.startup_done or frozen or off_cruise:
+            return (stock,)
+        return tuple(range(self.action_space_size))
 
     @property
     def observation_dim(self) -> int:

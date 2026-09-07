@@ -1,0 +1,18 @@
+# Simulator-screening configuration for the recurrent-QDQN QRL ablation.
+# It cannot add to action_pacing_gain.yaml's fixed five BBR choices or replace
+# the primary NativeQA2CAgent successor.
+brain_id: recurrent-prioritized-variational-double-dqn-ablation-v1
+role: ablation_only_not_primary_successor
+mdp_contract: native_rl_bbr_contract.yaml
+fixed_action_config: action_pacing_gain.yaml
+reward_contract: supervisor-locked-throughput-only-v1
+agent:
+  temporal_encoder: GRU
+  history_window: 8
+  q_value_head: variational_qnn
+  estimator: double_dqn
+  replay: proportional_prioritized
+  priority_alpha: 0.6
+  importance_beta: 0.4
+  target_sync_every: 50
+evidence_rule: simulator screens are not field-performance evidence

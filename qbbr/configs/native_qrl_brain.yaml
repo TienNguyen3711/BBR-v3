@@ -1,0 +1,27 @@
+# QRL brain configuration. It is intentionally separate from legacy A2C/Q-A2C
+# configurations because its outputs index a fixed existing BBR decision set.
+brain_id: native-qrl-bbr-v1
+role: primary_successor_quantum_brain
+mdp_contract: native_rl_bbr_contract.yaml
+native_action_inventory: native_bbr_actions.yaml
+agent:
+  type: NativeQA2CAgent
+  n_layers: 2
+  learning_rate: 0.001
+  discount_factor: 0.99
+  reupload: false
+training:
+  require_multi_location_field_data: true
+  require_enabled_non_stock_action: true
+  action_mask_source: NativeActionSpace.allowed_indices
+  observation_normalization: training-split-zscore-tanh-to-pi
+  fixed_action_config: action_pacing_gain.yaml
+reward:
+  contract: supervisor-locked-throughput-only-v1
+  formula: delivered_throughput_mbps
+evidence_rule: no field-performance claim before audited adapter and collection gates pass
+evaluation_baselines: [stock-bbr-v3, NativeMLPA2CAgent]
+alternative_qrl_algorithms:
+  - agent: RecurrentPrioritizedVariationalDoubleDQN
+    role: ablation_only_not_primary_successor
+    constraint: same throughput-only reward and fixed native BBR action set

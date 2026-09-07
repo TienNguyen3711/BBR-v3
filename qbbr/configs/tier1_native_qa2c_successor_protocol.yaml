@@ -1,0 +1,85 @@
+# Primary successor formulation: QA2C controls only fixed, native BBR-v3 choices.
+protocol_id: tier1-native-qa2c-bbr-simulator-proxy-hard-mask-lowguard-v5
+evidence_tier: simulator_proxy_only
+control:
+  role: primary_successor_quantum_brain
+  primary_quantum_agent: NativeQA2CAgent
+  matched_classical_agent: NativeMLPA2CAgent
+  reward_contract: supervisor-locked-throughput-only-v1
+  action_set_contract: native-rl-bbr-v3-canonical-7state-fixed-actions
+  canonical_state_contract: native_rl_bbr_contract.yaml
+  fixed_action_count: 5
+  stock_action: 2
+agent:
+  n_layers: 2
+  learning_rate: 0.0003
+  discount_factor: 0.99
+  reupload: false
+  max_classical_hidden: 128
+  entropy_coef: 0.01  # v3: was 0.005; more exploration so the policy can
+  # discover the state-aware gain the drain-penalty reward now rewards.
+  # v5.2: warm-start the actor toward stock BBR (positive prior on the stock
+  # logit, applied identically to the quantum and classical arms). Stops a
+  # seed from opening on a sub-1.0 gain and then self-reinforcing it; every
+  # other logit and all exploration are untouched, and no parameter count
+  # changes because the bias term already exists.
+  stock_init_bias: 1.0
+  selection:
+    stock_action: 2
+    training_distribution: hard_native_mask_plus_safety_only
+    deployment_rule: hard_masked_logit_margin
+    # v4: the confidence fold is retained only as a reported deployment-shield
+    # audit. It is deliberately absent from A2C sampling and policy-gradient
+    # updates. A deterministic deployed candidate must still outrank stock by
+    # this margin, while the hard congestion mask below remains mandatory.
+    min_logit_advantage: 0.0
+    confidence_temperature: 0.20
+    max_inflight_state: 0.45
+    max_queue_state: 0.20
+    high_gain_actions: [3, 4]
+    # v5.1: the sub-1.0 native gains (0.75, 0.90) are admissible only under
+    # genuine inflight/BDP (s3) or queue (s4) pressure -- the same congestion
+    # test that blocks the high gains. In headroom a sub-1.0 gain only
+    # under-fills the pipe (pure throughput loss), so the seed-1/seed-3 style
+    # low-gain collapse is removed by construction rather than by tuning.
+    # Still the frozen five-action set; this is native-state admissibility.
+    low_gain_actions: [0, 1]
+simulator:
+  risk_mode: stub_constant
+  # bandwidth_estimate_recovery_s: the lagged post-handover BBR delivery
+  #   estimate that creates a bounded ProbeBW underfill window where a
+  #   well-timed higher gain recovers throughput faster than stock.
+  # drain_throughput_penalty: sustained over-pacing that drives BBR into
+  #   DRAIN (high i_dwn) also depresses delivered throughput, so "always
+  #   aggressive" is strictly worse than a gain only raised when needed --
+  #   this aligns the throughput-only reward with state-aware control.
+  dynamics_overrides: {bandwidth_estimate_recovery_s: 3.0, drain_throughput_penalty: 0.15}
+  dynamics_evidence: uncalibrated_post_handover_bandwidth_estimate_and_drain_proxy
+  # Non-1.0 native gains are offered only while BBR is genuinely in
+  # ProbeBW_CRUISE (Table II: "PROBE_BW only"), not every decision interval.
+  probe_bw_phase_gate: true
+training:
+  locations: [London, Sydney]
+  directions: [downlink, uplink]
+  # Five independent training seeds make the >=0.70 stability gate meaningful:
+  # at least four policies must be positive, rather than all three under the
+  # former three-seed design. Hold-out evaluation seeds remain separate.
+  training_seeds: [0, 1, 2, 3, 4]
+  # This remains a 30-episode stability gate. Promote to 50 only if positive
+  # seeds, bootstrap CI, action distribution, and retransmissions pass first.
+  episodes: 30
+  duration_s: 300.0
+  reward_scale_mbps: 100.0
+  checkpoint_every_episodes: 15
+  resume: true
+evaluation:
+  holdout_seeds: [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009]
+bootstrap: {resamples: 10000, confidence: 0.95, seed: 20260905}
+selection_criteria:
+  min_median_throughput_delta_vs_stock_pct: 0.0
+  min_bootstrap_ci_lower_pct: 0.0
+  min_positive_training_seed_fraction: 0.70
+  max_low_gain_action_share: 0.10
+  max_mean_action_js_divergence: 0.20
+notes:
+  qdqn_role: ablation_only_not_primary_successor
