@@ -1,0 +1,22 @@
+numpy
+pandas
+matplotlib
+pytest
+pyyaml
+torch
+
+# PennyLane 0.39+ requires Python >=3.10; this project targets 3.9, so this
+# pins the last compatible release. That release also needs autoray pinned
+# below 0.7: newer autoray removed the NumpyMimic attribute PennyLane 0.38
+# imports at startup, so `pip install pennylane` alone (which resolves the
+# latest autoray) fails on import with an AttributeError.
+pennylane==0.38.0
+autoray==0.6.12
+scipy
+
+# real closed-form risk model (qbbr.risk.atmospheric, qbbr.risk.handover):
+# ITU-R P.618/840/676/837 atmospheric attenuation, and SGP4 orbital
+# propagation for handover-cadence geometry.
+itur
+skyfield
+sgp4
