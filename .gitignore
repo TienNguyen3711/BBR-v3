@@ -4,6 +4,14 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 outputs/
+checkpoints/
+reports/
+tmp/
+figures/deck/
+/figures/rq4_quantum_vs_classical.png
+/figures/scorecard.png
+sections/
+*.pt
 .DS_Store
 
 # LaTeX build artifacts
@@ -23,7 +31,6 @@ outputs/
 /calibration/
 /qbbr/data/raw/
 /qbbr/data/calibrated/
-requirements.txt
 
 # paper draft, managed separately from the code
 main.tex
