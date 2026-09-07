@@ -7,7 +7,7 @@ from typing import Any
 class BaseEnv(abc.ABC):
     @abc.abstractmethod
     def reset(self, seed: int | None = None) -> Any:
-        """Return the initial 6-dim state s_0."""
+        """Return the initial observation s_0 for this environment's declared MDP."""
 
     @abc.abstractmethod
     def step(self, action: int) -> tuple[Any, float, bool, dict]:

@@ -154,6 +154,26 @@ def test_reward_kwargs_reach_compute_reward(sample_calibration):
     assert r_no_penalty >= r_default
 
 
+def test_throughput_only_reward_ignores_legacy_penalty_kwargs(sample_calibration):
+    env = FluidSimEnv(
+        "Sydney",
+        "downlink",
+        sample_calibration,
+        episode_s=0.5,
+        reward_mode="throughput_only",
+        reward_kwargs={"alpha": 2.0, "delta": 100.0, "beta": 100.0},
+    )
+    env.reset()
+    _state, reward, _done, info = env.step(2)
+    assert reward == pytest.approx(info["delivered_bytes"] * 8.0 / info["t_dec_s"] / 1e6)
+
+
+def test_bbr_action_mask_keeps_only_stock_choice_during_startup(sample_calibration):
+    env = FluidSimEnv("Sydney", "downlink", sample_calibration, episode_s=0.5)
+    env.reset()
+    assert env.allowed_action_indices() == (2,)
+
+
 def test_ablate_s7_freezes_the_phase_feature_at_its_neutral_midpoint(sample_calibration):
     env = FluidSimEnv("Sydney", "downlink", sample_calibration, ablate_s7=True)
     s0 = env.reset()
@@ -176,3 +196,24 @@ def test_runs_for_every_calibrated_location_direction(sample_calibration):
             s, r, done, info = env.step(2)
             assert np.isfinite(s).all(), (location, direction)
             assert math.isfinite(r), (location, direction)
+
+
+def test_probe_bw_phase_gate_offers_only_stock_outside_cruise(sample_calibration):
+    from dataclasses import replace
+
+    env = FluidSimEnv("London", "downlink", sample_calibration, probe_bw_phase_gate=True)
+    env.reset(seed=0)
+    stock = 2
+    env._state = replace(env._state, startup_done=True, i_crs=0.2)
+    assert env.allowed_action_indices() == (stock,)
+    env._state = replace(env._state, i_crs=0.9)
+    assert env.allowed_action_indices() == tuple(range(env.action_space_size))
+
+
+def test_probe_bw_phase_gate_defaults_off(sample_calibration):
+    from dataclasses import replace
+
+    env = FluidSimEnv("London", "downlink", sample_calibration)  # gate not set
+    env.reset(seed=0)
+    env._state = replace(env._state, startup_done=True, i_crs=0.1)
+    assert env.allowed_action_indices() == tuple(range(env.action_space_size))

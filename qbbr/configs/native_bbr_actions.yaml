@@ -1,0 +1,35 @@
+# The QRL brain may select only this fixed, existing BBR pacing-gain set.
+# These values are intentionally copied from action_pacing_gain.yaml; adding a
+# sixth value or changing a value is a protocol violation, not an RL choice.
+fixed_action_config: action_pacing_gain.yaml
+actions:
+  - action_id: pacing_gain_075
+    native_semantic: execute BBR ProbeBW pacing-gain choice
+    fixed_parameters: {pacing_gain: 0.75}
+    allowed_bbr_states: [PROBE_BW]
+    kernel_capability: bbr2_set_pacing_rate
+    enabled: false
+  - action_id: pacing_gain_090
+    native_semantic: execute BBR ProbeBW pacing-gain choice
+    fixed_parameters: {pacing_gain: 0.90}
+    allowed_bbr_states: [PROBE_BW]
+    kernel_capability: bbr2_set_pacing_rate
+    enabled: false
+  - action_id: pacing_gain_100
+    native_semantic: execute BBR ProbeBW baseline pacing-gain choice
+    fixed_parameters: {pacing_gain: 1.00}
+    allowed_bbr_states: [STARTUP, DRAIN, PROBE_BW, PROBE_RTT]
+    kernel_capability: bbr2_set_pacing_rate
+    enabled: false
+  - action_id: pacing_gain_110
+    native_semantic: execute BBR ProbeBW pacing-gain choice
+    fixed_parameters: {pacing_gain: 1.10}
+    allowed_bbr_states: [PROBE_BW]
+    kernel_capability: bbr2_set_pacing_rate
+    enabled: false
+  - action_id: pacing_gain_125
+    native_semantic: execute BBR ProbeBW pacing-gain choice
+    fixed_parameters: {pacing_gain: 1.25}
+    allowed_bbr_states: [PROBE_BW]
+    kernel_capability: bbr2_set_pacing_rate
+    enabled: false

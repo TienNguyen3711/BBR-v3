@@ -91,6 +91,28 @@ def test_high_pacing_gain_grows_inflight_more_than_low_gain():
     assert state_hi.v_bytes > state_lo.v_bytes
 
 
+def test_lagged_bandwidth_estimate_creates_a_bounded_recovery_gain_effect():
+    params = FluidParams(
+        x_btl_bps=100e6,
+        rtt_rtp_s=0.05,
+        bandwidth_estimate_recovery_s=3.0,
+    )
+    # This represents the post-handover interval: true capacity has recovered
+    # to 100 Mbps, while BBR's delivery estimate is still 50 Mbps. No action
+    # is added; only the fixed gain applied to that estimate differs.
+    state = FluidState(
+        t_s=7.5, v_bytes=0.0, i_dwn=0.0, i_crs=1.0,
+        bbr_bw_est_bps=50e6,
+    )
+    _stock, stock_delivered, _ = step_fluid_state(
+        state, 1.0, 0.02, params, p_tot=0.001, capacity_bps_override=100e6
+    )
+    _high, high_delivered, _ = step_fluid_state(
+        state, 1.25, 0.02, params, p_tot=0.001, capacity_bps_override=100e6
+    )
+    assert stock_delivered < high_delivered <= 100e6 * 0.02
+
+
 def test_p_tot_above_threshold_pushes_toward_drawdown():
     dt = 0.02
     state_risky = FluidState(t_s=0.0, v_bytes=_PARAMS.bdp_bytes, i_dwn=0.0, i_crs=1.0)
@@ -318,3 +340,25 @@ def test_step_fluid_state_forces_stock_pacing_gain_inside_freeze_window():
     aggressive, _d, _r = step_fluid_state(state, 1.25, dt, _PARAMS, p_tot=0.001)
     frozen, _d, _r = step_fluid_state(state, 1.0, dt, _PARAMS, p_tot=0.001)
     assert aggressive.v_bytes != frozen.v_bytes  # sanity: the two calls really do differ
+
+
+def test_drain_throughput_penalty_depresses_delivery_under_sustained_drawdown():
+    from dataclasses import replace
+
+    bdp = _PARAMS.bdp_bytes
+    # A pipe already deep in DRAIN (high i_dwn) with a full inflight queue.
+    state = FluidState(t_s=3.0, v_bytes=3.0 * bdp, i_dwn=0.8, i_crs=1.0)
+    _s0, delivered_legacy, _r0 = step_fluid_state(state, 1.25, 0.02, _PARAMS, p_tot=0.001)
+    _s1, delivered_penalised, _r1 = step_fluid_state(
+        state, 1.25, 0.02, replace(_PARAMS, drain_throughput_penalty=0.15), p_tot=0.001
+    )
+    # Both are capacity-bound (the queue is full); the penalised delivery is
+    # the drained fraction of the legacy delivery. i_dwn is relaxed toward its
+    # target within the step, so it sits just above the 0.8 it started at.
+    assert delivered_penalised < delivered_legacy
+    ratio = delivered_penalised / delivered_legacy
+    assert (1.0 - 0.15 * 1.0) <= ratio <= (1.0 - 0.15 * 0.8)
+
+
+def test_drain_penalty_zero_is_the_legacy_default():
+    assert FluidParams(x_btl_bps=1e6, rtt_rtp_s=0.05).drain_throughput_penalty == 0.0
