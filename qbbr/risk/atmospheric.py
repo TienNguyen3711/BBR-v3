@@ -18,6 +18,10 @@ _DEFAULT_FREQUENCY_GHZ = 12.5  # Ku-band downlink; ACMA/ITU allocation 10.7-12.7
 _DEFAULT_ANTENNA_DIAMETER_M = 0.5  # Starlink UTA-232 user terminal, approx.
 _P_GRID_PERCENT = np.array([0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0, 50.0])
 _ELEVATION_BIN_WIDTH_DEG = 5.0
+# The constellation is a synthetic geometry proxy, not live TLE data.  A fixed
+# epoch therefore makes its integration reproducible; `ts.now()` made sparse
+# short integrations depend on wall-clock time and could yield no visible pass.
+_SYNTHETIC_REFERENCE_EPOCH_UTC = (2026, 9, 3)
 
 
 def elevation_time_weights(
@@ -32,7 +36,7 @@ def elevation_time_weights(
     from skyfield.api import load, wgs84
 
     ts = load.timescale()
-    t0 = ts.now()
+    t0 = ts.utc(*_SYNTHETIC_REFERENCE_EPOCH_UTC)
     observer = wgs84.latlon(lat, lon)
     satellites_by_shell = build_shell_satellites(t0, n_sats_per_shell)
 
@@ -52,6 +56,11 @@ def elevation_time_weights(
     weight = np.concatenate(all_weight)
     bin_edges = np.arange(min_elevation_deg, 90.0 + bin_width_deg, bin_width_deg)
     hist_w, _ = np.histogram(elev, bins=bin_edges, weights=weight)
+    if hist_w.sum() == 0.0:
+        raise ValueError(
+            "No synthetic satellite samples met the elevation cutoff; increase "
+            "duration_hours or n_sats_per_shell."
+        )
     hist_w = hist_w / hist_w.sum()
     bin_centers = bin_edges[:-1] + bin_width_deg / 2.0
     return [(float(c), float(w)) for c, w in zip(bin_centers, hist_w) if w > 0]

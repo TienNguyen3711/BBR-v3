@@ -1,0 +1,64 @@
+contract_id: native-rl-bbr-v3-canonical-7state-fixed-actions
+fixed_action_config: action_pacing_gain.yaml
+# These seven derived inputs are the canonical QRL state used by the primary
+# QA2C/A2C simulator protocol.  A testbed adapter must derive them from raw
+# TCP/BBR, packet-trace and Starlink telemetry, while keeping raw `bbr_state`
+# available for the fixed native-action mask.  Raw BBR state is control
+# context, not an eighth policy input.
+observation_space:
+  - {name: s1_bhat, source: delivery-rate telemetry / calibrated capacity estimate, units: normalized_rate}
+  - {name: s2_rtt_ratio, source: TCP_INFO RTT divided by BBR/TCP min RTT, units: ratio}
+  - {name: s3_inflight_bdp, source: TCP_INFO or BBR tracepoint inflight divided by estimated BDP, units: ratio}
+  - {name: s4_queue, source: calibrated queue estimator, units: normalized_queue}
+  - {name: s5_handover_eta, source: Starlink handover telemetry or explicitly labelled proxy, units: normalized_time}
+  - {name: s6_p_tot, source: packet-trace failure estimate plus calibrated channel model, units: probability}
+  - {name: s7_reconfig_phase, source: BBR/terminal reconfiguration state, units: normalized_phase}
+# Fixed action set: exactly action_pacing_gain.yaml's five values. QRL may
+# sequence/select them; it may not invent a sixth action or a new value.
+action_space:
+  - action_id: pacing_gain_075
+    native_semantic: execute BBR ProbeBW pacing-gain choice
+    fixed_parameters: {pacing_gain: 0.75}
+    allowed_bbr_states: [PROBE_BW]
+    kernel_capability: bbr2_set_pacing_rate
+    enabled: false
+  - action_id: pacing_gain_090
+    native_semantic: execute BBR ProbeBW pacing-gain choice
+    fixed_parameters: {pacing_gain: 0.90}
+    allowed_bbr_states: [PROBE_BW]
+    kernel_capability: bbr2_set_pacing_rate
+    enabled: false
+  - action_id: pacing_gain_100
+    native_semantic: execute BBR ProbeBW baseline pacing-gain choice
+    fixed_parameters: {pacing_gain: 1.00}
+    allowed_bbr_states: [STARTUP, DRAIN, PROBE_BW, PROBE_RTT]
+    kernel_capability: bbr2_set_pacing_rate
+    enabled: false
+  - action_id: pacing_gain_110
+    native_semantic: execute BBR ProbeBW pacing-gain choice
+    fixed_parameters: {pacing_gain: 1.10}
+    allowed_bbr_states: [PROBE_BW]
+    kernel_capability: bbr2_set_pacing_rate
+    enabled: false
+  - action_id: pacing_gain_125
+    native_semantic: execute BBR ProbeBW pacing-gain choice
+    fixed_parameters: {pacing_gain: 1.25}
+    allowed_bbr_states: [PROBE_BW]
+    kernel_capability: bbr2_set_pacing_rate
+    enabled: false
+reward:
+  reward_id: supervisor-locked-throughput-only-v1
+  throughput_utility: delivered_throughput_only
+  rtt_penalty: false
+  retransmission_penalty: false
+  ecn_penalty: false
+  notes: >-
+    Supervisor-locked objective: delivered throughput only. RTT, loss, queue,
+    and risk remain state, safety, and reporting signals; they are not reward
+    terms.
+safety:
+  stock_fallback_action: pacing_gain_100
+  only_declared_states: true
+  fail_closed_on_missing_telemetry: true
+  max_loss_rate: 0.10
+terminal_condition: episode ends on completed transfer, explicit fault, or duration limit
