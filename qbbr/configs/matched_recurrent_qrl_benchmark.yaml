@@ -1,0 +1,48 @@
+# Exact, pre-registered recurrent-QDQN ablation comparison. It does not
+# authorize a field-performance claim, replace primary QA2C/A2C, or expand
+# action_pacing_gain.yaml.
+algorithm_role: ablation_only_not_primary_successor
+agent:
+  history_window: 8
+  latent_dim: 3
+  variational_layers: 1
+  learning_rate: 0.001
+  discount_factor: 0.99
+  replay_capacity: 10000
+  priority_alpha: 0.6
+  importance_beta: 0.4
+  # Still native action ID 2 / gain 1.0. Other existing gains can be chosen
+  # only after their Q-value clears this conservative, throughput-only margin.
+  baseline_action: 2
+  min_relative_q_advantage: 0.02
+  min_absolute_q_advantage: 0.10
+  # A non-stock action must also have replay evidence of non-inferior
+  # throughput. These values affect policy selection only, not the reward.
+  empirical_certification_min_samples: 16
+  min_empirical_reward_advantage: 0.0
+# This is a declared simulator proxy only. Replace it with values fitted from
+# field handover/delivery telemetry before any field-oriented experiment.
+dynamics_overrides:
+  bandwidth_estimate_recovery_s: 3.0
+dynamics_evidence: uncalibrated_post_handover_bandwidth_estimate_proxy
+# These are post-training *selection* criteria.  They do not enter reward
+# computation: the supervisor-locked reward remains delivered throughput only.
+selection_criteria:
+  min_median_throughput_delta_vs_stock_pct: 0.0
+  max_low_gain_action_share: 0.10
+  max_mean_action_js_divergence: 0.20
+run:
+  locations: [Sydney]
+  direction: downlink
+  seeds: [0, 1, 2]
+  episodes: 50
+  duration_s: 60.0
+  evaluation_episodes: 5
+  batch_size: 16
+  warmup_steps: 32
+  update_every: 4
+  target_sync_every: 50
+  # Positive numerical rescaling only; the optimised signal is still throughput.
+  reward_scale_mbps: 100.0
+  epsilon_start: 0.50
+  epsilon_end: 0.01
