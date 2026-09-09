@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import math
 
 import numpy as np
@@ -180,6 +181,31 @@ def test_ablate_s7_freezes_the_phase_feature_at_its_neutral_midpoint(sample_cali
     assert s0[6] == pytest.approx(0.5)  # s7_reconfig_phase is _STATE_COLS[6]
     s, _r, _done, _info = env.step(2)
     assert s[6] == pytest.approx(0.5)
+
+
+def test_steady_inflight_bdp_frac_raises_reported_inflight_in_cruise(sample_calibration):
+    # Stage 1b: with the calibrated pipe term the reported inflight/BDP carries
+    # a persistent ~frac component instead of tracking only the (near-zero
+    # under the Tier-1 dynamics) queue backlog. Test the pipe contribution.
+    overrides = {"bandwidth_estimate_recovery_s": 3.0, "drain_throughput_penalty": 0.15}
+
+    def cruise_vob(cal):
+        env = FluidSimEnv("Sydney", "downlink", cal, episode_s=60.0,
+                          dynamics_overrides=overrides, probe_bw_phase_gate=True)
+        env.reset(seed=0)
+        vob, done = [], False
+        while not done:
+            _s, _r, done, _info = env.step(2)  # stock gain
+            vob.append(float(env._history[-1]["v_over_bdp"]))
+        return float(np.median(vob[len(vob) // 2:]))  # past STARTUP
+
+    legacy = cruise_vob(sample_calibration)  # steady_inflight_bdp_frac defaults to 0.0
+    cal = copy.deepcopy(sample_calibration)
+    cal["Sydney"]["downlink"]["steady_inflight_bdp_frac"] = 0.8
+    fitted = cruise_vob(cal)
+
+    assert legacy < 0.2                       # legacy: near-empty pipe under Tier-1 dynamics
+    assert fitted - legacy == pytest.approx(0.8, abs=0.25)  # pipe term (shrunk while draining)
 
 
 def test_ablate_s7_defaults_to_off_preserving_live_phase_tracking(sample_calibration):

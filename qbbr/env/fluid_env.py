@@ -103,9 +103,13 @@ class FluidSimEnv(BaseEnv):
 
         dwn_retransmit_rate_pps = self.calibration.get("dwn_retransmit_rate_pps", FluidParams.__dataclass_fields__["dwn_retransmit_rate_pps"].default)
         drawdown_activate_mult = self.calibration.get("drawdown_activate_mult", FluidParams.__dataclass_fields__["drawdown_activate_mult"].default)
+        steady_inflight_bdp_frac = self.calibration.get("steady_inflight_bdp_frac", 0.0)
+        base_retransmit_rate_pps = self.calibration.get("base_retransmit_rate_pps", 0.0)
         self.params = FluidParams(
             x_btl_bps=x_btl_bps, rtt_rtp_s=rtt_rtp_s, utilization_fraction=utilization_fraction,
             dwn_retransmit_rate_pps=dwn_retransmit_rate_pps, drawdown_activate_mult=drawdown_activate_mult,
+            steady_inflight_bdp_frac=steady_inflight_bdp_frac,
+            base_retransmit_rate_pps=base_retransmit_rate_pps,
             phase_profile=_HANDOVER_PHASE_PROFILE,
         )
         if dynamics_overrides:
@@ -171,10 +175,6 @@ class FluidSimEnv(BaseEnv):
             if dim in self._ema_levels:
                 self._ema_levels[dim] = _EMA_ALPHA * chosen + (1.0 - _EMA_ALPHA) * self._ema_levels[dim]
 
-        # Smoothed (EMA) values are what actually get applied -- see _EMA_ALPHA's
-        # comment. None means this action space doesn't control that dimension
-        # (unchanged from before smoothing existed: step_fluid_state falls back
-        # to params' stock default in that case).
         pacing_gain = self._ema_levels["pacing_gain"] if "pacing_gain" in levels else 1.0
         inflight_hi_mult = self._ema_levels["inflight_hi_mult"] if "inflight_hi_mult" in levels else None
         inflight_lo_mult = self._ema_levels["inflight_lo_mult"] if "inflight_lo_mult" in levels else None
@@ -251,12 +251,17 @@ class FluidSimEnv(BaseEnv):
     ) -> dict[str, float]:
         bdp = self.params.bdp_bytes
         queue_delay_ms = max(state.v_bytes - bdp, 0.0) / self.params.sustained_x_btl_bps * 1000.0
+        # Stage 1b: reported inflight/BDP carries a persistent pipe term (real
+        # BBR-v3 holds ~1 BDP in flight); it shrinks as the flow drains. This
+        # feeds s3_inflight_bdp only -- v_bytes, q_packets, RTT, and ECN stay
+        # on the queue-backlog quantity. pipe_frac = 0 recovers legacy.
+        pipe_frac = self.params.steady_inflight_bdp_frac * (1.0 - 0.5 * state.i_dwn)
         return {
             "t_start": t_start,
             "b_hat_mbps": 0.0,
             "rtt_ms": self.params.rtt_rtp_s * 1000.0 + queue_delay_ms,
             "rtt_base_ms": self.params.rtt_rtp_s * 1000.0,
-            "v_over_bdp": state.v_bytes / bdp,
+            "v_over_bdp": pipe_frac + state.v_bytes / bdp,
             "q_packets": max(state.v_bytes - bdp, 0.0) / MSS_BYTES,
             "bits_per_second": delivered_bytes * 8.0 / t_dec_s,
             "retransmits": retransmits,
@@ -278,14 +283,7 @@ class FluidSimEnv(BaseEnv):
         return n_actions(self._action_config)
 
     def allowed_action_indices(self) -> tuple[int, ...]:
-        """Expose the simulator's BBR-state gate to every masked QRL learner.
 
-        During STARTUP, and inside the modelled reconfiguration freeze, an
-        override cannot take effect.  The agent is therefore offered only the
-        existing stock 1.0 pacing choice.  Outside those periods the frozen
-        action configuration is available unchanged.  This is a mask over the
-        existing inventory, not an added action or a new control variable.
-        """
 
         if self._state is None:
             raise RuntimeError("call reset() before querying available actions")
