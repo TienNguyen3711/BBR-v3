@@ -16,14 +16,26 @@ agent:
   discount_factor: 0.99
   reupload: false
   max_classical_hidden: 128
-  entropy_coef: 0.01  # v3: was 0.005; more exploration so the policy can
-  # discover the state-aware gain the drain-penalty reward now rewards.
+  entropy_coef: 0.01  # v3: 0.005 -> v5: 0.01 (reported). An exploratory sweep
+  # to 0.02 (tier1_v5e_*, aborted) and 0.03 (tier1_v5f_report.json) produced an
+  # identical 3/5 positive-seed pattern -- seeds 1 and 3 never left the stock
+  # warm-start regardless of entropy. Diagnosis: seeds 1/3 sample non-stock
+  # ~32% with raw advantage ~+107 yet greedy_nonstock_fraction stays 0 for all
+  # 30 episodes; the credit-assignment path (not exploration rate) is the
+  # blocker. The Tier-1 gate is therefore reported as NOT MET; see
+  # tier1_v5_report.json and the paper's limitations/reporting sections.
   # v5.2: warm-start the actor toward stock BBR (positive prior on the stock
   # logit, applied identically to the quantum and classical arms). Stops a
   # seed from opening on a sub-1.0 gain and then self-reinforcing it; every
   # other logit and all exploration are untouched, and no parameter count
   # changes because the bias term already exists.
-  stock_init_bias: 1.0
+  # v5.2a: 1.0 froze the greedy/deployed policy at stock for the whole
+  # 30-episode budget (every London delta exactly 0.000%). The structural
+  # sub-1.0 collapse is already handled by low_gain_actions below, so this is
+  # only a mild opening nudge now, not a moat the actor must tunnel through.
+  # A 0.0 variant (with reward_scale 10000) was designed as tier1_v5g but not
+  # run: the project accepts the 3/5 result and moves to model validation.
+  stock_init_bias: 0.3
   selection:
     stock_action: 2
     training_distribution: hard_native_mask_plus_safety_only
@@ -69,6 +81,13 @@ training:
   # seeds, bootstrap CI, action distribution, and retransmissions pass first.
   episodes: 30
   duration_s: 300.0
+  # NOTE (open issue, deferred): at this scale the discounted return is ~+107,
+  # but the critic head is Linear(1,1) on sum(6 PauliZ) in [-6,6] and cannot
+  # represent that level, so advantage ~= return for every action and
+  # normalize_advantage only picks up return variance -- the likely reason
+  # seeds 1/3 never separate a well-placed non-stock action. A reward_scale
+  # 10000 test (return ~+-1.5, inside the critic range) was designed as
+  # tier1_v5g but not run; revisit during model validation (Stage 2).
   reward_scale_mbps: 100.0
   checkpoint_every_episodes: 15
   resume: true
