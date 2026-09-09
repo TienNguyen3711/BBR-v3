@@ -114,6 +114,19 @@ class FluidParams:
     # raised when it is needed. It is a modelling parameter, not a fitted
     # Starlink constant, until calibrated against observed DRAIN episodes.
     drain_throughput_penalty: float = 0.0
+    # Stage 1b fit fixes (default 0.0 = legacy). The rate-balance delivery
+    # model above lets v_bytes fall to ~0 under stock pacing, but real BBR-v3
+    # holds ~1 BDP in flight (cwnd = 2 BDP, one-RTT delivery lag). When
+    # positive, the *reported* inflight/BDP carries a persistent pipe term of
+    # this many BDP (shrunk while draining); v_bytes itself still tracks only
+    # the queue backlog, so i_crs/i_dwn, ECN, and q_packets are unchanged.
+    # Calibrated per location from observed snd_cwnd/BDP (env/calibration.py).
+    steady_inflight_bdp_frac: float = 0.0
+    # Real BBR-v3 retransmits continuously over Starlink (aggressive probing +
+    # LEO loss), not only during modelled DRAIN. When positive, this
+    # per-location baseline rate (packets/s, phase-modulated) is added to the
+    # DRAIN-gated term. Calibrated from the observed retransmit rate.
+    base_retransmit_rate_pps: float = 0.0
 
     @property
     def sustained_x_btl_bps(self) -> float:
@@ -395,15 +408,18 @@ def step_fluid_state(
     else:
         next_bw_estimate_bps = 0.0
 
-    dwn_rate_now = params.dwn_retransmit_rate_pps * retransmit_phase_multiplier(
-        state.t_s + phase_offset_s, params.phase_profile
-    )
+    phase_mult = retransmit_phase_multiplier(state.t_s + phase_offset_s, params.phase_profile)
     # No separate p_tot-driven retransmit term: an earlier version added
     # _risk_sigmoid(p_tot, k) * a fixed amplitude here, but that mechanism was
-    # never empirically tested (unlike dwn_retransmit_rate_pps, which IS
-    # calibrated against real per-location rates -- see env/calibration.py).
-    # p_tot still affects dynamics via _dwn_target's dwn_activate above.
-    retransmits = i_dwn * dwn_rate_now * dt_s
+    # never empirically tested (unlike the calibrated per-location rates --
+    # see env/calibration.py). p_tot still affects dynamics via _dwn_target's
+    # dwn_activate above. Stage 1b: the always-on baseline
+    # (base_retransmit_rate_pps) plus the DRAIN-gated excess
+    # (dwn_retransmit_rate_pps), both phase-modulated. base = 0.0 recovers the
+    # legacy DRAIN-only behaviour.
+    retransmits = (
+        params.base_retransmit_rate_pps + i_dwn * params.dwn_retransmit_rate_pps
+    ) * phase_mult * dt_s
 
     t_since_probe_s = state.t_since_probe_s + dt_s
     if t_since_probe_s >= probe_bw_interval_s(params.rtt_rtp_s, n_flows=n_flows, flow_index=flow_index):

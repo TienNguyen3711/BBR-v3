@@ -156,6 +156,17 @@ def test_dwn_retransmit_rate_pps_scales_retransmits_linearly():
     assert rtx_3x == pytest.approx(rtx_1x + dwn_component_increase)
 
 
+def test_base_retransmit_rate_applies_without_drawdown():
+    dt = 0.02
+    state = FluidState(t_s=0.0, v_bytes=0.0, i_dwn=0.0, i_crs=1.0)  # cruise, no drawdown
+    legacy = FluidParams(x_btl_bps=200e6 / 8.0, rtt_rtp_s=0.05)  # base_retransmit_rate_pps = 0.0
+    fitted = FluidParams(x_btl_bps=200e6 / 8.0, rtt_rtp_s=0.05, base_retransmit_rate_pps=50.0)
+    _s0, _d0, rtx_legacy = step_fluid_state(state, 1.0, dt, legacy, p_tot=0.001)
+    _s1, _d1, rtx_fitted = step_fluid_state(state, 1.0, dt, fitted, p_tot=0.001)
+    assert rtx_legacy == pytest.approx(0.0, abs=1e-6)     # legacy: DRAIN-gated only, i_dwn~=0
+    assert rtx_fitted == pytest.approx(50.0 * dt, abs=1e-6)  # fitted: always-on baseline dominates
+
+
 def test_phase_offset_and_profile_change_retransmit_rate_deterministically():
     params = FluidParams(
         x_btl_bps=200e6 / 8.0, rtt_rtp_s=0.05, dwn_retransmit_rate_pps=20.0,
