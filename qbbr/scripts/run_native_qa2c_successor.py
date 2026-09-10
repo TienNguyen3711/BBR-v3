@@ -56,6 +56,8 @@ def _selector(config: dict) -> NativeActionSelector:
         max_reconfig_phase_proximity=float(values.get("max_reconfig_phase_proximity", 1.0)),
         high_gain_actions=tuple(int(item) for item in values["high_gain_actions"]),
         low_gain_actions=tuple(int(item) for item in values.get("low_gain_actions", ())),
+        queue_budget_max_inflight=float(values.get("queue_budget_max_inflight", 1.0)),
+        queue_budget_max_queue=float(values.get("queue_budget_max_queue", 1.0)),
     )
 
 
@@ -87,6 +89,8 @@ def _validate_primary_contract(config: dict, probe: FluidSimEnv) -> dict:
 
 def _evaluate(agent, calibration, location: str, direction: str, config: dict, deployment: bool) -> dict:
     metrics = {"throughput_mbps": [], "retransmits_per_s": [], "rtt_ms": []}
+    durations = []
+    delivered = retransmitted = 0.0
     counts: dict[str, int] = {}
     near_high = near_total = far_high = far_total = 0  # high gain (3/4) by s7 handover proximity
     for seed in config["evaluation"]["holdout_seeds"]:
@@ -105,8 +109,14 @@ def _evaluate(agent, calibration, location: str, direction: str, config: dict, d
             metrics["throughput_mbps"].append(info["delivered_bytes"] * 8.0 / info["t_dec_s"] / 1e6)
             metrics["retransmits_per_s"].append(info["retransmits"] / info["t_dec_s"])
             metrics["rtt_ms"].append(info["rtt_ms"])
+            durations.append(info["t_dec_s"])
+            delivered += info["delivered_bytes"]
+            retransmitted += info["retransmitted_bytes"]
     total = sum(counts.values())
-    return ({f"{key}_mean": float(np.mean(value)) for key, value in metrics.items()}
+    return ({f"{key}_mean": float(np.average(value, weights=durations)) for key, value in metrics.items()}
+            | {"rtt_p90_ms": float(np.percentile(metrics["rtt_ms"], 90)),
+               "rtt_p95_ms": float(np.percentile(metrics["rtt_ms"], 95)),
+               "retransmission_ratio": retransmitted / max(delivered + retransmitted, 1.0)}
             | {"action_counts": counts, "action_shares": {str(i): counts.get(str(i), 0) / total for i in range(5)},
                "high_gain_share_near_handover": near_high / max(near_total, 1),
                "high_gain_share_far": far_high / max(far_total, 1),
@@ -115,6 +125,8 @@ def _evaluate(agent, calibration, location: str, direction: str, config: dict, d
 
 def _stock(calibration, location: str, direction: str, config: dict) -> dict:
     metrics = {"throughput_mbps": [], "retransmits_per_s": [], "rtt_ms": []}
+    durations = []
+    delivered = retransmitted = 0.0
     count = 0
     for seed in config["evaluation"]["holdout_seeds"]:
         env, done = _env(calibration, location, direction, config), False
@@ -125,7 +137,13 @@ def _stock(calibration, location: str, direction: str, config: dict) -> dict:
             metrics["throughput_mbps"].append(info["delivered_bytes"] * 8.0 / info["t_dec_s"] / 1e6)
             metrics["retransmits_per_s"].append(info["retransmits"] / info["t_dec_s"])
             metrics["rtt_ms"].append(info["rtt_ms"])
-    return ({f"{key}_mean": float(np.mean(value)) for key, value in metrics.items()}
+            durations.append(info["t_dec_s"])
+            delivered += info["delivered_bytes"]
+            retransmitted += info["retransmitted_bytes"]
+    return ({f"{key}_mean": float(np.average(value, weights=durations)) for key, value in metrics.items()}
+            | {"rtt_p90_ms": float(np.percentile(metrics["rtt_ms"], 90)),
+               "rtt_p95_ms": float(np.percentile(metrics["rtt_ms"], 95)),
+               "retransmission_ratio": retransmitted / max(delivered + retransmitted, 1.0)}
             | {"action_counts": {str(STOCK_ACTION): count}, "action_shares": {str(i): float(i == STOCK_ACTION) for i in range(5)}})
 
 
@@ -171,6 +189,8 @@ def main() -> None:
     parser.add_argument("--holdout-seeds", nargs="+", type=int, default=None)
     parser.add_argument("--checkpoint-root", type=Path, default=None)
     parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--calibration", type=Path, default=None,
+                        help="override per-location constants JSON (default: data/calibrated/per_location_constants.json)")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text())
     protocol_stem = "full_native_qa2c" if config["protocol_id"].startswith("full-") else "tier1_native_qa2c"
@@ -195,7 +215,7 @@ def main() -> None:
         training["duration_s"] = args.duration_s
     if args.holdout_seeds:
         config["evaluation"]["holdout_seeds"] = args.holdout_seeds
-    calibration = load_calibration(PACKAGE_ROOT / "data" / "calibrated" / "per_location_constants.json")
+    calibration = load_calibration(args.calibration or PACKAGE_ROOT / "data" / "calibrated" / "per_location_constants.json")
     probe = _env(calibration, training["locations"][0], training["directions"][0], config)
     canonical_mdp = _validate_primary_contract(config, probe)
     quantum, classical, match = build_matched_native_a2c_agents(
@@ -206,7 +226,7 @@ def main() -> None:
         stock_action=int(control["stock_action"]),
         stock_init_bias=float(agent_config.get("stock_init_bias", 0.0)),
     )
-    contract = {"control": control, "agent": agent_config, "canonical_mdp": canonical_mdp, "parameter_match": match.__dict__}
+    contract = {"control": control, "agent": agent_config, "canonical_mdp": canonical_mdp, "simulator": config["simulator"], "parameter_match": match.__dict__}
     plan = {
         "protocol_id": config["protocol_id"], "mode": "simulator_proxy_training" if args.execute else "preflight_only",
         "algorithm_role": control["role"],
@@ -250,10 +270,14 @@ def main() -> None:
                     completed, rewards, episode_diagnostics = (0, [], [])
                     if training["resume"] and path.exists():
                         completed, rewards, episode_diagnostics = _restore(path, config["protocol_id"], contract, model)
+                    loop_config = {
+                        k: agent_config[k] for k in ("entropy_start", "entropy_decay_episodes")
+                        if k in agent_config
+                    }
                     while completed < training["episodes"]:
                         chunk = min(training["checkpoint_every_episodes"], training["episodes"] - completed)
                         result = train_native_qrl(
-                            model, _env(calibration, location, direction, config), chunk, {}, start_episode=completed,
+                            model, _env(calibration, location, direction, config), chunk, loop_config, start_episode=completed,
                             total_episodes=training["episodes"], environment_seed_base=seed * 1_000_000,
                             reward_scale_mbps=training["reward_scale_mbps"],
                         )
@@ -268,6 +292,9 @@ def main() -> None:
                     learned_evaluation = _evaluate(model, calibration, location, direction, config, deployment=False)
                     evaluation["throughput_delta_vs_stock_pct"] = 100.0 * (evaluation["throughput_mbps_mean"] / stock["throughput_mbps_mean"] - 1.0)
                     evaluation["retransmits_delta_vs_stock_per_s"] = evaluation["retransmits_per_s_mean"] - stock["retransmits_per_s_mean"]
+                    evaluation["rtt_p90_delta_vs_stock_ms"] = evaluation["rtt_p90_ms"] - stock["rtt_p90_ms"]
+                    evaluation["rtt_p95_delta_vs_stock_ms"] = evaluation["rtt_p95_ms"] - stock["rtt_p95_ms"]
+                    evaluation["retransmission_ratio_delta_vs_stock"] = evaluation["retransmission_ratio"] - stock["retransmission_ratio"]
                     records.append({"location": location, "direction": direction, "seed": seed, "core": core,
                                     "param_count": model.param_count(),
                                     "training": {"completed_episodes": completed, "episode_rewards": rewards,
