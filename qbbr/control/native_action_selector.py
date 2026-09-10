@@ -41,6 +41,16 @@ class NativeActionSelector:
     # legacy behaviour. It is native-state admissibility over the frozen action
     # set, not an added action.
     low_gain_actions: tuple[int, ...] = ()
+    # Queue-budget guard (goal-2). A higher-than-stock gain is admissible only
+    # while the pipe has genuine headroom: inflight/BDP (s3) below
+    # queue_budget_max_inflight AND queue (s4) below queue_budget_max_queue.
+    # These sit *below* the congestion thresholds above, so the response is
+    # graduated -- headroom: {stock, high gains}; filling: stock only;
+    # congested: {stock, low gains to drain}. It stops a throughput-seeking
+    # policy from raising the rate into an already-filling pipe. Defaults
+    # (1.0) disable it -- it never triggers on the [0,1]-clipped state.
+    queue_budget_max_inflight: float = 1.0
+    queue_budget_max_queue: float = 1.0
 
     def __post_init__(self) -> None:
         if self.min_logit_advantage < 0.0:
@@ -48,7 +58,8 @@ class NativeActionSelector:
         if self.confidence_temperature <= 0.0:
             raise ValueError("confidence_temperature must be positive.")
         for name in ("max_inflight_state", "max_queue_state",
-                     "max_excess_rtt_state", "max_reconfig_phase_proximity"):
+                     "max_excess_rtt_state", "max_reconfig_phase_proximity",
+                     "queue_budget_max_inflight", "queue_budget_max_queue"):
             if not 0.0 <= float(getattr(self, name)) <= 1.0:
                 raise ValueError(f"{name} must lie in [0, 1]; the canonical state is clipped there.")
         if self.stock_action in self.high_gain_actions or self.stock_action in self.low_gain_actions:
@@ -80,12 +91,16 @@ class NativeActionSelector:
             or excess_rtt >= self.max_excess_rtt_state
             or reconfig_proximity >= self.max_reconfig_phase_proximity
         )
+        over_queue_budget = (
+            inflight_state >= self.queue_budget_max_inflight
+            or queue_state >= self.queue_budget_max_queue
+        )
         admitted = []
         for action in allowed:
             if action == self.stock_action:
                 admitted.append(action)
                 continue
-            if congested and action in self.high_gain_actions:
+            if (congested or over_queue_budget) and action in self.high_gain_actions:
                 continue
             if not congested and action in self.low_gain_actions:
                 continue
