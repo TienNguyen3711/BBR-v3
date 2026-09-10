@@ -373,3 +373,63 @@ def test_drain_throughput_penalty_depresses_delivery_under_sustained_drawdown():
 
 def test_drain_penalty_zero_is_the_legacy_default():
     assert FluidParams(x_btl_bps=1e6, rtt_rtp_s=0.05).drain_throughput_penalty == 0.0
+
+
+# --- Goal-2 dynamics: cwnd cap, loss backoff, ProbeRTT ---
+
+def test_goal2_dynamics_default_off():
+    p = FluidParams(x_btl_bps=1e6, rtt_rtp_s=0.05)
+    assert (p.cwnd_gain, p.loss_thresh, p.ecn_response_factor, p.probe_rtt_interval_s) == (0.0, 0.0, 0.0, 0.0)
+    s = FluidState()
+    assert (s.inflight_hi_scale, s.in_probe_rtt) == (1.0, False)
+
+
+def test_cwnd_gain_caps_the_standing_queue_under_sustained_over_pacing():
+    from dataclasses import replace
+
+    bdp = _PARAMS.bdp_bytes
+    capped = replace(_PARAMS, cwnd_gain=2.0)
+    s_free = FluidState(t_s=3.0, v_bytes=0.0, i_dwn=0.0, i_crs=1.0)
+    s_cap = FluidState(t_s=3.0, v_bytes=0.0, i_dwn=0.0, i_crs=1.0)
+    for _ in range(400):  # ~8 s of sustained 1.25 pacing
+        s_free, _d, _r = step_fluid_state(s_free, 1.25, 0.02, _PARAMS, p_tot=0.001)
+        s_cap, _d, _r = step_fluid_state(s_cap, 1.25, 0.02, capped, p_tot=0.001)
+    assert s_cap.v_bytes < s_free.v_bytes
+    assert s_cap.v_bytes <= 1.05 * bdp
+    assert s_free.v_bytes > 1.15 * bdp
+    assert s_cap.i_dwn < s_free.i_dwn
+
+
+def test_past_the_cwnd_cap_a_higher_pacing_gain_delivers_no_more():
+    from dataclasses import replace
+
+    capped = replace(_PARAMS, cwnd_gain=2.0)
+    s_hi = FluidState(t_s=3.0, v_bytes=_PARAMS.bdp_bytes, i_dwn=0.0, i_crs=1.0)
+    s_lo = FluidState(t_s=3.0, v_bytes=_PARAMS.bdp_bytes, i_dwn=0.0, i_crs=1.0)
+    dhi = dlo = 0.0
+    for _ in range(200):
+        s_hi, d, _r = step_fluid_state(s_hi, 1.25, 0.02, capped, p_tot=0.001); dhi += d
+        s_lo, d, _r = step_fluid_state(s_lo, 1.10, 0.02, capped, p_tot=0.001); dlo += d
+    assert dhi == pytest.approx(dlo, rel=0.02)  # both capacity-bound at the cap
+
+
+def test_loss_over_threshold_cuts_the_inflight_hi_scale():
+    from dataclasses import replace
+
+    p = replace(_PARAMS, cwnd_gain=2.0, loss_thresh=0.02, loss_beta=0.7,
+                base_retransmit_rate_pps=5000.0)  # force a high loss fraction this step
+    s = FluidState(t_s=3.0, v_bytes=_PARAMS.bdp_bytes, i_dwn=0.0, i_crs=1.0, inflight_hi_scale=1.0)
+    s2, _d, _r = step_fluid_state(s, 1.0, p.rtt_rtp_s, p, p_tot=0.001)
+    assert s2.inflight_hi_scale < 0.95
+
+
+def test_probe_rtt_enters_after_interval_and_paces_down():
+    from dataclasses import replace
+
+    p = replace(_PARAMS, probe_rtt_interval_s=1.0, probe_rtt_duration_s=0.2, probe_rtt_cwnd_frac=0.5)
+    s = FluidState(t_s=3.0, v_bytes=_PARAMS.bdp_bytes, i_dwn=0.0, i_crs=1.0, startup_done=True)
+    entered = False
+    for _ in range(80):  # 1.6 s
+        s, _d, _r = step_fluid_state(s, 1.25, 0.02, p, p_tot=0.001)
+        entered = entered or s.in_probe_rtt
+    assert entered  # ProbeRTT fired at least once past the 1 s interval

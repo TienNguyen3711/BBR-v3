@@ -100,3 +100,39 @@ def test_stock_action_cannot_itself_be_a_guarded_low_gain():
 
     with pytest.raises(ValueError):
         NativeActionSelector(low_gain_actions=(2,))
+
+
+# --- Goal-2 queue-budget guard ---
+
+def test_queue_budget_guard_disabled_by_default():
+    selector = NativeActionSelector(min_logit_advantage=0.0, low_gain_actions=(0, 1))
+    logits = torch.tensor([0.0, 0.0, 0.0, 1.0, 2.0])
+    state = torch.tensor([0.0, 0.0, 0.30, 0.10, 0.0, 0.0, 0.0])  # would trip a 0.25/0.06 budget
+    # defaults are 1.0 -> never triggers on the [0,1]-clipped state
+    assert selector.admissible_actions(logits, state, (0, 1, 2, 3, 4)) == (2, 3, 4)
+
+
+def test_queue_budget_guard_blocks_high_gains_when_pipe_is_filling_but_not_congested():
+    selector = NativeActionSelector(min_logit_advantage=0.0, low_gain_actions=(0, 1),
+                                    queue_budget_max_inflight=0.25, queue_budget_max_queue=0.06)
+    logits = torch.tensor([0.0, 0.0, 0.0, 1.0, 2.0])
+    # s3 = 0.30: over the 0.25 budget, under the 0.45 congestion threshold.
+    state = torch.tensor([0.0, 0.0, 0.30, 0.0, 0.0, 0.0, 0.0])
+    # high gains blocked; not congested so low gains also stay blocked -> stock only
+    assert selector.admissible_actions(logits, state, (0, 1, 2, 3, 4)) == (2,)
+
+
+def test_queue_budget_guard_leaves_high_gains_when_pipe_has_headroom():
+    selector = NativeActionSelector(min_logit_advantage=0.0, low_gain_actions=(0, 1),
+                                    queue_budget_max_inflight=0.25, queue_budget_max_queue=0.06)
+    logits = torch.tensor([0.0, 0.0, 0.0, 1.0, 2.0])
+    state = torch.tensor([0.0, 0.0, 0.10, 0.0, 0.0, 0.0, 0.0])  # s3 well under the budget
+    assert selector.admissible_actions(logits, state, (0, 1, 2, 3, 4)) == (2, 3, 4)
+
+
+def test_queue_budget_guard_still_lets_congestion_admit_low_gains_to_drain():
+    selector = NativeActionSelector(min_logit_advantage=0.0, low_gain_actions=(0, 1),
+                                    queue_budget_max_inflight=0.25, queue_budget_max_queue=0.06)
+    logits = torch.tensor([0.0, 0.0, 0.0, 1.0, 2.0])
+    state = torch.tensor([0.0, 0.0, 0.50, 0.0, 0.0, 0.0, 0.0])  # s3 over congestion threshold
+    assert selector.admissible_actions(logits, state, (0, 1, 2, 3, 4)) == (0, 1, 2)

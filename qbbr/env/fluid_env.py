@@ -16,6 +16,7 @@ from qbbr.env.fluid_sim import (
     PhaseProfile,
     ecn_marked,
     in_reconfig_freeze_window,
+    probe_bw_interval_s,
     step_fluid_state,
     synthetic_ground_truth_p_tot,
 )
@@ -64,7 +65,33 @@ class FluidSimEnv(BaseEnv):
         dynamics_overrides: dict[str, float] | None = None,
         ablate_s7: bool = False,
         probe_bw_phase_gate: bool = False,
+        capacity_trace: tuple[Any, Any] | None = None,
+        phase_offset_s: float | None = None,
+        capacity_trace_pool: list[dict[str, Any]] | None = None,
     ) -> None:
+        # capacity_trace: (times_s, capacity_bytes_per_s) sampled from a REAL
+        # measured run. When given, the bottleneck capacity is driven by that
+        # trace instead of synthetic_capacity_fraction()'s synthetic handover
+        # dip -- the exogenous forcing becomes real while the queue / loss /
+        # ProbeBW response stays this fluid proxy. Everything else (the
+        # calibrated rtt_rtp_s propagation floor, the reconfiguration-phase
+        # clock, retransmit phase modulation) is unchanged.
+        # phase_offset_s: pin the reconfiguration phase (replay alignment)
+        # instead of redrawing it per episode in reset().
+        self._capacity_trace = None
+        if capacity_trace is not None:
+            times, values = capacity_trace
+            self._capacity_trace = (np.asarray(times, dtype=float), np.asarray(values, dtype=float))
+            if self._capacity_trace[0].size < 2:
+                raise ValueError("capacity_trace needs at least two samples.")
+        self._fixed_phase_offset_s = phase_offset_s
+        # capacity_trace_pool: several real traces; reset() draws one per episode
+        # (entries: times_s, capacity_bytes_s, phase_offset_s, duration_s). This
+        # is how a policy is TRAINED against real, irregular capacity forcing
+        # instead of the synthetic periodic-handover model.
+        self._capacity_trace_pool = list(capacity_trace_pool) if capacity_trace_pool else None
+        if self._capacity_trace_pool and capacity_trace is not None:
+            raise ValueError("Pass capacity_trace or capacity_trace_pool, not both.")
         self.location = location
         self.direction = direction
         self.calibration = calibration[location][direction]
@@ -125,9 +152,28 @@ class FluidSimEnv(BaseEnv):
         self._state: FluidState | None = None
         self._history: list[dict[str, float]] = []
 
+    def _capacity_at(self, t_s: float) -> float | None:
+        """Bottleneck capacity (bytes/s) from the replayed trace, or None to
+        fall back on the synthetic handover-dip model."""
+        if self._capacity_trace is None:
+            return None
+        times, values = self._capacity_trace
+        return float(np.interp(t_s, times, values))
+
     def reset(self, seed: int | None = None) -> Any:
         rng = np.random.RandomState(seed) if seed is not None else np.random
-        self._phase_offset_s = float(rng.uniform(0.0, 15.0))
+        if self._capacity_trace_pool:
+            entry = self._capacity_trace_pool[int(rng.randint(len(self._capacity_trace_pool)))]
+            self._capacity_trace = (
+                np.asarray(entry["times_s"], dtype=float),
+                np.asarray(entry["capacity_bytes_s"], dtype=float),
+            )
+            self._fixed_phase_offset_s = float(entry.get("phase_offset_s", 0.0))
+            self.episode_s = float(entry.get("duration_s", self.episode_s))
+        self._phase_offset_s = (
+            float(self._fixed_phase_offset_s) if self._fixed_phase_offset_s is not None
+            else float(rng.uniform(0.0, 15.0))
+        )
 
         # EMA state for action smoothing, keyed the same way levels_for_action()
         # keys its dict; initialized to each dimension's stock/no-op value so the
@@ -181,7 +227,7 @@ class FluidSimEnv(BaseEnv):
         drawdown_activate_mult = None
         if "drawdown_activate_relative_mult" in levels:
             drawdown_activate_mult = self._ema_levels["drawdown_activate_relative_mult"] * self.params.drawdown_activate_mult
-        t_dec_s = minrtt_100_decision_interval_s(self.calibration["RTT_min_ms"])
+        t_dec_s = min(minrtt_100_decision_interval_s(self.calibration["RTT_min_ms"]), self.episode_s - self._state.t_s)
 
         t_start = self._state.t_s + self._phase_offset_s
         state = self._state
@@ -190,7 +236,12 @@ class FluidSimEnv(BaseEnv):
         ecn_marked_s = 0.0
         remaining = t_dec_s
         while remaining > 1e-9:
-            dt = min(self.substep_s, remaining)
+            dt = min(self.substep_s, remaining, self.params.rtt_rtp_s - state.round_elapsed_s)
+            # Never let a substep straddle a ProbeBW / ProbeRTT phase boundary:
+            # each phase then lasts an exact number of rounds and the RTT
+            # distribution (esp. its p95 tail) stops depending on substep_s
+            # (removes the ~20% timestep drift the v6 audit flagged).
+            dt = min(dt, self._substep_ceiling(state))
             p_tot = synthetic_ground_truth_p_tot(state.t_s, base_p=self._ground_truth_base_p)
             if in_reconfig_freeze_window(state.t_s, self._phase_offset_s, self.params.phase_profile):
                 step_pacing_gain, step_inflight_hi, step_inflight_lo, step_drawdown = 1.0, None, None, None
@@ -204,6 +255,7 @@ class FluidSimEnv(BaseEnv):
                 state, step_pacing_gain, dt, self.params, p_tot, phase_offset_s=self._phase_offset_s,
                 inflight_hi_mult_override=step_inflight_hi, inflight_lo_mult_override=step_inflight_lo,
                 drawdown_activate_mult_override=step_drawdown,
+                capacity_bps_override=self._capacity_at(state.t_s),
             )
             delivered_total += delivered
             retransmits_total += retransmits
@@ -231,7 +283,7 @@ class FluidSimEnv(BaseEnv):
 
         s_t = self._extract_state(state_df)
         r_t = float(reward_series.iloc[-1])
-        done = state.t_s >= self.episode_s
+        done = state.t_s >= self.episode_s - 1e-9
         info = {
             "pacing_gain": pacing_gain,
             "t_dec_s": t_dec_s,
@@ -242,27 +294,58 @@ class FluidSimEnv(BaseEnv):
             "i_dwn": state.i_dwn,
             "i_crs": state.i_crs,
             "bbr_bw_est_bps": state.bbr_bw_est_bps,
+            "retransmitted_bytes": retransmits_total * MSS_BYTES,
+            "queue_bytes": state.v_bytes,
         }
         return s_t, r_t, done, info
+
+    def _substep_ceiling(self, state: FluidState) -> float:
+        """Seconds until the next v7 ProbeBW / ProbeRTT phase boundary that is
+        still ahead, so the substep loop can stop exactly on it (substep-size
+        independent phase durations). Boundaries already reached (or phases
+        with an event-driven, not timed, exit) impose no constraint."""
+        p = self.params
+        ceiling = float("inf")
+        rems: list[float] = []
+        if p.probe_bw_cycle:
+            if state.probe_phase == 1:
+                rems.append(p.probe_up_rounds * p.rtt_rtp_s - state.probe_phase_elapsed_s)
+            elif state.probe_phase == 2:
+                rems.append(p.probe_down_rounds * p.rtt_rtp_s - state.probe_phase_elapsed_s)
+            else:
+                rems.append(probe_bw_interval_s(p.rtt_rtp_s) - state.t_since_probe_s)
+        if p.probe_rtt_interval_s > 0.0:
+            target = p.probe_rtt_duration_s if state.in_probe_rtt else p.probe_rtt_interval_s
+            rems.append(target - state.t_since_probe_rtt_s)
+        ahead = [r for r in rems if r > 0.0]
+        if ahead:
+            ceiling = min(ahead)
+        return ceiling if ceiling != float("inf") else self.substep_s
 
     def _telemetry_row(
         self, t_start: float, state: FluidState, delivered_bytes: float, retransmits: float, t_dec_s: float,
         ecn_marked_s: float = 0.0,
     ) -> dict[str, float]:
         bdp = self.params.bdp_bytes
-        queue_delay_ms = max(state.v_bytes - bdp, 0.0) / self.params.sustained_x_btl_bps * 1000.0
-        # Stage 1b: reported inflight/BDP carries a persistent pipe term (real
-        # BBR-v3 holds ~1 BDP in flight); it shrinks as the flow drains. This
-        # feeds s3_inflight_bdp only -- v_bytes, q_packets, RTT, and ECN stay
-        # on the queue-backlog quantity. pipe_frac = 0 recovers legacy.
+        # Stage 1b: reported inflight = a persistent ~1 BDP pipe term (real
+        # BBR-v3 holds roughly that in flight; it shrinks as the flow drains)
+        # plus the v_bytes queue backlog. pipe_frac = 0 recovers legacy.
         pipe_frac = self.params.steady_inflight_bdp_frac * (1.0 - 0.5 * state.i_dwn)
+        inflight_bytes = pipe_frac * bdp + state.v_bytes
+        # Queuing RTT is the inflight *above* 1 BDP, drained at the bottleneck
+        # rate -- consistent with the reported inflight/BDP, so a >1-BDP pipe
+        # and any handover-driven backlog both show up as RTT.
+        queue_delay_ms = max(inflight_bytes - bdp, 0.0) / self.params.sustained_x_btl_bps * 1000.0
+        if self.params.consistent_transport:
+            inflight_bytes = state.pipe_bytes + state.v_bytes
+            queue_delay_ms = state.v_bytes / max(state.service_rate_bytes_s, 1.0) * 1000.0
         return {
             "t_start": t_start,
             "b_hat_mbps": 0.0,
             "rtt_ms": self.params.rtt_rtp_s * 1000.0 + queue_delay_ms,
             "rtt_base_ms": self.params.rtt_rtp_s * 1000.0,
-            "v_over_bdp": pipe_frac + state.v_bytes / bdp,
-            "q_packets": max(state.v_bytes - bdp, 0.0) / MSS_BYTES,
+            "v_over_bdp": inflight_bytes / bdp,
+            "q_packets": (state.v_bytes if self.params.consistent_transport else max(inflight_bytes - bdp, 0.0)) / MSS_BYTES,
             "bits_per_second": delivered_bytes * 8.0 / t_dec_s,
             "retransmits": retransmits,
             "ecn_mark_fraction": ecn_marked_s / t_dec_s if t_dec_s > 0 else 0.0,
@@ -299,7 +382,7 @@ class FluidSimEnv(BaseEnv):
             self._state.t_s, self._phase_offset_s, self.params.phase_profile
         )
         off_cruise = self.probe_bw_phase_gate and self._state.i_crs < _CRUISE_MASK_MIN
-        if not self._state.startup_done or frozen or off_cruise:
+        if not self._state.startup_done or self._state.in_probe_rtt or frozen or off_cruise:
             return (stock,)
         return tuple(range(self.action_space_size))
 
