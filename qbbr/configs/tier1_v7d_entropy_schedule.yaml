@@ -1,0 +1,154 @@
+# Primary successor formulation: QA2C controls only fixed, native BBR-v3 choices.
+protocol_id: tier1-native-qa2c-bbr-probe-bw-cycle-v7d-entsched
+evidence_tier: simulator_proxy_only
+control:
+  role: primary_successor_quantum_brain
+  primary_quantum_agent: NativeQA2CAgent
+  matched_classical_agent: NativeMLPA2CAgent
+  reward_contract: supervisor-locked-throughput-only-v1
+  action_set_contract: native-rl-bbr-v3-canonical-7state-fixed-actions
+  canonical_state_contract: native_rl_bbr_contract.yaml
+  fixed_action_count: 5
+  stock_action: 2
+agent:
+  n_layers: 2
+  learning_rate: 0.0003
+  discount_factor: 0.99
+  reupload: false
+  max_classical_hidden: 128
+  entropy_coef: 0.01  # v3: 0.005 -> v5: 0.01 (reported). An exploratory sweep
+  # to 0.02 (tier1_v5e_*, aborted) and 0.03 (tier1_v5f_report.json) produced an
+  # identical 3/5 positive-seed pattern -- seeds 1 and 3 never left the stock
+  # warm-start regardless of entropy. Diagnosis: seeds 1/3 sample non-stock
+  # ~32% with raw advantage ~+107 yet greedy_nonstock_fraction stays 0 for all
+  # 30 episodes; the credit-assignment path (not exploration rate) is the
+  # blocker. The Tier-1 gate is therefore reported as NOT MET; see
+  # tier1_v5_report.json and the paper's limitations/reporting sections.
+  # v5.2: warm-start the actor toward stock BBR (positive prior on the stock
+  # logit, applied identically to the quantum and classical arms). Stops a
+  # seed from opening on a sub-1.0 gain and then self-reinforcing it; every
+  # other logit and all exploration are untouched, and no parameter count
+  # changes because the bias term already exists.
+  # v5.2a: 1.0 froze the greedy/deployed policy at stock for the whole
+  # 30-episode budget (every London delta exactly 0.000%). The structural
+  # sub-1.0 collapse is already handled by low_gain_actions below, so this is
+  # only a mild opening nudge now, not a moat the actor must tunnel through.
+  # A 0.0 variant (with reward_scale 10000) was designed as tier1_v5g but not
+  # run: the project accepts the 3/5 result and moves to model validation.
+  stock_init_bias: 0.0
+  # v7d targeted attempt: entropy SCHEDULE (start high, linear-decay to
+  # entropy_coef over the first entropy_decay_episodes) -- keep seeds 1/3
+  # exploring through the early phase where they collapse to constant
+  # stock. Distinct from the prior CONSTANT-entropy sweeps (0.02/0.03).
+  entropy_start: 0.10
+  entropy_decay_episodes: 15
+  selection:
+    stock_action: 2
+    training_distribution: hard_native_mask_plus_safety_only
+    deployment_rule: hard_masked_logit_margin
+    # v4: the confidence fold is retained only as a reported deployment-shield
+    # audit. It is deliberately absent from A2C sampling and policy-gradient
+    # updates. A deterministic deployed candidate must still outrank stock by
+    # this margin, while the hard congestion mask below remains mandatory.
+    min_logit_advantage: 0.0
+    confidence_temperature: 0.20
+    max_inflight_state: 0.45
+    max_queue_state: 0.20
+    high_gain_actions: [3, 4]
+    # v5.1: the sub-1.0 native gains (0.75, 0.90) are admissible only under
+    # genuine inflight/BDP (s3) or queue (s4) pressure -- the same congestion
+    # test that blocks the high gains. In headroom a sub-1.0 gain only
+    # under-fills the pipe (pure throughput loss), so the seed-1/seed-3 style
+    # low-gain collapse is removed by construction rather than by tuning.
+    # Still the frozen five-action set; this is native-state admissibility.
+    low_gain_actions: [0, 1]
+    # Goal-2 queue-budget guard: a higher-than-stock gain (1.10 / 1.25) is
+    # admissible only while the pipe has real headroom -- inflight/BDP (s3)
+    # below queue_budget_max_inflight AND queue (s4) below
+    # queue_budget_max_queue. Mechanism is implemented and tested, but left
+    # DISABLED (1.0): with the cwnd cap on, stock-cruise s3 is a flat ~0.29
+    # (London) / ~0.44 (Sydney) with no post-handover dip, so any active
+    # threshold below cruise collapses the policy to pure stock. It needs the
+    # pipe term to track actual fill (dip when bw_estimate lags post-handover)
+    # before "raise the rate only in headroom" has a window to act on.
+    queue_budget_max_inflight: 1.0
+    queue_budget_max_queue: 1.0
+simulator:
+  risk_mode: stub_constant
+  # v7: the chosen pacing gain is executed as a real BBR-v3 ProbeBW
+  # UP/DOWN/CRUISE cycle (probe_bw_cycle), not a sustained cruise multiplier,
+  # so a high gain costs only a transient ~(gain-1)*BDP queue pulse instead of
+  # a standing ~1 BDP backlog; and backlog past the buffer ceiling also costs
+  # retransmissions (overflow_retransmit_frac). Fluid proxy, not a packet-
+  # level BBR port; calibration is provisional and uncalibrated. Substep
+  # phase-boundary splitting + exact-exponential relaxation cut (not remove)
+  # the v6 RTT-p95 timestep drift; the acceptance deltas are matched-substep.
+  # SUPERVISOR-FLAGGED: stock gain 1.0 == no autonomous probe (== the pre-v7
+  # baseline); see docs/transport_v6_review.md (v7 section).
+  dynamics_overrides:
+    consistent_transport: true
+    probe_bw_cycle: true
+    overflow_retransmit_frac: 0.25
+    bandwidth_estimate_recovery_s: 3.0
+    drain_throughput_penalty: 0.0
+    cwnd_gain: 2.0
+    loss_thresh: 0.02
+    loss_beta: 0.7
+    probe_rtt_interval_s: 5.0
+    # v7b: bound the queuing delay any ProbeBW pulse adds, in ms, uniformly
+    # across paths (fixes the +50 ms RTT the probe cost on the util=0.05
+    # London uplink where 0.5 BDP is tens of ms).
+    probe_max_queue_delay_ms: 15.0
+  dynamics_evidence: uncalibrated_probe_bw_cycle_proxy_v7d_bbr2uplink
+  # Non-1.0 native gains are offered only while BBR is genuinely in
+  # ProbeBW_CRUISE (Table II: "PROBE_BW only"), not every decision interval.
+  probe_bw_phase_gate: true
+training:
+  locations: [London, Sydney]
+  directions: [downlink, uplink]
+  # Five independent training seeds make the >=0.70 stability gate meaningful:
+  # at least four policies must be positive, rather than all three under the
+  # former three-seed design. Hold-out evaluation seeds remain separate.
+  training_seeds: [0, 1, 2, 3, 4]
+  # This remains a 30-episode stability gate. Promote to 50 only if positive
+  # seeds, bootstrap CI, action distribution, and retransmissions pass first.
+  episodes: 30
+  duration_s: 300.0
+  # NOTE (open issue, deferred): at this scale the discounted return is ~+107,
+  # but the critic head is Linear(1,1) on sum(6 PauliZ) in [-6,6] and cannot
+  # represent that level, so advantage ~= return for every action and
+  # normalize_advantage only picks up return variance -- the likely reason
+  # seeds 1/3 never separate a well-placed non-stock action. A reward_scale
+  # v7b: reward_scale 10000 (was 100). Discounted return moves from ~+107 to
+  # ~+-1.5, inside the Linear(1,1) critic's sum(6 PauliZ) in [-6,6] range, so
+  # advantage stops collapsing to the return -- the fix for seeds 1/3 never
+  # separating a non-stock action ("tier1_v5g", designed earlier, never run).
+  # Positive scaling only; the throughput-only reward ordering is preserved.
+  reward_scale_mbps: 10000.0
+  checkpoint_every_episodes: 15
+  resume: true
+evaluation:
+  holdout_seeds: [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009]
+bootstrap: {resamples: 10000, confidence: 0.95, seed: 20260905}
+selection_criteria:
+  # Predeclared strict non-regression budgets; simulator-only, evaluated as
+  # delta-vs-stock at a matched substep. The retransmission-*ratio* gate is
+  # removed: retransmits/(delivered+retransmits) double-counts the throughput
+  # denominator (see docs/transport_v6_review.md, review point B), so a lower
+  # gain that loses goodput fails it for the wrong reason. Loss safety is
+  # carried by max_retransmits_delta_vs_stock_per_s, now causally responsive
+  # to over-pacing via overflow_retransmit_frac.
+  # v7b: gate on the RTT p90 tail, not p95 -- p95 of a spiky bimodal RTT with
+  # few tail samples carries an O(dt) bias the delta cannot fully cancel; p90
+  # is better sampled. Budgets are "no material regression", not zero: the
+  # probe adds a few ms by construction and its worst case is separately
+  # bounded by probe_max_queue_delay_ms. p95 delta is still reported.
+  max_rtt_p90_delta_vs_stock_ms: 5.0
+  max_retransmits_delta_vs_stock_per_s: 0.25
+  min_median_throughput_delta_vs_stock_pct: 0.0
+  min_bootstrap_ci_lower_pct: 0.0
+  min_positive_training_seed_fraction: 0.70
+  max_low_gain_action_share: 0.10
+  max_mean_action_js_divergence: 0.20
+notes:
+  qdqn_role: ablation_only_not_primary_successor

@@ -105,6 +105,12 @@ def train_native_qrl(
     if seed is not None:
         torch.manual_seed(seed)
         np.random.seed(seed)
+    # Optional entropy schedule: start high, decay linearly to the agent's
+    # own entropy_coef floor over `entropy_decay_episodes` (global episode
+    # index). Keeps exploration alive through the fragile early phase where
+    # some seeds otherwise collapse to constant stock. Off when unset.
+    entropy_start = config.get("entropy_start")
+    entropy_decay_episodes = float(config.get("entropy_decay_episodes") or (total_episodes or 1))
     if reward_scale_mbps <= 0.0:
         raise ValueError("reward_scale_mbps must be positive.")
     total_episodes = total_episodes if total_episodes is not None else start_episode + n_episodes
@@ -135,7 +141,11 @@ def train_native_qrl(
             state = next_state
             episode_reward += reward
         strata = _phase_stratified_diagnostics(agent, rollout, agent.gamma)
-        metrics = agent.update(rollout)
+        scheduled_entropy = None
+        if entropy_start is not None:
+            frac = max(0.0, 1.0 - episode / max(entropy_decay_episodes, 1e-9))
+            scheduled_entropy = agent.entropy_coef + (float(entropy_start) - agent.entropy_coef) * frac
+        metrics = agent.update(rollout, entropy_coef=scheduled_entropy)
         summary = {
             "episode_reward": episode_reward,
             "episode_length": len(rollout),

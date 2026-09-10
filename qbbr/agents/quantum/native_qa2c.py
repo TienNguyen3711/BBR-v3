@@ -98,9 +98,10 @@ class NativeQA2CAgent(BaseAgent):
         with torch.no_grad():
             return float(self._critic_value(state_t).item())
 
-    def update(self, batch: Any) -> dict[str, float]:
+    def update(self, batch: Any, entropy_coef: float | None = None) -> dict[str, float]:
         if not hasattr(batch, "action_masks"):
             raise ValueError("NativeQA2CAgent requires a rollout with per-step action_masks.")
+        ec = self.entropy_coef if entropy_coef is None else float(entropy_coef)
         returns = discounted_returns(batch.rewards, self.gamma)
         log_probs, values, entropies, greedy_actions, stock_probabilities = [], [], [], [], []
         for state, action, allowed_indices in zip(batch.states, batch.actions, batch.action_masks):
@@ -117,7 +118,7 @@ class NativeQA2CAgent(BaseAgent):
             torch.stack(log_probs), values_t, returns, self.normalize_advantage
         )
         mean_entropy = torch.stack(entropies).mean()
-        loss = actor_loss + 0.5 * critic_loss - self.entropy_coef * mean_entropy
+        loss = actor_loss + 0.5 * critic_loss - ec * mean_entropy
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -135,6 +136,7 @@ class NativeQA2CAgent(BaseAgent):
             "sampled_nonstock_fraction": float(np.mean(np.asarray(batch.actions) != 2)),
             "greedy_nonstock_fraction": float(np.mean(np.asarray(greedy_actions) != 2)),
             "mean_stock_probability": float(torch.stack(stock_probabilities).mean().item()),
+            "entropy_coef_effective": ec,
             "loss": float(loss.item()),
         }
 
