@@ -1,0 +1,1513 @@
+city,direction,arm,metric,value
+Tokyo,downlink,bbr (measured),throughput,173.14763936715667
+Tokyo,downlink,bbr (measured),throughput,164.66689469211414
+Tokyo,downlink,bbr (measured),throughput,166.29871117419984
+Tokyo,downlink,bbr (measured),throughput,170.73732948822533
+Tokyo,downlink,bbr (measured),throughput,171.93626061303985
+Tokyo,downlink,bbr (measured),throughput,175.43495283779973
+Tokyo,downlink,bbr (measured),throughput,168.43571463773915
+Tokyo,downlink,bbr (measured),throughput,163.6661705882247
+Tokyo,downlink,bbr (measured),throughput,168.41277368443036
+Tokyo,downlink,bbr (measured),throughput,180.4078152227284
+Tokyo,downlink,bbr (measured),retx,283.51702420411425
+Tokyo,downlink,bbr (measured),retx,195.8544944094231
+Tokyo,downlink,bbr (measured),retx,236.90550239489605
+Tokyo,downlink,bbr (measured),retx,201.5900120621298
+Tokyo,downlink,bbr (measured),retx,205.71300092001613
+Tokyo,downlink,bbr (measured),retx,201.20481030541833
+Tokyo,downlink,bbr (measured),retx,170.16975385176042
+Tokyo,downlink,bbr (measured),retx,203.75710213404193
+Tokyo,downlink,bbr (measured),retx,179.61034638547684
+Tokyo,downlink,bbr (measured),retx,180.51902387207136
+Tokyo,downlink,bbr (measured),rtt,160.791
+Tokyo,downlink,bbr (measured),rtt,158.247
+Tokyo,downlink,bbr (measured),rtt,160.272
+Tokyo,downlink,bbr (measured),rtt,160.283
+Tokyo,downlink,bbr (measured),rtt,159.87
+Tokyo,downlink,bbr (measured),rtt,159.88
+Tokyo,downlink,bbr (measured),rtt,160.142
+Tokyo,downlink,bbr (measured),rtt,159.195
+Tokyo,downlink,bbr (measured),rtt,159.095
+Tokyo,downlink,bbr (measured),rtt,160.59
+Tokyo,downlink,bbr (measured),rttvar,24.56390614932922
+Tokyo,downlink,bbr (measured),rttvar,22.274724151584028
+Tokyo,downlink,bbr (measured),rttvar,24.81452997235622
+Tokyo,downlink,bbr (measured),rttvar,33.55324810514547
+Tokyo,downlink,bbr (measured),rttvar,17.653067653145698
+Tokyo,downlink,bbr (measured),rttvar,21.456059893359164
+Tokyo,downlink,bbr (measured),rttvar,16.34049396979536
+Tokyo,downlink,bbr (measured),rttvar,18.5026894266478
+Tokyo,downlink,bbr (measured),rttvar,15.18906213107554
+Tokyo,downlink,bbr (measured),rttvar,25.27989623487074
+Tokyo,downlink,bbr2 (measured),throughput,139.4481272419226
+Tokyo,downlink,bbr2 (measured),throughput,148.4262971739926
+Tokyo,downlink,bbr2 (measured),throughput,124.53988990474835
+Tokyo,downlink,bbr2 (measured),throughput,135.69855669321248
+Tokyo,downlink,bbr2 (measured),throughput,148.18744971576123
+Tokyo,downlink,bbr2 (measured),throughput,127.4360081602682
+Tokyo,downlink,bbr2 (measured),throughput,132.85604088141335
+Tokyo,downlink,bbr2 (measured),throughput,139.0452092957457
+Tokyo,downlink,bbr2 (measured),throughput,135.65122905920148
+Tokyo,downlink,bbr2 (measured),throughput,140.34603236617238
+Tokyo,downlink,bbr2 (measured),retx,62.04949930917564
+Tokyo,downlink,bbr2 (measured),retx,55.391334925525726
+Tokyo,downlink,bbr2 (measured),retx,75.06099262753307
+Tokyo,downlink,bbr2 (measured),retx,57.52390715361534
+Tokyo,downlink,bbr2 (measured),retx,53.64174995146077
+Tokyo,downlink,bbr2 (measured),retx,76.30367071883579
+Tokyo,downlink,bbr2 (measured),retx,69.27925582270178
+Tokyo,downlink,bbr2 (measured),retx,54.630003048426666
+Tokyo,downlink,bbr2 (measured),retx,58.07786167610882
+Tokyo,downlink,bbr2 (measured),retx,55.18984680841869
+Tokyo,downlink,bbr2 (measured),rtt,160.923
+Tokyo,downlink,bbr2 (measured),rtt,161.241
+Tokyo,downlink,bbr2 (measured),rtt,158.856
+Tokyo,downlink,bbr2 (measured),rtt,161.43
+Tokyo,downlink,bbr2 (measured),rtt,158.76
+Tokyo,downlink,bbr2 (measured),rtt,163.81
+Tokyo,downlink,bbr2 (measured),rtt,161.045
+Tokyo,downlink,bbr2 (measured),rtt,159.321
+Tokyo,downlink,bbr2 (measured),rtt,163.642
+Tokyo,downlink,bbr2 (measured),rtt,158.737
+Tokyo,downlink,bbr2 (measured),rttvar,22.092287444691877
+Tokyo,downlink,bbr2 (measured),rttvar,16.432820099596807
+Tokyo,downlink,bbr2 (measured),rttvar,34.53085749735396
+Tokyo,downlink,bbr2 (measured),rttvar,31.55733663156262
+Tokyo,downlink,bbr2 (measured),rttvar,17.503062704534074
+Tokyo,downlink,bbr2 (measured),rttvar,30.562950815692584
+Tokyo,downlink,bbr2 (measured),rttvar,29.920158366120752
+Tokyo,downlink,bbr2 (measured),rttvar,30.57381980096112
+Tokyo,downlink,bbr2 (measured),rttvar,22.451808130640025
+Tokyo,downlink,bbr2 (measured),rttvar,19.48575703817596
+Tokyo,downlink,cubic (measured),throughput,4.497381287627469
+Tokyo,downlink,cubic (measured),throughput,11.71490439572298
+Tokyo,downlink,cubic (measured),throughput,8.02373480651193
+Tokyo,downlink,cubic (measured),throughput,10.25916598153721
+Tokyo,downlink,cubic (measured),throughput,8.482574274833045
+Tokyo,downlink,cubic (measured),throughput,13.223946101442223
+Tokyo,downlink,cubic (measured),throughput,13.286414706976808
+Tokyo,downlink,cubic (measured),throughput,8.423389255357801
+Tokyo,downlink,cubic (measured),throughput,10.217035003152416
+Tokyo,downlink,cubic (measured),throughput,8.186632711556808
+Tokyo,downlink,cubic (measured),retx,0.8006037475998988
+Tokyo,downlink,cubic (measured),retx,0.7308961065309098
+Tokyo,downlink,cubic (measured),retx,1.0166236656692527
+Tokyo,downlink,cubic (measured),retx,15.472259490458015
+Tokyo,downlink,cubic (measured),retx,1.8205950875702623
+Tokyo,downlink,cubic (measured),retx,0.8870081153843832
+Tokyo,downlink,cubic (measured),retx,11.368769864975462
+Tokyo,downlink,cubic (measured),retx,1.4519436256508766
+Tokyo,downlink,cubic (measured),retx,1.913623010989125
+Tokyo,downlink,cubic (measured),retx,0.946832702217344
+Tokyo,downlink,cubic (measured),rtt,148.983
+Tokyo,downlink,cubic (measured),rtt,152.414
+Tokyo,downlink,cubic (measured),rtt,152.513
+Tokyo,downlink,cubic (measured),rtt,149.928
+Tokyo,downlink,cubic (measured),rtt,152.789
+Tokyo,downlink,cubic (measured),rtt,154.734
+Tokyo,downlink,cubic (measured),rtt,150.718
+Tokyo,downlink,cubic (measured),rtt,150.34
+Tokyo,downlink,cubic (measured),rtt,150.591
+Tokyo,downlink,cubic (measured),rtt,153.118
+Tokyo,downlink,cubic (measured),rttvar,2.9680884349516314
+Tokyo,downlink,cubic (measured),rttvar,11.79741385809934
+Tokyo,downlink,cubic (measured),rttvar,8.618097209756018
+Tokyo,downlink,cubic (measured),rttvar,4.893633186419429
+Tokyo,downlink,cubic (measured),rttvar,17.26993539867052
+Tokyo,downlink,cubic (measured),rttvar,5.237164250437
+Tokyo,downlink,cubic (measured),rttvar,10.293143122086244
+Tokyo,downlink,cubic (measured),rttvar,3.865486948944139
+Tokyo,downlink,cubic (measured),rttvar,6.362563397987534
+Tokyo,downlink,cubic (measured),rttvar,4.213856844649793
+Tokyo,downlink,stock-sim,throughput,150.44378878984844
+Tokyo,downlink,stock-sim,throughput,153.0653875023162
+Tokyo,downlink,stock-sim,throughput,160.29921131219118
+Tokyo,downlink,stock-sim,retx,201.95191317725164
+Tokyo,downlink,stock-sim,retx,201.94679498098893
+Tokyo,downlink,stock-sim,retx,201.94559892694676
+Tokyo,downlink,stock-sim,rtt,150.99134
+Tokyo,downlink,stock-sim,rtt,150.99134
+Tokyo,downlink,stock-sim,rtt,150.99134
+Tokyo,downlink,stock-sim,rttvar,3.979407867002401
+Tokyo,downlink,stock-sim,rttvar,3.822505362744932
+Tokyo,downlink,stock-sim,rttvar,4.5247606713120385
+Tokyo,downlink,A2C-sim,throughput,147.7149285947886
+Tokyo,downlink,A2C-sim,throughput,146.69816822454013
+Tokyo,downlink,A2C-sim,throughput,143.15799151841625
+Tokyo,downlink,A2C-sim,throughput,149.425316180263
+Tokyo,downlink,A2C-sim,throughput,150.44378878984844
+Tokyo,downlink,A2C-sim,throughput,149.84045781314077
+Tokyo,downlink,A2C-sim,throughput,148.32345513107637
+Tokyo,downlink,A2C-sim,throughput,145.0366811955794
+Tokyo,downlink,A2C-sim,throughput,151.29664416724
+Tokyo,downlink,A2C-sim,throughput,153.0653875023162
+Tokyo,downlink,A2C-sim,throughput,155.03688563001498
+Tokyo,downlink,A2C-sim,throughput,153.69384127152597
+Tokyo,downlink,A2C-sim,throughput,147.5238984964298
+Tokyo,downlink,A2C-sim,throughput,157.18009571282002
+Tokyo,downlink,A2C-sim,throughput,160.29921131219118
+Tokyo,downlink,A2C-sim,retx,201.9518289060261
+Tokyo,downlink,A2C-sim,retx,201.9519458656454
+Tokyo,downlink,A2C-sim,retx,201.95172274515255
+Tokyo,downlink,A2C-sim,retx,201.9515924081569
+Tokyo,downlink,A2C-sim,retx,201.95191317725164
+Tokyo,downlink,A2C-sim,retx,201.94667168468334
+Tokyo,downlink,A2C-sim,retx,201.9467495452355
+Tokyo,downlink,A2C-sim,retx,201.94663584371673
+Tokyo,downlink,A2C-sim,retx,201.94646870697449
+Tokyo,downlink,A2C-sim,retx,201.94679498098893
+Tokyo,downlink,A2C-sim,retx,201.94574981384667
+Tokyo,downlink,A2C-sim,retx,201.94550516827383
+Tokyo,downlink,A2C-sim,retx,201.94537439480118
+Tokyo,downlink,A2C-sim,retx,201.94545448560413
+Tokyo,downlink,A2C-sim,retx,201.94559892694676
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rtt,150.99134
+Tokyo,downlink,A2C-sim,rttvar,2.5468976012226103
+Tokyo,downlink,A2C-sim,rttvar,2.036177285879567
+Tokyo,downlink,A2C-sim,rttvar,1.1161621833734099
+Tokyo,downlink,A2C-sim,rttvar,2.658885916343085
+Tokyo,downlink,A2C-sim,rttvar,3.979407867002401
+Tokyo,downlink,A2C-sim,rttvar,1.8353629194731227
+Tokyo,downlink,A2C-sim,rttvar,1.7884521282081662
+Tokyo,downlink,A2C-sim,rttvar,1.2296587494365585
+Tokyo,downlink,A2C-sim,rttvar,2.235485057410502
+Tokyo,downlink,A2C-sim,rttvar,3.822505362744932
+Tokyo,downlink,A2C-sim,rttvar,2.855820370494636
+Tokyo,downlink,A2C-sim,rttvar,2.0691344481052996
+Tokyo,downlink,A2C-sim,rttvar,1.5585848999381107
+Tokyo,downlink,A2C-sim,rttvar,3.0805278569778407
+Tokyo,downlink,A2C-sim,rttvar,4.5247606713120385
+Tokyo,downlink,QA2C-sim,throughput,150.62548611719555
+Tokyo,downlink,QA2C-sim,throughput,143.15799151841625
+Tokyo,downlink,QA2C-sim,throughput,149.425316180263
+Tokyo,downlink,QA2C-sim,throughput,143.15799151841625
+Tokyo,downlink,QA2C-sim,throughput,148.9282891612425
+Tokyo,downlink,QA2C-sim,throughput,152.74294702860124
+Tokyo,downlink,QA2C-sim,throughput,145.09206035788634
+Tokyo,downlink,QA2C-sim,throughput,151.29664416724
+Tokyo,downlink,QA2C-sim,throughput,145.0366811955794
+Tokyo,downlink,QA2C-sim,throughput,149.9423290843669
+Tokyo,downlink,QA2C-sim,throughput,158.70418136153359
+Tokyo,downlink,QA2C-sim,throughput,147.71622747021465
+Tokyo,downlink,QA2C-sim,throughput,157.18009571282002
+Tokyo,downlink,QA2C-sim,throughput,147.5238984964298
+Tokyo,downlink,QA2C-sim,throughput,156.67330206364431
+Tokyo,downlink,QA2C-sim,retx,201.95186959385157
+Tokyo,downlink,QA2C-sim,retx,201.95172274515255
+Tokyo,downlink,QA2C-sim,retx,201.9515924081569
+Tokyo,downlink,QA2C-sim,retx,201.95172274515255
+Tokyo,downlink,QA2C-sim,retx,201.95159133313507
+Tokyo,downlink,QA2C-sim,retx,201.94661537113555
+Tokyo,downlink,QA2C-sim,retx,201.9466359808345
+Tokyo,downlink,QA2C-sim,retx,201.94646870697449
+Tokyo,downlink,QA2C-sim,retx,201.94663584371673
+Tokyo,downlink,QA2C-sim,retx,201.94629220201705
+Tokyo,downlink,QA2C-sim,retx,201.94552033104748
+Tokyo,downlink,QA2C-sim,retx,201.9453749796088
+Tokyo,downlink,QA2C-sim,retx,201.94545448560413
+Tokyo,downlink,QA2C-sim,retx,201.94537439480118
+Tokyo,downlink,QA2C-sim,retx,201.94542505147368
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rtt,150.99134
+Tokyo,downlink,QA2C-sim,rttvar,4.610168535211195
+Tokyo,downlink,QA2C-sim,rttvar,1.1161621833734099
+Tokyo,downlink,QA2C-sim,rttvar,2.658885916343085
+Tokyo,downlink,QA2C-sim,rttvar,1.1161621833734099
+Tokyo,downlink,QA2C-sim,rttvar,3.4059176123880293
+Tokyo,downlink,QA2C-sim,rttvar,4.387290604258677
+Tokyo,downlink,QA2C-sim,rttvar,1.2296587598069748
+Tokyo,downlink,QA2C-sim,rttvar,2.235485057410502
+Tokyo,downlink,QA2C-sim,rttvar,1.2296587494365585
+Tokyo,downlink,QA2C-sim,rttvar,2.8929260882725023
+Tokyo,downlink,QA2C-sim,rttvar,4.386958406642104
+Tokyo,downlink,QA2C-sim,rttvar,1.5585544030030813
+Tokyo,downlink,QA2C-sim,rttvar,3.0805278569778407
+Tokyo,downlink,QA2C-sim,rttvar,1.5585848999381107
+Tokyo,downlink,QA2C-sim,rttvar,3.2854502301770516
+SaoPaulo,downlink,bbr (measured),throughput,115.47861422500777
+SaoPaulo,downlink,bbr (measured),throughput,97.49156328794997
+SaoPaulo,downlink,bbr (measured),throughput,110.1308021973878
+SaoPaulo,downlink,bbr (measured),throughput,128.04918107107125
+SaoPaulo,downlink,bbr (measured),throughput,118.508660418257
+SaoPaulo,downlink,bbr (measured),throughput,116.8168687588937
+SaoPaulo,downlink,bbr (measured),throughput,113.90804844130098
+SaoPaulo,downlink,bbr (measured),throughput,120.97508514547573
+SaoPaulo,downlink,bbr (measured),throughput,112.67401360701348
+SaoPaulo,downlink,bbr (measured),throughput,114.12919421820126
+SaoPaulo,downlink,bbr (measured),retx,42.12915569806038
+SaoPaulo,downlink,bbr (measured),retx,58.91741702632949
+SaoPaulo,downlink,bbr (measured),retx,60.88562307733784
+SaoPaulo,downlink,bbr (measured),retx,98.42708953859442
+SaoPaulo,downlink,bbr (measured),retx,65.87473763898542
+SaoPaulo,downlink,bbr (measured),retx,56.999286940654706
+SaoPaulo,downlink,bbr (measured),retx,46.561238186570314
+SaoPaulo,downlink,bbr (measured),retx,56.81192775724973
+SaoPaulo,downlink,bbr (measured),retx,61.93057338649333
+SaoPaulo,downlink,bbr (measured),retx,52.83341491777756
+SaoPaulo,downlink,bbr (measured),rtt,398.932
+SaoPaulo,downlink,bbr (measured),rtt,403.008
+SaoPaulo,downlink,bbr (measured),rtt,398.768
+SaoPaulo,downlink,bbr (measured),rtt,407.222
+SaoPaulo,downlink,bbr (measured),rtt,411.867
+SaoPaulo,downlink,bbr (measured),rtt,402.93
+SaoPaulo,downlink,bbr (measured),rtt,410.087
+SaoPaulo,downlink,bbr (measured),rtt,401.253
+SaoPaulo,downlink,bbr (measured),rtt,393.172
+SaoPaulo,downlink,bbr (measured),rtt,400.312
+SaoPaulo,downlink,bbr (measured),rttvar,17.45986176911586
+SaoPaulo,downlink,bbr (measured),rttvar,20.495834251059197
+SaoPaulo,downlink,bbr (measured),rttvar,16.165284100427964
+SaoPaulo,downlink,bbr (measured),rttvar,12.252368588660962
+SaoPaulo,downlink,bbr (measured),rttvar,13.23855865421497
+SaoPaulo,downlink,bbr (measured),rttvar,14.943409803344023
+SaoPaulo,downlink,bbr (measured),rttvar,10.640799094025365
+SaoPaulo,downlink,bbr (measured),rttvar,19.99612278047937
+SaoPaulo,downlink,bbr (measured),rttvar,12.09435639461071
+SaoPaulo,downlink,bbr (measured),rttvar,13.293510782501855
+SaoPaulo,downlink,bbr2 (measured),throughput,38.27368912135471
+SaoPaulo,downlink,bbr2 (measured),throughput,39.04225184199398
+SaoPaulo,downlink,bbr2 (measured),throughput,35.73352536656129
+SaoPaulo,downlink,bbr2 (measured),throughput,35.873126070627485
+SaoPaulo,downlink,bbr2 (measured),throughput,37.40306065590224
+SaoPaulo,downlink,bbr2 (measured),throughput,37.3951738377168
+SaoPaulo,downlink,bbr2 (measured),throughput,34.91473146847545
+SaoPaulo,downlink,bbr2 (measured),throughput,44.770582797664325
+SaoPaulo,downlink,bbr2 (measured),throughput,38.442220298905525
+SaoPaulo,downlink,bbr2 (measured),throughput,38.967875228031865
+SaoPaulo,downlink,bbr2 (measured),retx,15.558981959166614
+SaoPaulo,downlink,bbr2 (measured),retx,33.249688986298715
+SaoPaulo,downlink,bbr2 (measured),retx,10.577408586142726
+SaoPaulo,downlink,bbr2 (measured),retx,12.218361386187201
+SaoPaulo,downlink,bbr2 (measured),retx,21.321382901927073
+SaoPaulo,downlink,bbr2 (measured),retx,41.711565667999864
+SaoPaulo,downlink,bbr2 (measured),retx,27.414353658737497
+SaoPaulo,downlink,bbr2 (measured),retx,1.7990867316691304
+SaoPaulo,downlink,bbr2 (measured),retx,4.548173135880516
+SaoPaulo,downlink,bbr2 (measured),retx,2.682034761564862
+SaoPaulo,downlink,bbr2 (measured),rtt,415.605
+SaoPaulo,downlink,bbr2 (measured),rtt,416.823
+SaoPaulo,downlink,bbr2 (measured),rtt,414.94849999999997
+SaoPaulo,downlink,bbr2 (measured),rtt,418.1435
+SaoPaulo,downlink,bbr2 (measured),rtt,428.87
+SaoPaulo,downlink,bbr2 (measured),rtt,426.081
+SaoPaulo,downlink,bbr2 (measured),rtt,414.983
+SaoPaulo,downlink,bbr2 (measured),rtt,407.83000000000004
+SaoPaulo,downlink,bbr2 (measured),rtt,413.054
+SaoPaulo,downlink,bbr2 (measured),rtt,416.91999999999996
+SaoPaulo,downlink,bbr2 (measured),rttvar,34.37274874541396
+SaoPaulo,downlink,bbr2 (measured),rttvar,37.85912032761503
+SaoPaulo,downlink,bbr2 (measured),rttvar,32.69761148299016
+SaoPaulo,downlink,bbr2 (measured),rttvar,41.18606915664188
+SaoPaulo,downlink,bbr2 (measured),rttvar,42.99614244511047
+SaoPaulo,downlink,bbr2 (measured),rttvar,47.241872094497005
+SaoPaulo,downlink,bbr2 (measured),rttvar,64.02924056912634
+SaoPaulo,downlink,bbr2 (measured),rttvar,18.817501668167516
+SaoPaulo,downlink,bbr2 (measured),rttvar,35.12856249786788
+SaoPaulo,downlink,bbr2 (measured),rttvar,27.543622778132985
+SaoPaulo,downlink,cubic (measured),throughput,27.95525216458708
+SaoPaulo,downlink,cubic (measured),throughput,16.944025367253623
+SaoPaulo,downlink,cubic (measured),throughput,18.839726758530766
+SaoPaulo,downlink,cubic (measured),throughput,18.655178070470775
+SaoPaulo,downlink,cubic (measured),throughput,24.075914738169313
+SaoPaulo,downlink,cubic (measured),throughput,23.674095237304826
+SaoPaulo,downlink,cubic (measured),throughput,21.385803880655764
+SaoPaulo,downlink,cubic (measured),throughput,26.322118831335853
+SaoPaulo,downlink,cubic (measured),throughput,22.60189488096299
+SaoPaulo,downlink,cubic (measured),throughput,20.29446116861404
+SaoPaulo,downlink,cubic (measured),retx,5.985828581856923
+SaoPaulo,downlink,cubic (measured),retx,6.426470963541418
+SaoPaulo,downlink,cubic (measured),retx,1.720608951173502
+SaoPaulo,downlink,cubic (measured),retx,1.0002917738309314
+SaoPaulo,downlink,cubic (measured),retx,20.528809607363396
+SaoPaulo,downlink,cubic (measured),retx,10.575399804606265
+SaoPaulo,downlink,cubic (measured),retx,2.308864631533956
+SaoPaulo,downlink,cubic (measured),retx,22.074097316756767
+SaoPaulo,downlink,cubic (measured),retx,9.710848237126502
+SaoPaulo,downlink,cubic (measured),retx,10.40684608365215
+SaoPaulo,downlink,cubic (measured),rtt,397.722
+SaoPaulo,downlink,cubic (measured),rtt,392.826
+SaoPaulo,downlink,cubic (measured),rtt,391.985
+SaoPaulo,downlink,cubic (measured),rtt,398.41
+SaoPaulo,downlink,cubic (measured),rtt,395.328
+SaoPaulo,downlink,cubic (measured),rtt,388.56
+SaoPaulo,downlink,cubic (measured),rtt,407.869
+SaoPaulo,downlink,cubic (measured),rtt,397.771
+SaoPaulo,downlink,cubic (measured),rtt,403.532
+SaoPaulo,downlink,cubic (measured),rtt,404.455
+SaoPaulo,downlink,cubic (measured),rttvar,8.774389957140357
+SaoPaulo,downlink,cubic (measured),rttvar,4.287162884876355
+SaoPaulo,downlink,cubic (measured),rttvar,4.927025495262709
+SaoPaulo,downlink,cubic (measured),rttvar,5.572655096011948
+SaoPaulo,downlink,cubic (measured),rttvar,6.713488115620652
+SaoPaulo,downlink,cubic (measured),rttvar,6.239826951047964
+SaoPaulo,downlink,cubic (measured),rttvar,4.82101668095633
+SaoPaulo,downlink,cubic (measured),rttvar,11.398030951797256
+SaoPaulo,downlink,cubic (measured),rttvar,5.538161003741504
+SaoPaulo,downlink,cubic (measured),rttvar,7.569716401314594
+SaoPaulo,downlink,stock-sim,throughput,117.17143758830267
+SaoPaulo,downlink,stock-sim,throughput,133.99520234523243
+SaoPaulo,downlink,stock-sim,throughput,133.68879412792066
+SaoPaulo,downlink,stock-sim,retx,58.07055716292728
+SaoPaulo,downlink,stock-sim,retx,58.07036889633373
+SaoPaulo,downlink,stock-sim,retx,58.069879810614125
+SaoPaulo,downlink,stock-sim,rtt,387.63615999999996
+SaoPaulo,downlink,stock-sim,rtt,387.63615999999996
+SaoPaulo,downlink,stock-sim,rtt,387.63615999999996
+SaoPaulo,downlink,stock-sim,rttvar,4.172869633694252
+SaoPaulo,downlink,stock-sim,rttvar,4.357136466397757
+SaoPaulo,downlink,stock-sim,rttvar,4.200524495649898
+SaoPaulo,downlink,A2C-sim,throughput,115.19868351870322
+SaoPaulo,downlink,A2C-sim,throughput,114.62710567579703
+SaoPaulo,downlink,A2C-sim,throughput,112.58200756336018
+SaoPaulo,downlink,A2C-sim,throughput,117.87008285542889
+SaoPaulo,downlink,A2C-sim,throughput,117.17143758830267
+SaoPaulo,downlink,A2C-sim,throughput,129.2812059715529
+SaoPaulo,downlink,A2C-sim,throughput,128.38972556757156
+SaoPaulo,downlink,A2C-sim,throughput,124.46968873845817
+SaoPaulo,downlink,A2C-sim,throughput,131.96881568516594
+SaoPaulo,downlink,A2C-sim,throughput,133.99520234523243
+SaoPaulo,downlink,A2C-sim,throughput,128.64665405182996
+SaoPaulo,downlink,A2C-sim,throughput,127.46008600107798
+SaoPaulo,downlink,A2C-sim,throughput,123.04528463813318
+SaoPaulo,downlink,A2C-sim,throughput,131.73748706068992
+SaoPaulo,downlink,A2C-sim,throughput,133.68879412792066
+SaoPaulo,downlink,A2C-sim,retx,58.07041890043616
+SaoPaulo,downlink,A2C-sim,retx,58.07050584962889
+SaoPaulo,downlink,A2C-sim,retx,58.07048654136585
+SaoPaulo,downlink,A2C-sim,retx,58.07052099777026
+SaoPaulo,downlink,A2C-sim,retx,58.07055716292728
+SaoPaulo,downlink,A2C-sim,retx,58.07029264434941
+SaoPaulo,downlink,A2C-sim,retx,58.070351993728224
+SaoPaulo,downlink,A2C-sim,retx,58.070312635405315
+SaoPaulo,downlink,A2C-sim,retx,58.07032247807794
+SaoPaulo,downlink,A2C-sim,retx,58.07036889633373
+SaoPaulo,downlink,A2C-sim,retx,58.069861921370894
+SaoPaulo,downlink,A2C-sim,retx,58.069860784727446
+SaoPaulo,downlink,A2C-sim,retx,58.06985213831695
+SaoPaulo,downlink,A2C-sim,retx,58.069861389533486
+SaoPaulo,downlink,A2C-sim,retx,58.069879810614125
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,A2C-sim,rttvar,3.027630355340372
+SaoPaulo,downlink,A2C-sim,rttvar,3.417531257458854
+SaoPaulo,downlink,A2C-sim,rttvar,2.5608945392245466
+SaoPaulo,downlink,A2C-sim,rttvar,4.077259420337453
+SaoPaulo,downlink,A2C-sim,rttvar,4.172869633694252
+SaoPaulo,downlink,A2C-sim,rttvar,3.023154722051701
+SaoPaulo,downlink,A2C-sim,rttvar,3.6748217659085265
+SaoPaulo,downlink,A2C-sim,rttvar,2.6905855909554814
+SaoPaulo,downlink,A2C-sim,rttvar,3.5101575504919933
+SaoPaulo,downlink,A2C-sim,rttvar,4.357136466397757
+SaoPaulo,downlink,A2C-sim,rttvar,3.182609345599798
+SaoPaulo,downlink,A2C-sim,rttvar,3.6854319711163193
+SaoPaulo,downlink,A2C-sim,rttvar,2.8838166716562053
+SaoPaulo,downlink,A2C-sim,rttvar,3.8179149845516287
+SaoPaulo,downlink,A2C-sim,rttvar,4.200524495649898
+SaoPaulo,downlink,QA2C-sim,throughput,119.44616001938465
+SaoPaulo,downlink,QA2C-sim,throughput,112.78084519305658
+SaoPaulo,downlink,QA2C-sim,throughput,117.87008285542889
+SaoPaulo,downlink,QA2C-sim,throughput,112.58200756336018
+SaoPaulo,downlink,QA2C-sim,throughput,117.67137681579919
+SaoPaulo,downlink,QA2C-sim,throughput,134.44532917413147
+SaoPaulo,downlink,QA2C-sim,throughput,125.26158139980184
+SaoPaulo,downlink,QA2C-sim,throughput,131.96881568516594
+SaoPaulo,downlink,QA2C-sim,throughput,124.46968873845817
+SaoPaulo,downlink,QA2C-sim,throughput,131.5670887266048
+SaoPaulo,downlink,QA2C-sim,throughput,133.4593136801239
+SaoPaulo,downlink,QA2C-sim,throughput,124.27823597935677
+SaoPaulo,downlink,QA2C-sim,throughput,131.73748706068992
+SaoPaulo,downlink,QA2C-sim,throughput,123.04528463813318
+SaoPaulo,downlink,QA2C-sim,throughput,131.43506397670174
+SaoPaulo,downlink,QA2C-sim,retx,58.07060095185477
+SaoPaulo,downlink,QA2C-sim,retx,58.07049094314744
+SaoPaulo,downlink,QA2C-sim,retx,58.07052099777026
+SaoPaulo,downlink,QA2C-sim,retx,58.07048654136585
+SaoPaulo,downlink,QA2C-sim,retx,58.07055712511993
+SaoPaulo,downlink,QA2C-sim,retx,58.070403154139825
+SaoPaulo,downlink,QA2C-sim,retx,58.07031622342667
+SaoPaulo,downlink,QA2C-sim,retx,58.07032247807794
+SaoPaulo,downlink,QA2C-sim,retx,58.070312635405315
+SaoPaulo,downlink,QA2C-sim,retx,58.07037280298208
+SaoPaulo,downlink,QA2C-sim,retx,58.06991267480604
+SaoPaulo,downlink,QA2C-sim,retx,58.069868847188346
+SaoPaulo,downlink,QA2C-sim,retx,58.069861389533486
+SaoPaulo,downlink,QA2C-sim,retx,58.06985213831695
+SaoPaulo,downlink,QA2C-sim,retx,58.06985091522529
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rtt,387.63615999999996
+SaoPaulo,downlink,QA2C-sim,rttvar,6.281148165085994
+SaoPaulo,downlink,QA2C-sim,rttvar,3.0574472191088593
+SaoPaulo,downlink,QA2C-sim,rttvar,4.077259420337453
+SaoPaulo,downlink,QA2C-sim,rttvar,2.5608945392245466
+SaoPaulo,downlink,QA2C-sim,rttvar,5.400838352358242
+SaoPaulo,downlink,QA2C-sim,rttvar,5.95522025904519
+SaoPaulo,downlink,QA2C-sim,rttvar,3.355515463985598
+SaoPaulo,downlink,QA2C-sim,rttvar,3.5101575504919933
+SaoPaulo,downlink,QA2C-sim,rttvar,2.6905855909554814
+SaoPaulo,downlink,QA2C-sim,rttvar,4.6626612896537205
+SaoPaulo,downlink,QA2C-sim,rttvar,5.949500245965463
+SaoPaulo,downlink,QA2C-sim,rttvar,3.2797973650076884
+SaoPaulo,downlink,QA2C-sim,rttvar,3.8179149845516287
+SaoPaulo,downlink,QA2C-sim,rttvar,2.8838166716562053
+SaoPaulo,downlink,QA2C-sim,rttvar,4.84566962587518
+Ohio,downlink,bbr (measured),throughput,174.34734343590912
+Ohio,downlink,bbr (measured),throughput,159.0176614048649
+Ohio,downlink,bbr (measured),throughput,158.42553736832488
+Ohio,downlink,bbr (measured),throughput,166.78409311133217
+Ohio,downlink,bbr (measured),throughput,161.352024302438
+Ohio,downlink,bbr (measured),throughput,160.99488252855198
+Ohio,downlink,bbr (measured),throughput,177.4358828713243
+Ohio,downlink,bbr (measured),throughput,166.47312385864603
+Ohio,downlink,bbr (measured),throughput,165.80147139105443
+Ohio,downlink,bbr (measured),throughput,172.08248810152628
+Ohio,downlink,bbr (measured),retx,199.50768274152222
+Ohio,downlink,bbr (measured),retx,157.2982054093963
+Ohio,downlink,bbr (measured),retx,184.01588200965938
+Ohio,downlink,bbr (measured),retx,204.41365489188215
+Ohio,downlink,bbr (measured),retx,190.4504029770399
+Ohio,downlink,bbr (measured),retx,140.4208894972603
+Ohio,downlink,bbr (measured),retx,131.91469497039668
+Ohio,downlink,bbr (measured),retx,182.22497301506885
+Ohio,downlink,bbr (measured),retx,151.78732456739323
+Ohio,downlink,bbr (measured),retx,206.85280534902498
+Ohio,downlink,bbr (measured),rtt,225.425
+Ohio,downlink,bbr (measured),rtt,242.974
+Ohio,downlink,bbr (measured),rtt,249.313
+Ohio,downlink,bbr (measured),rtt,225.518
+Ohio,downlink,bbr (measured),rtt,223.375
+Ohio,downlink,bbr (measured),rtt,240.252
+Ohio,downlink,bbr (measured),rtt,224.176
+Ohio,downlink,bbr (measured),rtt,222.664
+Ohio,downlink,bbr (measured),rtt,223.637
+Ohio,downlink,bbr (measured),rtt,224.98
+Ohio,downlink,bbr (measured),rttvar,23.767194065886265
+Ohio,downlink,bbr (measured),rttvar,12.700196757060931
+Ohio,downlink,bbr (measured),rttvar,23.525136747865517
+Ohio,downlink,bbr (measured),rttvar,16.896945018629676
+Ohio,downlink,bbr (measured),rttvar,19.746991428945602
+Ohio,downlink,bbr (measured),rttvar,10.718962621180468
+Ohio,downlink,bbr (measured),rttvar,12.414478666252979
+Ohio,downlink,bbr (measured),rttvar,13.904007183581442
+Ohio,downlink,bbr (measured),rttvar,22.753690181013866
+Ohio,downlink,bbr (measured),rttvar,12.505355861986942
+Ohio,downlink,bbr2 (measured),throughput,51.84024623959385
+Ohio,downlink,bbr2 (measured),throughput,40.196654366862624
+Ohio,downlink,bbr2 (measured),throughput,33.600006669805204
+Ohio,downlink,bbr2 (measured),throughput,49.9035634669232
+Ohio,downlink,bbr2 (measured),throughput,35.99813164091208
+Ohio,downlink,bbr2 (measured),throughput,41.51704138733823
+Ohio,downlink,bbr2 (measured),throughput,39.524628939137884
+Ohio,downlink,bbr2 (measured),throughput,32.017443157524674
+Ohio,downlink,bbr2 (measured),throughput,41.5837167541561
+Ohio,downlink,bbr2 (measured),throughput,40.125940027615925
+Ohio,downlink,bbr2 (measured),retx,40.782650630186964
+Ohio,downlink,bbr2 (measured),retx,232.23229369880792
+Ohio,downlink,bbr2 (measured),retx,286.58978265809657
+Ohio,downlink,bbr2 (measured),retx,15.372592622933402
+Ohio,downlink,bbr2 (measured),retx,112.53895188879804
+Ohio,downlink,bbr2 (measured),retx,13.02201235581002
+Ohio,downlink,bbr2 (measured),retx,245.03429658207716
+Ohio,downlink,bbr2 (measured),retx,176.81290879969714
+Ohio,downlink,bbr2 (measured),retx,228.96766516861905
+Ohio,downlink,bbr2 (measured),retx,243.17297593750726
+Ohio,downlink,bbr2 (measured),rtt,233.087
+Ohio,downlink,bbr2 (measured),rtt,274.9935
+Ohio,downlink,bbr2 (measured),rtt,313.19100000000003
+Ohio,downlink,bbr2 (measured),rtt,225.575
+Ohio,downlink,bbr2 (measured),rtt,281.125
+Ohio,downlink,bbr2 (measured),rtt,239.174
+Ohio,downlink,bbr2 (measured),rtt,276.67
+Ohio,downlink,bbr2 (measured),rtt,291.0585
+Ohio,downlink,bbr2 (measured),rtt,268.345
+Ohio,downlink,bbr2 (measured),rtt,277.272
+Ohio,downlink,bbr2 (measured),rttvar,51.08457956498708
+Ohio,downlink,bbr2 (measured),rttvar,79.40447245791775
+Ohio,downlink,bbr2 (measured),rttvar,91.18054208227083
+Ohio,downlink,bbr2 (measured),rttvar,31.880486841610086
+Ohio,downlink,bbr2 (measured),rttvar,42.379895209562186
+Ohio,downlink,bbr2 (measured),rttvar,24.173188301583007
+Ohio,downlink,bbr2 (measured),rttvar,66.26073146785576
+Ohio,downlink,bbr2 (measured),rttvar,70.83718995412131
+Ohio,downlink,bbr2 (measured),rttvar,65.87596175834103
+Ohio,downlink,bbr2 (measured),rttvar,63.35681406164967
+Ohio,downlink,cubic (measured),throughput,24.32272593732352
+Ohio,downlink,cubic (measured),throughput,20.67912466322177
+Ohio,downlink,cubic (measured),throughput,26.879895578577404
+Ohio,downlink,cubic (measured),throughput,20.83516699021175
+Ohio,downlink,cubic (measured),throughput,16.30666324978858
+Ohio,downlink,cubic (measured),throughput,24.40042777806567
+Ohio,downlink,cubic (measured),throughput,18.724222865781297
+Ohio,downlink,cubic (measured),throughput,17.95479735297554
+Ohio,downlink,cubic (measured),throughput,17.864267373899747
+Ohio,downlink,cubic (measured),throughput,15.404427517858103
+Ohio,downlink,cubic (measured),retx,0.8704269207985575
+Ohio,downlink,cubic (measured),retx,8.055551026886247
+Ohio,downlink,cubic (measured),retx,8.088033386452468
+Ohio,downlink,cubic (measured),retx,1.5844981075424835
+Ohio,downlink,cubic (measured),retx,0.6278930302485166
+Ohio,downlink,cubic (measured),retx,17.930060044790878
+Ohio,downlink,cubic (measured),retx,2.216004499464951
+Ohio,downlink,cubic (measured),retx,8.279082402504976
+Ohio,downlink,cubic (measured),retx,1.5647609042956383
+Ohio,downlink,cubic (measured),retx,1.1030099453847368
+Ohio,downlink,cubic (measured),rtt,233.737
+Ohio,downlink,cubic (measured),rtt,237.007
+Ohio,downlink,cubic (measured),rtt,237.762
+Ohio,downlink,cubic (measured),rtt,221.108
+Ohio,downlink,cubic (measured),rtt,241.01
+Ohio,downlink,cubic (measured),rtt,219.875
+Ohio,downlink,cubic (measured),rtt,220.844
+Ohio,downlink,cubic (measured),rtt,235.275
+Ohio,downlink,cubic (measured),rtt,244.221
+Ohio,downlink,cubic (measured),rtt,238.387
+Ohio,downlink,cubic (measured),rttvar,6.244797656117649
+Ohio,downlink,cubic (measured),rttvar,9.351157917697543
+Ohio,downlink,cubic (measured),rttvar,10.291626889634708
+Ohio,downlink,cubic (measured),rttvar,4.2366056010361035
+Ohio,downlink,cubic (measured),rttvar,4.0149232910826305
+Ohio,downlink,cubic (measured),rttvar,4.132224786868296
+Ohio,downlink,cubic (measured),rttvar,5.836153584641574
+Ohio,downlink,cubic (measured),rttvar,5.004513357450579
+Ohio,downlink,cubic (measured),rttvar,4.066160379979477
+Ohio,downlink,cubic (measured),rttvar,4.792710413688691
+Ohio,downlink,stock-sim,throughput,149.57099845983186
+Ohio,downlink,stock-sim,throughput,156.5228203200343
+Ohio,downlink,stock-sim,throughput,162.22817361842485
+Ohio,downlink,stock-sim,retx,183.58734099085723
+Ohio,downlink,stock-sim,retx,183.58896511543693
+Ohio,downlink,stock-sim,retx,183.58860783704358
+Ohio,downlink,stock-sim,rtt,216.41524
+Ohio,downlink,stock-sim,rtt,216.41524
+Ohio,downlink,stock-sim,rtt,216.41524
+Ohio,downlink,stock-sim,rttvar,3.1734692096074437
+Ohio,downlink,stock-sim,rttvar,4.481321374714479
+Ohio,downlink,stock-sim,rttvar,4.338911778506864
+Ohio,downlink,A2C-sim,throughput,146.64531249371362
+Ohio,downlink,A2C-sim,throughput,147.5964008052586
+Ohio,downlink,A2C-sim,throughput,143.84521579820668
+Ohio,downlink,A2C-sim,throughput,149.66483313255526
+Ohio,downlink,A2C-sim,throughput,149.57099845983186
+Ohio,downlink,A2C-sim,throughput,152.226155834879
+Ohio,downlink,A2C-sim,throughput,152.32509688709598
+Ohio,downlink,A2C-sim,throughput,147.07066857079596
+Ohio,downlink,A2C-sim,throughput,154.78910295653012
+Ohio,downlink,A2C-sim,throughput,156.5228203200343
+Ohio,downlink,A2C-sim,throughput,156.66587830069628
+Ohio,downlink,A2C-sim,throughput,157.7880610664386
+Ohio,downlink,A2C-sim,throughput,149.79514994450648
+Ohio,downlink,A2C-sim,throughput,159.13374521700214
+Ohio,downlink,A2C-sim,throughput,162.22817361842485
+Ohio,downlink,A2C-sim,retx,183.58702766120862
+Ohio,downlink,A2C-sim,retx,183.58746285300606
+Ohio,downlink,A2C-sim,retx,183.58733026442147
+Ohio,downlink,A2C-sim,retx,183.58702241472002
+Ohio,downlink,A2C-sim,retx,183.58734099085723
+Ohio,downlink,A2C-sim,retx,183.5891084088263
+Ohio,downlink,A2C-sim,retx,183.5892811677105
+Ohio,downlink,A2C-sim,retx,183.58894864249524
+Ohio,downlink,A2C-sim,retx,183.5890695843365
+Ohio,downlink,A2C-sim,retx,183.58896511543693
+Ohio,downlink,A2C-sim,retx,183.58866832717126
+Ohio,downlink,A2C-sim,retx,183.58870233012223
+Ohio,downlink,A2C-sim,retx,183.5885931978584
+Ohio,downlink,A2C-sim,retx,183.58853020852462
+Ohio,downlink,A2C-sim,retx,183.58860783704358
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rtt,216.41524
+Ohio,downlink,A2C-sim,rttvar,2.208102966996246
+Ohio,downlink,A2C-sim,rttvar,2.795659151725949
+Ohio,downlink,A2C-sim,rttvar,1.3270051181623561
+Ohio,downlink,A2C-sim,rttvar,2.6385723694840326
+Ohio,downlink,A2C-sim,rttvar,3.1734692096074437
+Ohio,downlink,A2C-sim,rttvar,2.76687901655368
+Ohio,downlink,A2C-sim,rttvar,2.660450862975575
+Ohio,downlink,A2C-sim,rttvar,1.7334219529169366
+Ohio,downlink,A2C-sim,rttvar,2.9350483447174196
+Ohio,downlink,A2C-sim,rttvar,4.481321374714479
+Ohio,downlink,A2C-sim,rttvar,3.151735821435816
+Ohio,downlink,A2C-sim,rttvar,3.4365219532489455
+Ohio,downlink,A2C-sim,rttvar,1.880957143272489
+Ohio,downlink,A2C-sim,rttvar,3.3327773374803042
+Ohio,downlink,A2C-sim,rttvar,4.338911778506864
+Ohio,downlink,QA2C-sim,throughput,150.97318958541786
+Ohio,downlink,QA2C-sim,throughput,143.88927165076782
+Ohio,downlink,QA2C-sim,throughput,149.66483313255526
+Ohio,downlink,QA2C-sim,throughput,143.84521579820668
+Ohio,downlink,QA2C-sim,throughput,149.14904186628303
+Ohio,downlink,QA2C-sim,throughput,156.700619215992
+Ohio,downlink,QA2C-sim,throughput,147.07265437237598
+Ohio,downlink,QA2C-sim,throughput,154.78910295653012
+Ohio,downlink,QA2C-sim,throughput,147.07066857079596
+Ohio,downlink,QA2C-sim,throughput,153.7859178333932
+Ohio,downlink,QA2C-sim,throughput,160.85708227865842
+Ohio,downlink,QA2C-sim,throughput,149.95312091747357
+Ohio,downlink,QA2C-sim,throughput,159.13374521700214
+Ohio,downlink,QA2C-sim,throughput,149.79514994450648
+Ohio,downlink,QA2C-sim,throughput,158.74807978785867
+Ohio,downlink,QA2C-sim,retx,183.58706628120953
+Ohio,downlink,QA2C-sim,retx,183.58733028322536
+Ohio,downlink,QA2C-sim,retx,183.58702241472002
+Ohio,downlink,QA2C-sim,retx,183.58733026442147
+Ohio,downlink,QA2C-sim,retx,183.58704757511023
+Ohio,downlink,QA2C-sim,retx,183.58922815511352
+Ohio,downlink,QA2C-sim,retx,183.5889488422949
+Ohio,downlink,QA2C-sim,retx,183.5890695843365
+Ohio,downlink,QA2C-sim,retx,183.58894864249524
+Ohio,downlink,QA2C-sim,retx,183.5892780651354
+Ohio,downlink,QA2C-sim,retx,183.5883702832846
+Ohio,downlink,QA2C-sim,retx,183.58859348128436
+Ohio,downlink,QA2C-sim,retx,183.58853020852462
+Ohio,downlink,QA2C-sim,retx,183.5885931978584
+Ohio,downlink,QA2C-sim,retx,183.5884746301303
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rtt,216.41524
+Ohio,downlink,QA2C-sim,rttvar,4.9254683832079795
+Ohio,downlink,QA2C-sim,rttvar,1.3270084776764473
+Ohio,downlink,QA2C-sim,rttvar,2.6385723694840326
+Ohio,downlink,QA2C-sim,rttvar,1.3270051181623561
+Ohio,downlink,QA2C-sim,rttvar,3.662163636007603
+Ohio,downlink,QA2C-sim,rttvar,4.683455789278907
+Ohio,downlink,QA2C-sim,rttvar,1.733421957080549
+Ohio,downlink,QA2C-sim,rttvar,2.9350483447174196
+Ohio,downlink,QA2C-sim,rttvar,1.7334219529169366
+Ohio,downlink,QA2C-sim,rttvar,3.6626054699296398
+Ohio,downlink,QA2C-sim,rttvar,4.807466315952747
+Ohio,downlink,QA2C-sim,rttvar,1.883703983361528
+Ohio,downlink,QA2C-sim,rttvar,3.3327773374803042
+Ohio,downlink,QA2C-sim,rttvar,1.880957143272489
+Ohio,downlink,QA2C-sim,rttvar,3.7783656719713536
+London,downlink,bbr (measured),throughput,141.0218810592491
+London,downlink,bbr (measured),throughput,155.41802020499497
+London,downlink,bbr (measured),throughput,153.5370966251127
+London,downlink,bbr (measured),throughput,150.13457529798498
+London,downlink,bbr (measured),throughput,147.00820098578058
+London,downlink,bbr (measured),throughput,149.9067064899275
+London,downlink,bbr (measured),throughput,158.62600244909703
+London,downlink,bbr (measured),throughput,155.07338748370285
+London,downlink,bbr (measured),throughput,154.33026986237698
+London,downlink,bbr (measured),throughput,150.95942958666024
+London,downlink,bbr (measured),retx,127.50482402446406
+London,downlink,bbr (measured),retx,104.0507222552361
+London,downlink,bbr (measured),retx,147.2029335249866
+London,downlink,bbr (measured),retx,173.96502866821857
+London,downlink,bbr (measured),retx,149.69789018517162
+London,downlink,bbr (measured),retx,144.6530946909041
+London,downlink,bbr (measured),retx,109.37830554082392
+London,downlink,bbr (measured),retx,197.4333344732547
+London,downlink,bbr (measured),retx,144.26895246638475
+London,downlink,bbr (measured),retx,166.85160257168545
+London,downlink,bbr (measured),rtt,268.63
+London,downlink,bbr (measured),rtt,270.006
+London,downlink,bbr (measured),rtt,264.839
+London,downlink,bbr (measured),rtt,269.842
+London,downlink,bbr (measured),rtt,270.473
+London,downlink,bbr (measured),rtt,270.961
+London,downlink,bbr (measured),rtt,271.317
+London,downlink,bbr (measured),rtt,266.464
+London,downlink,bbr (measured),rtt,268.643
+London,downlink,bbr (measured),rtt,269.212
+London,downlink,bbr (measured),rttvar,16.01020318380335
+London,downlink,bbr (measured),rttvar,9.680847209618314
+London,downlink,bbr (measured),rttvar,12.881232883705419
+London,downlink,bbr (measured),rttvar,22.96069989564718
+London,downlink,bbr (measured),rttvar,19.746718451008057
+London,downlink,bbr (measured),rttvar,11.589574504906425
+London,downlink,bbr (measured),rttvar,10.996612797261832
+London,downlink,bbr (measured),rttvar,20.22437361038971
+London,downlink,bbr (measured),rttvar,20.004944476780686
+London,downlink,bbr (measured),rttvar,11.581673649696473
+London,downlink,bbr2 (measured),throughput,55.586958960379036
+London,downlink,bbr2 (measured),throughput,52.153343262910155
+London,downlink,bbr2 (measured),throughput,51.499123294985004
+London,downlink,bbr2 (measured),throughput,37.708013961663156
+London,downlink,bbr2 (measured),throughput,49.20617743777388
+London,downlink,bbr2 (measured),throughput,41.63585565210955
+London,downlink,bbr2 (measured),throughput,42.48897904852735
+London,downlink,bbr2 (measured),throughput,55.25674121623426
+London,downlink,bbr2 (measured),throughput,59.68322523242236
+London,downlink,bbr2 (measured),throughput,62.67276839388169
+London,downlink,bbr2 (measured),retx,9.973466293790292
+London,downlink,bbr2 (measured),retx,62.69230719101884
+London,downlink,bbr2 (measured),retx,10.376220070264738
+London,downlink,bbr2 (measured),retx,163.20290493750858
+London,downlink,bbr2 (measured),retx,76.60545326137583
+London,downlink,bbr2 (measured),retx,92.75291299148621
+London,downlink,bbr2 (measured),retx,159.08107560433044
+London,downlink,bbr2 (measured),retx,29.747207771306766
+London,downlink,bbr2 (measured),retx,24.38232708143932
+London,downlink,bbr2 (measured),retx,9.310322755547931
+London,downlink,bbr2 (measured),rtt,263.644
+London,downlink,bbr2 (measured),rtt,290.3555
+London,downlink,bbr2 (measured),rtt,264.682
+London,downlink,bbr2 (measured),rtt,306.282
+London,downlink,bbr2 (measured),rtt,287.1355
+London,downlink,bbr2 (measured),rtt,306.874
+London,downlink,bbr2 (measured),rtt,303.5165
+London,downlink,bbr2 (measured),rtt,263.603
+London,downlink,bbr2 (measured),rtt,260.208
+London,downlink,bbr2 (measured),rtt,259.168
+London,downlink,bbr2 (measured),rttvar,31.97245584272882
+London,downlink,bbr2 (measured),rttvar,35.43936767894915
+London,downlink,bbr2 (measured),rttvar,22.90199286964006
+London,downlink,bbr2 (measured),rttvar,49.695813779241
+London,downlink,bbr2 (measured),rttvar,34.523512915844044
+London,downlink,bbr2 (measured),rttvar,43.618567513569126
+London,downlink,bbr2 (measured),rttvar,86.9268503443647
+London,downlink,bbr2 (measured),rttvar,30.482389709259326
+London,downlink,bbr2 (measured),rttvar,31.41264898520501
+London,downlink,bbr2 (measured),rttvar,14.613705239657815
+London,downlink,cubic (measured),throughput,22.176685618821033
+London,downlink,cubic (measured),throughput,36.0868770247203
+London,downlink,cubic (measured),throughput,33.850472442536734
+London,downlink,cubic (measured),throughput,33.341913638910654
+London,downlink,cubic (measured),throughput,26.698862368889653
+London,downlink,cubic (measured),throughput,28.659822744858275
+London,downlink,cubic (measured),throughput,35.98251855608196
+London,downlink,cubic (measured),throughput,25.94247366120572
+London,downlink,cubic (measured),throughput,37.96443804286646
+London,downlink,cubic (measured),throughput,36.411052352927385
+London,downlink,cubic (measured),retx,1.4720002993533268
+London,downlink,cubic (measured),retx,18.60054181762426
+London,downlink,cubic (measured),retx,14.52563962013258
+London,downlink,cubic (measured),retx,8.767022626850489
+London,downlink,cubic (measured),retx,1.5216344033161975
+London,downlink,cubic (measured),retx,16.511621505632696
+London,downlink,cubic (measured),retx,1.2557712913772994
+London,downlink,cubic (measured),retx,0.47176436895761736
+London,downlink,cubic (measured),retx,8.113181791740898
+London,downlink,cubic (measured),retx,2.0263262978486143
+London,downlink,cubic (measured),rtt,259.101
+London,downlink,cubic (measured),rtt,255.686
+London,downlink,cubic (measured),rtt,260.121
+London,downlink,cubic (measured),rtt,258.512
+London,downlink,cubic (measured),rtt,259.344
+London,downlink,cubic (measured),rtt,258.164
+London,downlink,cubic (measured),rtt,261.403
+London,downlink,cubic (measured),rtt,261.569
+London,downlink,cubic (measured),rtt,257.243
+London,downlink,cubic (measured),rtt,257.987
+London,downlink,cubic (measured),rttvar,4.692377523023712
+London,downlink,cubic (measured),rttvar,6.053706275893628
+London,downlink,cubic (measured),rttvar,7.252442146090808
+London,downlink,cubic (measured),rttvar,6.424478335874817
+London,downlink,cubic (measured),rttvar,5.009697680963234
+London,downlink,cubic (measured),rttvar,4.312529028642585
+London,downlink,cubic (measured),rttvar,4.342948085129693
+London,downlink,cubic (measured),rttvar,9.875877959316464
+London,downlink,cubic (measured),rttvar,4.247461380111527
+London,downlink,cubic (measured),rttvar,8.466838429964756
+London,downlink,stock-sim,throughput,148.36382442892423
+London,downlink,stock-sim,throughput,146.1668808272936
+London,downlink,stock-sim,throughput,143.1855674482173
+London,downlink,stock-sim,retx,146.25829925455773
+London,downlink,stock-sim,retx,146.25801910409788
+London,downlink,stock-sim,retx,146.25774074194524
+London,downlink,stock-sim,rtt,258.40913
+London,downlink,stock-sim,rtt,258.40913
+London,downlink,stock-sim,rtt,258.40913
+London,downlink,stock-sim,rttvar,4.522847284001233
+London,downlink,stock-sim,rttvar,4.448619419758255
+London,downlink,stock-sim,rttvar,5.017417849518675
+London,downlink,A2C-sim,throughput,143.60535014253722
+London,downlink,A2C-sim,throughput,143.519266548027
+London,downlink,A2C-sim,throughput,136.19337848587872
+London,downlink,A2C-sim,throughput,145.95255456270772
+London,downlink,A2C-sim,throughput,148.36382442892423
+London,downlink,A2C-sim,throughput,142.73444775124048
+London,downlink,A2C-sim,throughput,141.59753768909792
+London,downlink,A2C-sim,throughput,135.09146758635256
+London,downlink,A2C-sim,throughput,144.74669676849692
+London,downlink,A2C-sim,throughput,146.1668808272936
+London,downlink,A2C-sim,throughput,139.5909355515022
+London,downlink,A2C-sim,throughput,138.28945348207682
+London,downlink,A2C-sim,throughput,133.56359494197437
+London,downlink,A2C-sim,throughput,141.2532844827532
+London,downlink,A2C-sim,throughput,143.1855674482173
+London,downlink,A2C-sim,retx,146.25813642678642
+London,downlink,A2C-sim,retx,146.25838963429294
+London,downlink,A2C-sim,retx,146.25827756604193
+London,downlink,A2C-sim,retx,146.25814694237067
+London,downlink,A2C-sim,retx,146.25829925455773
+London,downlink,A2C-sim,retx,146.25769767451683
+London,downlink,A2C-sim,retx,146.2581087812462
+London,downlink,A2C-sim,retx,146.25799813384248
+London,downlink,A2C-sim,retx,146.257874284586
+London,downlink,A2C-sim,retx,146.25801910409788
+London,downlink,A2C-sim,retx,146.25752271670697
+London,downlink,A2C-sim,retx,146.25792739152973
+London,downlink,A2C-sim,retx,146.257715104397
+London,downlink,A2C-sim,retx,146.2577378433043
+London,downlink,A2C-sim,retx,146.25774074194524
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rtt,258.40913
+London,downlink,A2C-sim,rttvar,2.923626393687504
+London,downlink,A2C-sim,rttvar,2.814635103855696
+London,downlink,A2C-sim,rttvar,2.1705061881282735
+London,downlink,A2C-sim,rttvar,3.2927263122122277
+London,downlink,A2C-sim,rttvar,4.522847284001233
+London,downlink,A2C-sim,rttvar,3.013972714941999
+London,downlink,A2C-sim,rttvar,3.0998398050216016
+London,downlink,A2C-sim,rttvar,2.27322585546888
+London,downlink,A2C-sim,rttvar,3.584377071509795
+London,downlink,A2C-sim,rttvar,4.448619419758255
+London,downlink,A2C-sim,rttvar,3.1136266140758986
+London,downlink,A2C-sim,rttvar,2.912165350760435
+London,downlink,A2C-sim,rttvar,2.413095230858298
+London,downlink,A2C-sim,rttvar,3.4588189933614673
+London,downlink,A2C-sim,rttvar,5.017417849518675
+London,downlink,QA2C-sim,throughput,147.89042204050727
+London,downlink,QA2C-sim,throughput,136.19981316047725
+London,downlink,QA2C-sim,throughput,145.95255456270772
+London,downlink,QA2C-sim,throughput,136.19337848587872
+London,downlink,QA2C-sim,throughput,145.50605055365452
+London,downlink,QA2C-sim,throughput,146.33593092840954
+London,downlink,QA2C-sim,throughput,135.09147691035395
+London,downlink,QA2C-sim,throughput,144.74669676849692
+London,downlink,QA2C-sim,throughput,135.09146758635256
+London,downlink,QA2C-sim,throughput,144.15980867355015
+London,downlink,QA2C-sim,throughput,143.33083990117916
+London,downlink,QA2C-sim,throughput,133.56360017174518
+London,downlink,QA2C-sim,throughput,141.2532844827532
+London,downlink,QA2C-sim,throughput,133.56359494197437
+London,downlink,QA2C-sim,throughput,140.76214673246423
+London,downlink,QA2C-sim,retx,146.25812580278173
+London,downlink,QA2C-sim,retx,146.25827789789824
+London,downlink,QA2C-sim,retx,146.25814694237067
+London,downlink,QA2C-sim,retx,146.25827756604193
+London,downlink,QA2C-sim,retx,146.25820599161358
+London,downlink,QA2C-sim,retx,146.25786443455357
+London,downlink,QA2C-sim,retx,146.2579983197626
+London,downlink,QA2C-sim,retx,146.257874284586
+London,downlink,QA2C-sim,retx,146.25799813384248
+London,downlink,QA2C-sim,retx,146.2578590929158
+London,downlink,QA2C-sim,retx,146.25781018980868
+London,downlink,QA2C-sim,retx,146.2577155032632
+London,downlink,QA2C-sim,retx,146.2577378433043
+London,downlink,QA2C-sim,retx,146.257715104397
+London,downlink,QA2C-sim,retx,146.25787983872598
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rtt,258.40913
+London,downlink,QA2C-sim,rttvar,5.174860529935302
+London,downlink,QA2C-sim,rttvar,2.1705142704770193
+London,downlink,QA2C-sim,rttvar,3.2927263122122277
+London,downlink,QA2C-sim,rttvar,2.1705061881282735
+London,downlink,QA2C-sim,rttvar,3.877301025686538
+London,downlink,QA2C-sim,rttvar,5.24906254993166
+London,downlink,QA2C-sim,rttvar,2.2732327321832195
+London,downlink,QA2C-sim,rttvar,3.584377071509795
+London,downlink,QA2C-sim,rttvar,2.27322585546888
+London,downlink,QA2C-sim,rttvar,4.010211514988044
+London,downlink,QA2C-sim,rttvar,5.164231256267237
+London,downlink,QA2C-sim,rttvar,2.4131014653240976
+London,downlink,QA2C-sim,rttvar,3.4588189933614673
+London,downlink,QA2C-sim,rttvar,2.413095230858298
+London,downlink,QA2C-sim,rttvar,4.105524717716586
+Mumbai,downlink,bbr (measured),throughput,192.2877709658979
+Mumbai,downlink,bbr (measured),throughput,79.08515915615064
+Mumbai,downlink,bbr (measured),throughput,200.47187336285776
+Mumbai,downlink,bbr (measured),throughput,180.35582426207284
+Mumbai,downlink,bbr (measured),throughput,177.86699183639018
+Mumbai,downlink,bbr (measured),throughput,155.206173614959
+Mumbai,downlink,bbr (measured),throughput,80.20317866635052
+Mumbai,downlink,bbr (measured),throughput,64.17930695901411
+Mumbai,downlink,bbr (measured),throughput,80.40970845416751
+Mumbai,downlink,bbr (measured),throughput,65.3559384321672
+Mumbai,downlink,bbr (measured),retx,305.29024304877316
+Mumbai,downlink,bbr (measured),retx,32.44156467827163
+Mumbai,downlink,bbr (measured),retx,240.28247902975718
+Mumbai,downlink,bbr (measured),retx,235.56836330174895
+Mumbai,downlink,bbr (measured),retx,184.98092119025608
+Mumbai,downlink,bbr (measured),retx,183.24890142059277
+Mumbai,downlink,bbr (measured),retx,28.696558486004903
+Mumbai,downlink,bbr (measured),retx,4.724195022114282
+Mumbai,downlink,bbr (measured),retx,38.99486352327766
+Mumbai,downlink,bbr (measured),retx,20.48003524860636
+Mumbai,downlink,bbr (measured),rtt,169.779
+Mumbai,downlink,bbr (measured),rtt,166.823
+Mumbai,downlink,bbr (measured),rtt,174.352
+Mumbai,downlink,bbr (measured),rtt,173.529
+Mumbai,downlink,bbr (measured),rtt,168.294
+Mumbai,downlink,bbr (measured),rtt,165.95
+Mumbai,downlink,bbr (measured),rtt,165.782
+Mumbai,downlink,bbr (measured),rtt,166.152
+Mumbai,downlink,bbr (measured),rtt,162.602
+Mumbai,downlink,bbr (measured),rtt,160.204
+Mumbai,downlink,bbr (measured),rttvar,18.315277607637732
+Mumbai,downlink,bbr (measured),rttvar,8.818210216500312
+Mumbai,downlink,bbr (measured),rttvar,19.27490066580266
+Mumbai,downlink,bbr (measured),rttvar,14.923378013912332
+Mumbai,downlink,bbr (measured),rttvar,15.233355113732543
+Mumbai,downlink,bbr (measured),rttvar,18.496886185759326
+Mumbai,downlink,bbr (measured),rttvar,6.158576936343513
+Mumbai,downlink,bbr (measured),rttvar,5.4559080705461716
+Mumbai,downlink,bbr (measured),rttvar,13.499534382112413
+Mumbai,downlink,bbr (measured),rttvar,4.0233785025503055
+Mumbai,downlink,bbr2 (measured),throughput,54.21780732493376
+Mumbai,downlink,bbr2 (measured),throughput,109.02551633381945
+Mumbai,downlink,bbr2 (measured),throughput,105.2010472297564
+Mumbai,downlink,bbr2 (measured),throughput,100.61292971573069
+Mumbai,downlink,bbr2 (measured),throughput,100.05339766441595
+Mumbai,downlink,bbr2 (measured),throughput,64.16066672367236
+Mumbai,downlink,bbr2 (measured),throughput,101.39695418288693
+Mumbai,downlink,bbr2 (measured),throughput,62.01083819082254
+Mumbai,downlink,bbr2 (measured),throughput,83.7627967304528
+Mumbai,downlink,bbr2 (measured),throughput,71.65798203004158
+Mumbai,downlink,bbr2 (measured),retx,417.7460747373616
+Mumbai,downlink,bbr2 (measured),retx,21.69364587021738
+Mumbai,downlink,bbr2 (measured),retx,15.946097335180976
+Mumbai,downlink,bbr2 (measured),retx,14.993477854379671
+Mumbai,downlink,bbr2 (measured),retx,31.851496600775583
+Mumbai,downlink,bbr2 (measured),retx,258.1535440288646
+Mumbai,downlink,bbr2 (measured),retx,14.794574558991345
+Mumbai,downlink,bbr2 (measured),retx,325.8334781891562
+Mumbai,downlink,bbr2 (measured),retx,158.42679552956722
+Mumbai,downlink,bbr2 (measured),retx,246.56726548472204
+Mumbai,downlink,bbr2 (measured),rtt,208.977
+Mumbai,downlink,bbr2 (measured),rtt,170.099
+Mumbai,downlink,bbr2 (measured),rtt,172.699
+Mumbai,downlink,bbr2 (measured),rtt,169.283
+Mumbai,downlink,bbr2 (measured),rtt,169.695
+Mumbai,downlink,bbr2 (measured),rtt,202.272
+Mumbai,downlink,bbr2 (measured),rtt,170.009
+Mumbai,downlink,bbr2 (measured),rtt,199.167
+Mumbai,downlink,bbr2 (measured),rtt,178.809
+Mumbai,downlink,bbr2 (measured),rtt,193.224
+Mumbai,downlink,bbr2 (measured),rttvar,36.772925577299596
+Mumbai,downlink,bbr2 (measured),rttvar,15.291793805950654
+Mumbai,downlink,bbr2 (measured),rttvar,13.684504268543135
+Mumbai,downlink,bbr2 (measured),rttvar,21.148721095976953
+Mumbai,downlink,bbr2 (measured),rttvar,23.058534407804515
+Mumbai,downlink,bbr2 (measured),rttvar,36.93736663528951
+Mumbai,downlink,bbr2 (measured),rttvar,16.460955013920348
+Mumbai,downlink,bbr2 (measured),rttvar,36.17761144532472
+Mumbai,downlink,bbr2 (measured),rttvar,35.00150168878938
+Mumbai,downlink,bbr2 (measured),rttvar,34.71062239221974
+Mumbai,downlink,cubic (measured),throughput,14.324721673708197
+Mumbai,downlink,cubic (measured),throughput,10.994294729188374
+Mumbai,downlink,cubic (measured),throughput,18.400208196529984
+Mumbai,downlink,cubic (measured),throughput,23.296949773754886
+Mumbai,downlink,cubic (measured),throughput,17.507017544444263
+Mumbai,downlink,cubic (measured),throughput,12.533840010690314
+Mumbai,downlink,cubic (measured),throughput,16.05604892410304
+Mumbai,downlink,cubic (measured),throughput,15.069866376050351
+Mumbai,downlink,cubic (measured),throughput,11.792617142031611
+Mumbai,downlink,cubic (measured),throughput,7.221474947717278
+Mumbai,downlink,cubic (measured),retx,0.9867453739662378
+Mumbai,downlink,cubic (measured),retx,0.6810464876920934
+Mumbai,downlink,cubic (measured),retx,4.491682705912438
+Mumbai,downlink,cubic (measured),retx,0.8968626799322447
+Mumbai,downlink,cubic (measured),retx,1.3055731209902988
+Mumbai,downlink,cubic (measured),retx,1.2459200904976373
+Mumbai,downlink,cubic (measured),retx,3.747680384009094
+Mumbai,downlink,cubic (measured),retx,0.6079655412787122
+Mumbai,downlink,cubic (measured),retx,1.179381697784533
+Mumbai,downlink,cubic (measured),retx,0.5215527782301638
+Mumbai,downlink,cubic (measured),rtt,161.42
+Mumbai,downlink,cubic (measured),rtt,164.703
+Mumbai,downlink,cubic (measured),rtt,168.886
+Mumbai,downlink,cubic (measured),rtt,163.996
+Mumbai,downlink,cubic (measured),rtt,163.353
+Mumbai,downlink,cubic (measured),rtt,160.606
+Mumbai,downlink,cubic (measured),rtt,165.067
+Mumbai,downlink,cubic (measured),rtt,164.449
+Mumbai,downlink,cubic (measured),rtt,164.144
+Mumbai,downlink,cubic (measured),rtt,164.031
+Mumbai,downlink,cubic (measured),rttvar,4.256944654889531
+Mumbai,downlink,cubic (measured),rttvar,5.1739092944442895
+Mumbai,downlink,cubic (measured),rttvar,5.4175497080442
+Mumbai,downlink,cubic (measured),rttvar,11.96122827824389
+Mumbai,downlink,cubic (measured),rttvar,4.720356198703856
+Mumbai,downlink,cubic (measured),rttvar,5.657307882803758
+Mumbai,downlink,cubic (measured),rttvar,7.640541774872341
+Mumbai,downlink,cubic (measured),rttvar,3.9913343522840616
+Mumbai,downlink,cubic (measured),rttvar,8.30332101605583
+Mumbai,downlink,cubic (measured),rttvar,3.5365909985269903
+Mumbai,downlink,stock-sim,throughput,84.44389809811123
+Mumbai,downlink,stock-sim,throughput,83.42952975318732
+Mumbai,downlink,stock-sim,throughput,75.9310534839555
+Mumbai,downlink,stock-sim,retx,111.4138094752444
+Mumbai,downlink,stock-sim,retx,111.41502964019332
+Mumbai,downlink,stock-sim,retx,111.41490220956227
+Mumbai,downlink,stock-sim,rtt,156.64299
+Mumbai,downlink,stock-sim,rtt,156.64299
+Mumbai,downlink,stock-sim,rtt,156.64299
+Mumbai,downlink,stock-sim,rttvar,3.5868407904290596
+Mumbai,downlink,stock-sim,rttvar,2.9730461612706476
+Mumbai,downlink,stock-sim,rttvar,2.5693883408078677
+Mumbai,downlink,A2C-sim,throughput,81.66587263517323
+Mumbai,downlink,A2C-sim,throughput,80.68106089193499
+Mumbai,downlink,A2C-sim,throughput,79.96853307757776
+Mumbai,downlink,A2C-sim,throughput,84.68303017329899
+Mumbai,downlink,A2C-sim,throughput,84.44389809811123
+Mumbai,downlink,A2C-sim,throughput,81.18194799381766
+Mumbai,downlink,A2C-sim,throughput,80.34245584916813
+Mumbai,downlink,A2C-sim,throughput,79.28402783422534
+Mumbai,downlink,A2C-sim,throughput,84.20748495291404
+Mumbai,downlink,A2C-sim,throughput,83.42952975318732
+Mumbai,downlink,A2C-sim,throughput,75.13895629598876
+Mumbai,downlink,A2C-sim,throughput,74.26800028712314
+Mumbai,downlink,A2C-sim,throughput,74.26800028712314
+Mumbai,downlink,A2C-sim,throughput,77.33412531651626
+Mumbai,downlink,A2C-sim,throughput,75.9310534839555
+Mumbai,downlink,A2C-sim,retx,111.41377831480905
+Mumbai,downlink,A2C-sim,retx,111.41378323763841
+Mumbai,downlink,A2C-sim,retx,111.41378323099151
+Mumbai,downlink,A2C-sim,retx,111.41371480807783
+Mumbai,downlink,A2C-sim,retx,111.4138094752444
+Mumbai,downlink,A2C-sim,retx,111.41492136691222
+Mumbai,downlink,A2C-sim,retx,111.41495628169665
+Mumbai,downlink,A2C-sim,retx,111.41495455581774
+Mumbai,downlink,A2C-sim,retx,111.41495199992426
+Mumbai,downlink,A2C-sim,retx,111.41502964019332
+Mumbai,downlink,A2C-sim,retx,111.4148815706167
+Mumbai,downlink,A2C-sim,retx,111.41489737608647
+Mumbai,downlink,A2C-sim,retx,111.41489737608647
+Mumbai,downlink,A2C-sim,retx,111.41495422986061
+Mumbai,downlink,A2C-sim,retx,111.41490220956227
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rtt,156.64299
+Mumbai,downlink,A2C-sim,rttvar,1.9823047263809537
+Mumbai,downlink,A2C-sim,rttvar,1.7692822557109051
+Mumbai,downlink,A2C-sim,rttvar,1.7692822557109484
+Mumbai,downlink,A2C-sim,rttvar,2.915415842505438
+Mumbai,downlink,A2C-sim,rttvar,3.5868407904290596
+Mumbai,downlink,A2C-sim,rttvar,1.5641541790635327
+Mumbai,downlink,A2C-sim,rttvar,1.5426659162338534
+Mumbai,downlink,A2C-sim,rttvar,1.5342689563011083
+Mumbai,downlink,A2C-sim,rttvar,2.6052492540566528
+Mumbai,downlink,A2C-sim,rttvar,2.9730461612706476
+Mumbai,downlink,A2C-sim,rttvar,0.8833131310416092
+Mumbai,downlink,A2C-sim,rttvar,0.7693488822810423
+Mumbai,downlink,A2C-sim,rttvar,0.7693488822810423
+Mumbai,downlink,A2C-sim,rttvar,2.135199997930378
+Mumbai,downlink,A2C-sim,rttvar,2.5693883408078677
+Mumbai,downlink,QA2C-sim,throughput,85.84880226496739
+Mumbai,downlink,QA2C-sim,throughput,79.96853307757776
+Mumbai,downlink,QA2C-sim,throughput,84.68303017329899
+Mumbai,downlink,QA2C-sim,throughput,79.96853307757776
+Mumbai,downlink,QA2C-sim,throughput,83.1564216640512
+Mumbai,downlink,QA2C-sim,throughput,85.63747693689652
+Mumbai,downlink,QA2C-sim,throughput,79.28402783422534
+Mumbai,downlink,QA2C-sim,throughput,84.20748495291404
+Mumbai,downlink,QA2C-sim,throughput,79.28402783422534
+Mumbai,downlink,QA2C-sim,throughput,83.54687248294543
+Mumbai,downlink,QA2C-sim,throughput,78.1451222652402
+Mumbai,downlink,QA2C-sim,throughput,74.26800028712314
+Mumbai,downlink,QA2C-sim,throughput,77.33412531651626
+Mumbai,downlink,QA2C-sim,throughput,74.26800028712314
+Mumbai,downlink,QA2C-sim,throughput,77.49550712522894
+Mumbai,downlink,QA2C-sim,retx,111.4137096197808
+Mumbai,downlink,QA2C-sim,retx,111.41378323099151
+Mumbai,downlink,QA2C-sim,retx,111.41371480807783
+Mumbai,downlink,QA2C-sim,retx,111.41378323099151
+Mumbai,downlink,QA2C-sim,retx,111.4137174309683
+Mumbai,downlink,QA2C-sim,retx,111.41509701814624
+Mumbai,downlink,QA2C-sim,retx,111.41495455581774
+Mumbai,downlink,QA2C-sim,retx,111.41495199992426
+Mumbai,downlink,QA2C-sim,retx,111.41495455581774
+Mumbai,downlink,QA2C-sim,retx,111.41496711857766
+Mumbai,downlink,QA2C-sim,retx,111.41508859091176
+Mumbai,downlink,QA2C-sim,retx,111.41489737608647
+Mumbai,downlink,QA2C-sim,retx,111.41495422986061
+Mumbai,downlink,QA2C-sim,retx,111.41489737608647
+Mumbai,downlink,QA2C-sim,retx,111.41515606550978
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rtt,156.64299
+Mumbai,downlink,QA2C-sim,rttvar,5.409825578507311
+Mumbai,downlink,QA2C-sim,rttvar,1.7692822557109484
+Mumbai,downlink,QA2C-sim,rttvar,2.915415842505438
+Mumbai,downlink,QA2C-sim,rttvar,1.7692822557109484
+Mumbai,downlink,QA2C-sim,rttvar,3.9684730572900726
+Mumbai,downlink,QA2C-sim,rttvar,5.15809713623732
+Mumbai,downlink,QA2C-sim,rttvar,1.5342689563011083
+Mumbai,downlink,QA2C-sim,rttvar,2.6052492540566528
+Mumbai,downlink,QA2C-sim,rttvar,1.5342689563011083
+Mumbai,downlink,QA2C-sim,rttvar,3.8292886477951034
+Mumbai,downlink,QA2C-sim,rttvar,5.347930986413314
+Mumbai,downlink,QA2C-sim,rttvar,0.7693488822810423
+Mumbai,downlink,QA2C-sim,rttvar,2.135199997930378
+Mumbai,downlink,QA2C-sim,rttvar,0.7693488822810423
+Mumbai,downlink,QA2C-sim,rttvar,4.004049531999004
+Sydney,downlink,bbr (measured),throughput,235.5464860780416
+Sydney,downlink,bbr (measured),throughput,246.96315907129122
+Sydney,downlink,bbr (measured),throughput,247.21392716723653
+Sydney,downlink,bbr (measured),throughput,233.9281299633034
+Sydney,downlink,bbr (measured),throughput,243.9242787798548
+Sydney,downlink,bbr (measured),throughput,236.5814181897521
+Sydney,downlink,bbr (measured),throughput,244.15116273400406
+Sydney,downlink,bbr (measured),throughput,248.50464135922775
+Sydney,downlink,bbr (measured),throughput,256.7097510144366
+Sydney,downlink,bbr (measured),throughput,236.1926344853307
+Sydney,downlink,bbr (measured),retx,107.76454363194215
+Sydney,downlink,bbr (measured),retx,114.79063526876887
+Sydney,downlink,bbr (measured),retx,105.20620529565389
+Sydney,downlink,bbr (measured),retx,98.76962763582632
+Sydney,downlink,bbr (measured),retx,154.46889352472405
+Sydney,downlink,bbr (measured),retx,137.13406415149308
+Sydney,downlink,bbr (measured),retx,135.97184898536898
+Sydney,downlink,bbr (measured),retx,141.51579975231812
+Sydney,downlink,bbr (measured),retx,122.15205513803332
+Sydney,downlink,bbr (measured),retx,127.32387677723135
+Sydney,downlink,bbr (measured),rtt,43.3855
+Sydney,downlink,bbr (measured),rtt,41.4615
+Sydney,downlink,bbr (measured),rtt,40.812
+Sydney,downlink,bbr (measured),rtt,43.309
+Sydney,downlink,bbr (measured),rtt,40.861
+Sydney,downlink,bbr (measured),rtt,40.5905
+Sydney,downlink,bbr (measured),rtt,40.188
+Sydney,downlink,bbr (measured),rtt,38.1515
+Sydney,downlink,bbr (measured),rtt,39.394
+Sydney,downlink,bbr (measured),rtt,38.450500000000005
+Sydney,downlink,bbr (measured),rttvar,22.48009653011501
+Sydney,downlink,bbr (measured),rttvar,12.083609598045978
+Sydney,downlink,bbr (measured),rttvar,20.410572056244664
+Sydney,downlink,bbr (measured),rttvar,19.46332139426933
+Sydney,downlink,bbr (measured),rttvar,26.499365174750146
+Sydney,downlink,bbr (measured),rttvar,22.98934287658426
+Sydney,downlink,bbr (measured),rttvar,22.09036609651265
+Sydney,downlink,bbr (measured),rttvar,21.441507569674293
+Sydney,downlink,bbr (measured),rttvar,14.06089020673063
+Sydney,downlink,bbr (measured),rttvar,14.535591074690505
+Sydney,downlink,bbr2 (measured),throughput,217.8447830214161
+Sydney,downlink,bbr2 (measured),throughput,206.99519629197565
+Sydney,downlink,bbr2 (measured),throughput,269.0087436343328
+Sydney,downlink,bbr2 (measured),throughput,194.01740590512782
+Sydney,downlink,bbr2 (measured),throughput,212.07236454255184
+Sydney,downlink,bbr2 (measured),throughput,255.05407688930893
+Sydney,downlink,bbr2 (measured),throughput,238.69386145668
+Sydney,downlink,bbr2 (measured),throughput,241.35772080227497
+Sydney,downlink,bbr2 (measured),throughput,206.13575364061322
+Sydney,downlink,bbr2 (measured),throughput,225.7659932049619
+Sydney,downlink,bbr2 (measured),retx,20.976568087298112
+Sydney,downlink,bbr2 (measured),retx,19.33740052862301
+Sydney,downlink,bbr2 (measured),retx,23.493170571252037
+Sydney,downlink,bbr2 (measured),retx,18.421490647359548
+Sydney,downlink,bbr2 (measured),retx,27.510846111963584
+Sydney,downlink,bbr2 (measured),retx,17.426499636093446
+Sydney,downlink,bbr2 (measured),retx,18.41332455822977
+Sydney,downlink,bbr2 (measured),retx,122.08640116148874
+Sydney,downlink,bbr2 (measured),retx,17.335353748387586
+Sydney,downlink,bbr2 (measured),retx,13.294442682666132
+Sydney,downlink,bbr2 (measured),rtt,36.037
+Sydney,downlink,bbr2 (measured),rtt,38.322
+Sydney,downlink,bbr2 (measured),rtt,38.8815
+Sydney,downlink,bbr2 (measured),rtt,38.513
+Sydney,downlink,bbr2 (measured),rtt,37.413
+Sydney,downlink,bbr2 (measured),rtt,41.232
+Sydney,downlink,bbr2 (measured),rtt,40.417
+Sydney,downlink,bbr2 (measured),rtt,41.5195
+Sydney,downlink,bbr2 (measured),rtt,37.148
+Sydney,downlink,bbr2 (measured),rtt,40.261
+Sydney,downlink,bbr2 (measured),rttvar,6.339614390007393
+Sydney,downlink,bbr2 (measured),rttvar,14.153808977691106
+Sydney,downlink,bbr2 (measured),rttvar,10.936588639674419
+Sydney,downlink,bbr2 (measured),rttvar,7.713476839217881
+Sydney,downlink,bbr2 (measured),rttvar,6.816555111657898
+Sydney,downlink,bbr2 (measured),rttvar,10.520359345170434
+Sydney,downlink,bbr2 (measured),rttvar,8.16292765193891
+Sydney,downlink,bbr2 (measured),rttvar,16.090922997578133
+Sydney,downlink,bbr2 (measured),rttvar,7.73270948359231
+Sydney,downlink,bbr2 (measured),rttvar,14.24877483428849
+Sydney,downlink,cubic (measured),throughput,31.687751484174512
+Sydney,downlink,cubic (measured),throughput,38.056929066007044
+Sydney,downlink,cubic (measured),throughput,25.66198600853033
+Sydney,downlink,cubic (measured),throughput,25.00104410261867
+Sydney,downlink,cubic (measured),throughput,27.203380147266667
+Sydney,downlink,cubic (measured),throughput,32.03018277205937
+Sydney,downlink,cubic (measured),throughput,32.38662158544763
+Sydney,downlink,cubic (measured),throughput,39.85574526277742
+Sydney,downlink,cubic (measured),throughput,42.7292014184689
+Sydney,downlink,cubic (measured),throughput,38.073567480270654
+Sydney,downlink,cubic (measured),retx,2.000193434674425
+Sydney,downlink,cubic (measured),retx,1.6976566418599703
+Sydney,downlink,cubic (measured),retx,2.1903609621939792
+Sydney,downlink,cubic (measured),retx,1.9799744655665847
+Sydney,downlink,cubic (measured),retx,1.3333023591223145
+Sydney,downlink,cubic (measured),retx,1.59322902653235
+Sydney,downlink,cubic (measured),retx,1.860131959199745
+Sydney,downlink,cubic (measured),retx,2.789998666774609
+Sydney,downlink,cubic (measured),retx,3.0006474574025335
+Sydney,downlink,cubic (measured),retx,1.0233057052727885
+Sydney,downlink,cubic (measured),rtt,32.643
+Sydney,downlink,cubic (measured),rtt,34.182
+Sydney,downlink,cubic (measured),rtt,32.635
+Sydney,downlink,cubic (measured),rtt,33.388999999999996
+Sydney,downlink,cubic (measured),rtt,32.826499999999996
+Sydney,downlink,cubic (measured),rtt,32.253
+Sydney,downlink,cubic (measured),rtt,34.8445
+Sydney,downlink,cubic (measured),rtt,34.697500000000005
+Sydney,downlink,cubic (measured),rtt,33.475
+Sydney,downlink,cubic (measured),rtt,34.687
+Sydney,downlink,cubic (measured),rttvar,4.963737363116627
+Sydney,downlink,cubic (measured),rttvar,4.774279609835825
+Sydney,downlink,cubic (measured),rttvar,4.961828874029772
+Sydney,downlink,cubic (measured),rttvar,6.418199478285687
+Sydney,downlink,cubic (measured),rttvar,4.832465921120281
+Sydney,downlink,cubic (measured),rttvar,3.6866635801614565
+Sydney,downlink,cubic (measured),rttvar,5.252808354584134
+Sydney,downlink,cubic (measured),rttvar,6.875166454505342
+Sydney,downlink,cubic (measured),rttvar,4.770288376648616
+Sydney,downlink,cubic (measured),rttvar,4.419820017522081
+Sydney,downlink,stock-sim,throughput,247.3870158551128
+Sydney,downlink,stock-sim,throughput,257.24678301849355
+Sydney,downlink,stock-sim,throughput,238.18774884258622
+Sydney,downlink,stock-sim,retx,125.12613488579062
+Sydney,downlink,stock-sim,retx,125.12398982984367
+Sydney,downlink,stock-sim,retx,124.77027445694083
+Sydney,downlink,stock-sim,rtt,30.2
+Sydney,downlink,stock-sim,rtt,30.2
+Sydney,downlink,stock-sim,rtt,30.2
+Sydney,downlink,stock-sim,rttvar,3.7338063994134183
+Sydney,downlink,stock-sim,rttvar,3.8676138946429033
+Sydney,downlink,stock-sim,rttvar,3.45353741944328
+Sydney,downlink,A2C-sim,throughput,240.94227400871412
+Sydney,downlink,A2C-sim,throughput,243.137618485418
+Sydney,downlink,A2C-sim,throughput,231.10911691986962
+Sydney,downlink,A2C-sim,throughput,245.23588961232448
+Sydney,downlink,A2C-sim,throughput,247.3870158551128
+Sydney,downlink,A2C-sim,throughput,250.3955390446121
+Sydney,downlink,A2C-sim,throughput,248.56164614844243
+Sydney,downlink,A2C-sim,throughput,235.31269806783823
+Sydney,downlink,A2C-sim,throughput,251.19869342326442
+Sydney,downlink,A2C-sim,throughput,257.24678301849355
+Sydney,downlink,A2C-sim,throughput,232.87669607886107
+Sydney,downlink,A2C-sim,throughput,234.52771122803827
+Sydney,downlink,A2C-sim,throughput,223.4162130542468
+Sydney,downlink,A2C-sim,throughput,235.4602718275327
+Sydney,downlink,A2C-sim,throughput,238.18774884258622
+Sydney,downlink,A2C-sim,retx,125.11629163585873
+Sydney,downlink,A2C-sim,retx,125.1164448162621
+Sydney,downlink,A2C-sim,retx,125.11628490702782
+Sydney,downlink,A2C-sim,retx,125.11632579209855
+Sydney,downlink,A2C-sim,retx,125.12613488579062
+Sydney,downlink,A2C-sim,retx,125.1176180491248
+Sydney,downlink,A2C-sim,retx,125.11767273615476
+Sydney,downlink,A2C-sim,retx,125.11763057319227
+Sydney,downlink,A2C-sim,retx,125.11761659632447
+Sydney,downlink,A2C-sim,retx,125.12398982984367
+Sydney,downlink,A2C-sim,retx,124.74320798060008
+Sydney,downlink,A2C-sim,retx,124.74317536218076
+Sydney,downlink,A2C-sim,retx,124.74266288862647
+Sydney,downlink,A2C-sim,retx,124.74363235021335
+Sydney,downlink,A2C-sim,retx,124.77027445694083
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rtt,30.2
+Sydney,downlink,A2C-sim,rttvar,1.610855851866155
+Sydney,downlink,A2C-sim,rttvar,1.6910994334526206
+Sydney,downlink,A2C-sim,rttvar,1.5131731623241256
+Sydney,downlink,A2C-sim,rttvar,1.6674150721673957
+Sydney,downlink,A2C-sim,rttvar,3.7338063994134183
+Sydney,downlink,A2C-sim,rttvar,1.6125746637348033
+Sydney,downlink,A2C-sim,rttvar,1.6561037878692746
+Sydney,downlink,A2C-sim,rttvar,1.4868838902931436
+Sydney,downlink,A2C-sim,rttvar,1.6223410519283228
+Sydney,downlink,A2C-sim,rttvar,3.8676138946429033
+Sydney,downlink,A2C-sim,rttvar,1.4933261433056437
+Sydney,downlink,A2C-sim,rttvar,1.6049288931080548
+Sydney,downlink,A2C-sim,rttvar,1.425450399559949
+Sydney,downlink,A2C-sim,rttvar,1.5168002106320642
+Sydney,downlink,A2C-sim,rttvar,3.45353741944328
+Sydney,downlink,QA2C-sim,throughput,247.80681479432067
+Sydney,downlink,QA2C-sim,throughput,233.10077785718883
+Sydney,downlink,QA2C-sim,throughput,245.23588961232448
+Sydney,downlink,QA2C-sim,throughput,231.10911691986962
+Sydney,downlink,QA2C-sim,throughput,245.14582690886203
+Sydney,downlink,QA2C-sim,throughput,252.64869982865847
+Sydney,downlink,QA2C-sim,throughput,237.24575430283824
+Sydney,downlink,QA2C-sim,throughput,251.19869342326442
+Sydney,downlink,QA2C-sim,throughput,235.31269806783823
+Sydney,downlink,QA2C-sim,throughput,250.9925578513003
+Sydney,downlink,QA2C-sim,throughput,237.00297379253703
+Sydney,downlink,QA2C-sim,throughput,224.27618041605072
+Sydney,downlink,QA2C-sim,throughput,235.4602718275327
+Sydney,downlink,QA2C-sim,throughput,223.4162130542468
+Sydney,downlink,QA2C-sim,throughput,237.32000847357318
+Sydney,downlink,QA2C-sim,retx,125.12397631077036
+Sydney,downlink,QA2C-sim,retx,125.11842197216897
+Sydney,downlink,QA2C-sim,retx,125.11632579209855
+Sydney,downlink,QA2C-sim,retx,125.11628490702782
+Sydney,downlink,QA2C-sim,retx,125.1164551429419
+Sydney,downlink,QA2C-sim,retx,125.11903809160327
+Sydney,downlink,QA2C-sim,retx,125.11948581143312
+Sydney,downlink,QA2C-sim,retx,125.11761659632447
+Sydney,downlink,QA2C-sim,retx,125.11763057319227
+Sydney,downlink,QA2C-sim,retx,125.11766019860475
+Sydney,downlink,QA2C-sim,retx,124.76853188205035
+Sydney,downlink,QA2C-sim,retx,124.76626704964407
+Sydney,downlink,QA2C-sim,retx,124.74363235021335
+Sydney,downlink,QA2C-sim,retx,124.74266288862647
+Sydney,downlink,QA2C-sim,retx,124.74345450238745
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rtt,30.2
+Sydney,downlink,QA2C-sim,rttvar,3.3302540007300454
+Sydney,downlink,QA2C-sim,rttvar,2.120389450051645
+Sydney,downlink,QA2C-sim,rttvar,1.6674150721673957
+Sydney,downlink,QA2C-sim,rttvar,1.5131731623241256
+Sydney,downlink,QA2C-sim,rttvar,1.757202416417944
+Sydney,downlink,QA2C-sim,rttvar,2.7836316265882086
+Sydney,downlink,QA2C-sim,rttvar,2.476691224336126
+Sydney,downlink,QA2C-sim,rttvar,1.6223410519283228
+Sydney,downlink,QA2C-sim,rttvar,1.4868838902931436
+Sydney,downlink,QA2C-sim,rttvar,1.699195808250743
+Sydney,downlink,QA2C-sim,rttvar,2.954100791983755
+Sydney,downlink,QA2C-sim,rttvar,1.9531643371430683
+Sydney,downlink,QA2C-sim,rttvar,1.5168002106320642
+Sydney,downlink,QA2C-sim,rttvar,1.425450399559949
+Sydney,downlink,QA2C-sim,rttvar,1.692941799482272
