@@ -1,0 +1,24 @@
+# Mandatory action-effect gate for the v7 ProbeBW-cycle transport proxy.
+# At least one fixed native gain must beat stock throughput by the margin
+# below, or the simulator cannot support a throughput-improvement claim and
+# the v7 dynamics must be revised before training. Simulator-proxy only.
+run:
+  locations: [London, Sydney]
+  directions: [uplink, downlink]
+  seeds: [0, 1, 2]
+  duration_s: 60.0
+  fixed_action_indices: [0, 1, 2, 3, 4]
+go_no_go:
+  minimum_throughput_span_pct: 0.5
+  minimum_improvement_vs_stock_pct: 0.1
+dynamics_overrides:
+  consistent_transport: true
+  probe_bw_cycle: true
+  overflow_retransmit_frac: 0.25
+  bandwidth_estimate_recovery_s: 3.0
+  drain_throughput_penalty: 0.0
+  cwnd_gain: 2.0
+  loss_thresh: 0.02
+  loss_beta: 0.7
+  probe_rtt_interval_s: 5.0
+dynamics_evidence: uncalibrated_probe_bw_cycle_proxy_v7
