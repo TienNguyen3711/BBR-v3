@@ -188,11 +188,6 @@ def main() -> None:
                 real_tput_med = statistics.median(real["throughput_mbps"])
                 real_rtx_med = statistics.median(real["retransmits_per_s"])
                 tput_retention = qbbr_tput_med / real_tput_med if real_tput_med > 0 else float("nan")
-                # A near-idle competitor (real_rtx_med close to 0, typical of Cubic/Vegas/Hybla on
-                # these high-RTT links -- they trivially avoid loss by barely sending anything) makes
-                # a retransmit RATIO meaningless: it's an artifact of the denominator, not a genuine
-                # comparison. RETRANSMIT_MEANINGFUL_FLOOR_PER_S gates this off rather than reporting
-                # a NaN or a three-digit swing that looks broken.
                 rtx_comparison_meaningful = real_rtx_med >= RETRANSMIT_MEANINGFUL_FLOOR_PER_S
                 rtx_reduction = (
                     1.0 - qbbr_rtx_med / real_rtx_med if rtx_comparison_meaningful else None

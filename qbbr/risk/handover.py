@@ -105,13 +105,7 @@ def estimate_handover_cadence_s(
     duration_hours: float = _DEFAULT_DURATION_HOURS,
     step_s: float = _DEFAULT_STEP_S,
 ) -> list[HandoverCadenceEstimate]:
-    """Per-shell single-satellite pass-duration statistics for a ground station (default: Burwood).
-
-    See module docstring: this is a physical upper bound on how rarely a
-    handover could be avoided, derived from the base paper's own published
-    constellation geometry -- not Starlink's actual (unpublished, likely
-    more frequent) handover schedule.
-    """
+    """Per-shell single-satellite pass-duration statistics for a ground station."""
     ts = load.timescale()
     observer = wgs84.latlon(lat, lon)
     satellites_by_shell = build_shell_satellites(ts.now(), n_sats_per_shell)

@@ -1,8 +1,4 @@
-"""Audit whether the repository is ready to run the four RQ families.
-
-This is deliberately read-only.  It checks contracts and entry points without
-touching existing checkpoints, outputs, or result files.
-"""
+"""Audit whether the repository is ready to run the four RQ families."""
 from __future__ import annotations
 
 import argparse

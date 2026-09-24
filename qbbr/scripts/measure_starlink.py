@@ -1,29 +1,4 @@
-"""Run an iperf3 campaign over Starlink, protocol-identical to qbbr/data/raw.
-
-WHY PROTOCOL-IDENTICAL MATTERS.  A new measurement is only comparable to the
-reference dataset if it was taken the same way. The parameters below were read
-back out of the reference logs themselves (start.test_start), not chosen:
-
-    TCP, num_streams 1, blksize 131072, omit 0, duration 300 s
-    downlink = --reverse (REV)      uplink = forward (FWD)
-
-WHERE THE NUMBERS COME FROM.  Every reference log was captured on the SENDING
-side -- the only side where tcp_info (rtt, retransmits, snd_cwnd) means
-anything. For uplink the sender is the client, so `iperf3 -c -J` here is right.
-For downlink the sender is the SERVER, so the useful JSON is the server's
-(`iperf3 -s -J --logfile`), and this script's client-side downlink output will
-carry throughput but no RTT. That is a property of the measurement topology,
-not a bug, and --direction downlink says so at the start of the run.
-
-CONGESTION CONTROL IS NOT SET HERE.  It is whatever the SENDER's kernel is
-using. On macOS that is always CUBIC -- XNU has no BBR at all -- so a macOS
-client can measure the uplink under CUBIC and can receive a downlink test, but
-it cannot produce a bbr2 arm. The script records the detected algorithm into the
-output filename so an arm can never be silently mislabelled.
-
-The reference arm for this project is bbr2, which is what qbbr/data/raw carries
-(alongside bbr, bbr1 and six non-BBR algorithms).
-"""
+"""Run an iperf3 campaign over Starlink, protocol-identical to qbbr/data/raw."""
 
 from __future__ import annotations
 

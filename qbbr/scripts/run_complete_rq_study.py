@@ -1,10 +1,4 @@
-"""Single entry point for the complete four-RQ study.
-
-The default command is read-only and emits a machine-readable execution plan.
-``--execute`` is required for simulator jobs.  Field measurements are never
-started by this script: they are ingested through ``assess_collection`` after
-an independently audited collector has produced JSONL records.
-"""
+"""Single entry point for the complete four-RQ study."""
 from __future__ import annotations
 
 import argparse

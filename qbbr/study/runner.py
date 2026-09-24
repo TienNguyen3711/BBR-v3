@@ -111,15 +111,7 @@ def rollout(agent, env, seed, core='a2c', history_window=8, keep_intervals=False
 
 
 def stock_rollout(study, job, calibration, entry, seed, cache=None):
-    """Baseline rollout for one forcing, shared across every variant and core.
-
-    Stock ignores the observation, the selector admits its action in every
-    state, and the simulator draws no global randomness once reset() is given
-    a seed, so this rollout depends only on (location, direction, trace run,
-    seed). Without a cache the full matrix recomputes each one up to
-    len(variants) * len(cores) times. The cache is per-execute() and changes
-    no reported number; test_study_runner.py asserts the equivalence.
-    """
+    """Baseline rollout for one forcing, shared across every variant and core."""
     key = (job['location'], job['direction'], None if entry is None else entry['run'], seed)
     if cache is None:
         return rollout(Stock(), make_env(study, job, calibration, entry=entry), seed)
@@ -243,9 +235,6 @@ def execute(study, calibration_path, dataset, out, max_jobs=None, job_filter=Non
     all_jobs = [job for job in jobs(study) if job_filter is None or job_filter(job)]
     if not all_jobs:
         raise ValueError('Job filter selected no jobs')
-    # Trace fingerprints include the actual forcing arrays, not just filenames.
-    # They cover every DECLARED job, not the shard's subset, so that shards of
-    # one study share an identity and their results merge coherently.
     cache = {}
     if dataset is not None:
         for job in jobs(study):

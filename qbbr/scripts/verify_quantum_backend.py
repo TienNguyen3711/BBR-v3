@@ -1,15 +1,6 @@
-"""Evidence that the fast quantum simulator backend (lightning.qubit + adjoint)
-is numerically equivalent to the reference (default.qubit + backprop), and how
-much faster it is.
-
-RQ4 compares distributions over 10 seeds, so a single seeded trajectory need
-not be bit-identical across backends -- but the forward expectation values and
-analytic gradients must agree to float precision, and the short-horizon
-training curve must not diverge. This script checks all three and prints a
-speed ratio.
-
-    python -m qbbr.scripts.verify_quantum_backend
-    python -m qbbr.scripts.verify_quantum_backend --location Sydney --n-episodes 15
+"""
+Evidence that the fast quantum simulator backend (lightning.qubit + adjoint) is numerically
+equivalent to the reference (default.qubit + backprop), and how much faster it is.
 """
 from __future__ import annotations
 

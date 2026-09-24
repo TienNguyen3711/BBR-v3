@@ -1,20 +1,4 @@
-"""RQ2 and RQ3 publication figures, drawn at IEEEtran's physical sizes.
-
-Conventions follow make_ieee_figures.py: Times at 7-8 pt final size, vector
-PDF, recessive grid, and every series separated by line style or marker as
-well as colour, because IEEE papers are routinely printed in greyscale.
-Colours are the same validated categorical slots (all checks pass on a light
-surface; worst adjacent CVD dE 9.2 deutan, normal-vision dE 27.6). The aqua
-slot warns on contrast against the surface, so the convergence panel carries
-direct labels rather than relying on the legend alone.
-
-  rq2_ablation_ieee.pdf    paired full-minus-ablated differences, one row per
-                           contrast, one dot per (location, seed) cell
-  rq3_convergence_ieee.pdf held-out learning curves and the quantum-minus-
-                           classical contrast at two episode budgets
-  coexistence_ieee.pdf     measured isolated-to-contended collapse per
-                           congestion control, with the equal-share reference
-"""
+"""RQ2 and RQ3 publication figures, drawn at IEEEtran's physical sizes."""
 from __future__ import annotations
 
 import argparse
@@ -110,14 +94,7 @@ def paired_cores(rows, treatment, control, variant="full"):
 
 
 def _effect_row(axis, y, values, colour, marker):
-    """One contrast: its cells as dots, its median and bootstrap interval.
-
-    Jitter is vertical only, so a contrast whose cells are all identical --
-    which is the A2C result, not a rendering artefact -- reads as a column at
-    one x rather than as a cloud. The counts sit outside the axes because a
-    contrast centred on zero puts its interval exactly where an inside label
-    would go.
-    """
+    """One contrast: its cells as dots, its median and bootstrap interval."""
     jitter = np.linspace(-0.22, 0.22, len(values))
     axis.scatter(values, y + jitter, s=5.5, facecolor="none", edgecolor=colour,
                  linewidth=0.6, marker=marker, zorder=3, clip_on=False)
@@ -201,13 +178,7 @@ def rq3_figure(screen_rows, curve_rows, out: Path):
 
 
 def coexistence_figure(report: Path, out: Path):
-    """Isolated to contended, per algorithm, on a shared reference.
-
-    One hue, not nine: the algorithms are rows of one measure, not series, so
-    colour is spent on the single entity the paper is about (BBR) and the rest
-    stay in ink. A log axis is unavoidable -- the contended rates span three
-    decades -- so the equal-share marker is what makes the rows comparable.
-    """
+    """Isolated to contended, per algorithm, on a shared reference."""
     cells = json.loads(report.read_text())["cells"]
     downlink = [k for k in cells if k.endswith("downlink") and cells[k].get("usable_runs")]
     names = sorted(cells[downlink[0]]["per_cca"])

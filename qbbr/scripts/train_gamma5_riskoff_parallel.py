@@ -1,13 +1,4 @@
-"""RQ3-under-gamma5 (Step 2 of the gamma=5.0 follow-up): trains the
-risk_off counterpart (risk_mode=stub_constant -- s5/s6 frozen at their
-constant placeholder values, agent effectively blind to risk) under the
-same gamma=5.0 reward as train_gamma5_parallel.py's risk_on
-(risk_mode=closed_form) checkpoints, so RQ3's risk-on-vs-off comparison
-(eval_rq3_parallel.py's design) can be re-run under gamma=5.0 and compared
-against the published (gamma=0.0) RQ3 null.
-
-Output -> outputs/checkpoints_gamma5_riskoff/pacing_only/classical/{location}/seed{N}.pt
-"""
+"""RQ3-under-gamma5 (Step 2 of the gamma=5.0 follow-up): trains the risk_off counterpart."""
 from __future__ import annotations
 
 import sys

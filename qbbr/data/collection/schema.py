@@ -64,11 +64,7 @@ def _coverage(rows: list[Mapping[str, Any]], fields: frozenset[str]) -> dict[str
 
 
 def validate_collection_rows(rows: Iterable[Mapping[str, Any]]) -> CollectionQualityReport:
-    """Assess readiness without silently filling unavailable ground truth.
-
-    This intentionally reports coverage instead of manufacturing weather, SNR,
-    handover, or route information from a theoretical model.
-    """
+    """Assess readiness without silently filling unavailable ground truth."""
 
     materialized = list(rows)
     missing_required = {

@@ -1,30 +1,4 @@
-"""Choose the difference reward's delta PER CELL, against the three gates.
-
-v10 trained every cell at a single delta=2 and failed for opposite reasons at
-opposite ends of the map: London overran the 5 ms RTT p90 budget (11.3 and
-15.0 ms) while Sydney spent 18-21% of its actions on sub-1.0 gains against a
-10% cap. One global weighting cannot serve cells whose capacity and RTT floors
-differ by an order of magnitude.
-
-The key observation that makes this cheap: delta does not change what an action
-DOES, only which action the reward prefers. So the physical consequence of each
-action -- its throughput ratio, its RTT p90 cost, its retransmit cost against
-stock on identical forcing -- can be measured ONCE per cell from uniform-random
-rollouts, and every candidate delta then scored analytically against the
-predeclared selection gates. A four-cell sweep costs minutes instead of the
-hours a retrain-per-delta grid would take.
-
-Reported per delta: the pooled argmax action, its measured throughput/RTT/
-retransmit deltas vs stock, and whether the advantage still separates actions
-(the SNR gate). A delta is admissible when it separates actions AND its
-preferred action stays inside the RTT and retransmit budgets while gaining
-throughput.
-
-Caveat: the pooled argmax is a CONSTANT-policy predictor. A trained policy is
-state-conditioned and can do better, so these numbers are a lower bound on what
-training achieves -- but a delta whose own argmax busts the RTT budget is not
-going to train into one that respects it.
-"""
+"""Choose the difference reward's delta PER CELL, against the three gates."""
 
 from __future__ import annotations
 

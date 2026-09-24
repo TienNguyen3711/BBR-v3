@@ -20,11 +20,6 @@ COLOR = {"quantum": "#5B8FC9", "classical": "#E8973C", "stock": "#5AA469", "real
 LABEL = {"quantum": "QA2C (quantum)", "classical": "A2C (classical, matched)",
          "stock": "stock BBR — simulated", "real": "real trace — measured"}
 
-# Top row: absolute levels, comparable to a conventional per-CCA figure.
-# Bottom row: the PAIRED delta against stock on the same replayed trace, which
-# is what the experiment actually measures. The absolute panels cannot show the
-# result -- a 4 ms RTT change is invisible on an axis that spans 30-420 ms
-# across cities, and every arm sits on top of the others in throughput.
 ABSOLUTE_PANELS = [
     ("throughput_mbps_mean", "Throughput", "Mbps"),
     ("rtt_p90_ms", "RTT (p90)", "ms"),

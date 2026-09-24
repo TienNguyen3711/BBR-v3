@@ -1,22 +1,4 @@
-"""Compare a fresh Starlink campaign against the reference dataset.
-
-WHAT THIS CAN AND CANNOT SETTLE.  A new campaign differs from qbbr/data/raw in
-two ways at once -- a different link (different terminal, sky, time, load) and
-possibly a different congestion control algorithm. One comparison cannot
-separate them, so this script always reports TWO:
-
-  vs --reference-cca   (default bbr2)  the arm you asked about
-  vs the SAME cca as the field runs    the control
-
-Read them together. If the field runs match the reference on their own
-algorithm but differ from bbr2, the gap is the ALGORITHM. If they differ from
-their own algorithm too, the gap is the LINK, and the bbr2 comparison cannot be
-interpreted at all until that is explained.
-
-bbr2 is the reference arm for this project. Real BBRv1 stalls to zero throughput
-in 47-57% of one-second samples on five of six uplinks; bbr2 does not (2-7%), so
-it is the only BBR variant in the dataset that behaves sanely on the uplink.
-"""
+"""Compare a fresh Starlink campaign against the reference dataset."""
 
 from __future__ import annotations
 

@@ -1,14 +1,10 @@
-"""Re-runs the exact RQ1 headline comparison (qbbr vs. stock BBR-v3, +
-cubic/vegas/hybla as bonus context) against the FINAL checkpoints
-(outputs/checkpoints_final/{pacing_only,multihead}/classical), but --
-unlike eval_rq1_parallel.py, whose report only ever persisted the collapsed
-per-location MEDIAN -- this script keeps the full per-seed array (qbbr) and
-per-trace-file array (real CCAs, via real_cca_per_run_medians) so a genuine
-boxplot/CDF can be drawn afterward instead of only a bar-of-medians. No
-training; same checkpoints, same action configs, same risk_mode as the
-numbers already published in main.tex's RQ1a/RQ1b tables -- this only adds
-persistence of the raw arrays eval_rq1_parallel.py computes internally and
-then discards.
+"""
+Re-runs the exact RQ1 headline comparison (qbbr vs. stock BBR-v3, + cubic/vegas/hybla as bonus
+context) against the FINAL checkpoints
+(outputs/checkpoints_final/{pacing_only,multihead}/classical), but -- unlike eval_rq1_parallel.py,
+whose report only ever persisted the collapsed per-location MEDIAN -- this script keeps the full
+per-seed array (qbbr) and per-trace-file array (real CCAs, via real_cca_per_run_medians) so a
+genuine boxplot/CDF can be drawn afterward instead of only a bar-of-medians.
 """
 from __future__ import annotations
 
@@ -46,12 +42,13 @@ OUT_PATH = PROJECT_ROOT / "outputs" / "rq1_raw_for_boxplot.json"
 
 
 class _StateTruncatingAgent:
-    """These checkpoints (outputs/checkpoints_final/*) predate s7_reconfig_phase
-    (the state vector has since grown from 6 to 7 features under FluidSimEnv);
-    n_qubits=6 on construction plus truncating the env's state to its first 6
-    entries here keeps this a like-for-like replay of what they actually saw
-    during training, not a mismatched forward pass (same pattern already used
-    in eval_rq2_extended_action_space.py and analyze_ecn_behavior_shift.py)."""
+    """
+    These checkpoints (outputs/checkpoints_final/*) predate s7_reconfig_phase (the state vector
+    has since grown from 6 to 7 features under FluidSimEnv); n_qubits=6 on construction plus
+    truncating the env's state to its first 6 entries here keeps this a like-for-like replay of
+    what they actually saw during training, not a mismatched forward pass (same pattern already
+    used in eval_rq2_extended_action_space.py and analyze_ecn_behavior_shift.py).
+    """
 
     def __init__(self, agent):
         self._agent = agent

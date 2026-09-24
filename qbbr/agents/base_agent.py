@@ -26,24 +26,13 @@ class BaseAgent(abc.ABC):
 
     @abc.abstractmethod
     def load(self, path: str | Path) -> None:
-        """Load weights saved by save() into this already-constructed agent.
-
-        The agent must already be built with matching hyperparameters
-        (n_layers, reupload, ...); this only restores weights, not
-        architecture.
-        """
+        """Load weights saved by save() into this already-constructed agent."""
 
 
 def discounted_returns(
     rewards: Sequence[float], gamma: float, bootstrap: float = 0.0
 ) -> torch.Tensor:
-    """Discounted returns, optionally bootstrapped from a successor value.
-
-    bootstrap = 0.0 treats the final transition as terminal, which is right at
-    an episode boundary. For a truncated n-step chunk the successor state is
-    NOT terminal, so the caller passes V(s_next) instead; without it every
-    chunk would be trained as if the episode ended there.
-    """
+    """Discounted returns, optionally bootstrapped from a successor value."""
     returns = []
     g = float(bootstrap)
     for r in reversed(rewards):
@@ -53,22 +42,7 @@ def discounted_returns(
 
 
 class RunningReturnNormalizer:
-    """Running mean/variance of discounted returns.
-
-    Why this exists: the critic head is Linear(1,1) over sum(PauliZ), so its
-    output is confined to roughly [-6, 6]. Raw discounted returns here reach
-    ~+300, which the critic cannot represent at all -- measured on a trained
-    checkpoint, the critic explained 0.04% of return variance and
-    corr(advantage, return) was 0.999996. The baseline therefore subtracted
-    nothing, the advantage collapsed to "how early in the episode is this
-    step", and the actor received no action-value signal: reward scale,
-    entropy schedules and a 30x RTT penalty all left the policy unchanged.
-
-    Standardising the return puts the critic's target inside its range so the
-    baseline can actually do its job. Statistics are running (Chan et al.
-    parallel variance) rather than per-episode so the same state keeps a
-    stable target across episodes.
-    """
+    """Running mean/variance of discounted returns."""
 
     def __init__(self) -> None:
         self.mean = 0.0

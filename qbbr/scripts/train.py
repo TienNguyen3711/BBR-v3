@@ -69,9 +69,6 @@ def main() -> None:
     config = yaml.safe_load(Path(args.config).read_text())
     n_episodes = args.n_episodes or config.get("episode", {}).get("target_episodes", [200])[0]
 
-    # Seeded here, before the agent's weights are initialized: train()'s own
-    # seeding only covers the rollout/update phase, which is too late to
-    # make a run fully reproducible (agent construction already happened).
     seed = config.get("seed")
     if seed is not None:
         torch.manual_seed(seed)

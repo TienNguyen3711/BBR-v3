@@ -1,27 +1,7 @@
-"""Validation figures: our calibrated 'stock BBR-v3' fluid model vs BBR-v3 as
-reported in the Deakin Starlink measurement papers, plus the queue-buildup
-time series analogous to those papers' Fig. 12 / Fig. 13.
-
-Papers:
-  desilva2026tmc  -- "Unveiling TCP BBR Dominance in Starlink Internet:
-                      Experimental Insights and Analysis"
-  desilva2026icoin -- "Understanding BBR-v3 Dynamics over Starlink"
-Both benchmark BBR-v3 (their footnote: "BBR" == "BBR-v3") on the SAME six
-cities / iperf3 / 300 s methodology this codebase's raw traces come from.
-
-Reference values below are tagged:
-  T = median stated in the paper text
-  F = approximate value read off the paper's box-plot figure (Fig 5 / Fig 8)
-The F values are eyeballed and are shown only as orientation, not ground truth.
-
-Non-competing (single-flow) only -- FluidSimEnv has no multi-flow mode, so the
-papers' competitive-stream figures (Fig 6/7/9/10/13) are out of scope here.
-
-Writes to figures/:
-  validation_stock_vs_paper_downlink.png
-  queue_buildup_downlink.png
-  queue_buildup_uplink.png
-and outputs/validation_vs_papers.md
+"""
+Validation figures: our calibrated 'stock BBR-v3' fluid model vs BBR-v3 as reported in the Deakin
+Starlink measurement papers, plus the queue-buildup time series analogous to those papers' Fig. 12 /
+Fig. 13.
 """
 
 from __future__ import annotations

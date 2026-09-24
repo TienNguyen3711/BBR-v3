@@ -1,10 +1,4 @@
-"""Exploratory Sydney baseline/action audit; no retraining or kernel writes.
-
-Compare historical dynamics with opt-in CRUISE-only/autonomous-probe dynamics.
-Freeze selection on runs 6/7 before assessing runs 8/9/10. These are REUSED
-traces, not a fresh confirmatory holdout. Existing calibration is held fixed
-to isolate dynamics changes and remains fitted on the entire dataset.
-"""
+"""Exploratory Sydney baseline/action audit; no retraining or kernel writes."""
 from __future__ import annotations
 
 import argparse

@@ -1,26 +1,4 @@
-"""Publication figures for main.tex, drawn at IEEEtran's physical sizes.
-
-Why a separate script rather than shrinking the analysis figures: those were
-drawn ~15 in wide, so at IEEE's 7.16 in text width their 8 pt labels would print
-at ~4 pt. These are laid out for the page they will be printed on:
-
-  figure*  7.16 in wide   (\textwidth in IEEEtran journal)
-  figure   3.50 in wide   (\columnwidth)
-  text     7-8 pt at final size, Times, vector PDF
-
-Series are separated by line style or hatch as well as colour, because IEEE
-papers are routinely printed in greyscale and read by people with colour-vision
-deficiency. Colours are the dataviz reference categorical slots validated
-all-pairs on a light surface (worst CVD dE 9.2, normal-vision dE 16.3).
-
-  fidelity_rtt_cdf_ieee.pdf  per-second RTT CDFs: measured trace, real Linux BBR,
-                             simulated stock, on identical replayed capacity
-  replay_deltas_ieee.pdf     paired policy-minus-stock deltas on replayed real
-                             capacity (the absolute-level row of the analysis
-                             figure is dropped: at print size it was unreadable
-                             and it carries no claim the delta row does not)
-  tradeoff_plane_ieee.pdf    the policy positioned among the measured CCAs
-"""
+"""Publication figures for main.tex, drawn at IEEEtran's physical sizes."""
 
 from __future__ import annotations
 
@@ -156,10 +134,10 @@ def replay_deltas(out_dir: Path, preview: Path | None) -> None:
 
 
 def tradeoff_plane(out_dir: Path, preview: Path | None) -> None:
-    """Both evidence classes aggregated identically: per-city delta vs stock BBR,
-    then mean +/- 1 s.e. across the six cities. (The analysis figure used the
-    median replay row for the policy; the mean is used here so the two classes
-    share one statistic. The mean is lower than the median because of Mumbai.)"""
+    """
+    Both evidence classes aggregated identically: per-city delta vs stock BBR, then mean +/- 1
+    s.e. across the six cities.
+    """
     from qbbr.data.catalog import build_catalog
     from qbbr.scripts.make_tradeoff_plane_figure import _cca_stats, REAL_CCAS, BASELINE
     catalog = build_catalog(PACKAGE_ROOT / "data" / "raw")
@@ -229,10 +207,11 @@ def tradeoff_plane(out_dir: Path, preview: Path | None) -> None:
 
 
 def seed_freeze(out_dir: Path, preview: Path | None) -> None:
-    """Why seeds froze under v11: the deployed argmax leaves stock only when the
-    stock-vs-best-non-stock logit margin changes sign, and that margin drifted
-    at a rate set by the path's reward SNR. Colour is the arm, line style the
-    path, as in the other figures."""
+    """
+    Why seeds froze under v11: the deployed argmax leaves stock only when the stock-vs-best-non-
+    stock logit margin changes sign, and that margin drifted at a rate set by the path's reward
+    SNR.
+    """
     cases = [("freeze_quantum_Sydney_downlink_1.json", "Sydney, QA2C seed 1", BLUE, "-"),
              ("freeze_quantum_London_downlink_1.json", "London, QA2C seed 1", BLUE, (0, (4, 1.6))),
              ("freeze_classical_London_downlink_4.json", "London, A2C seed 4", ORANGE, (0, (4, 1.6)))]
@@ -285,11 +264,7 @@ def main() -> int:
 
 
 def snr_gate(out_dir: Path, preview: Path | None) -> None:
-    """The measurement that chose the reward. Uniform-random actions, so it
-    characterises the environment rather than a policy. Top: best pairwise
-    action separation on London downlink by reward form (the hardest downlink
-    cell). Bottom: the adopted reward on all twelve cells. All runs share the v14
-    config and calibration, seed 0, 12 episodes (reports/snr_v14/)."""
+    """The measurement that chose the reward."""
     src = ROOT / "reports" / "snr_v14"
     load = lambda name: json.loads((src / f"{name}.json").read_text())
     rewards = [("London_downlink_throughput_only", "absolute throughput"),
@@ -349,14 +324,11 @@ def snr_gate(out_dir: Path, preview: Path | None) -> None:
 
 
 def policy_boxes(out_dir: Path, preview: Path | None) -> None:
-    """Absolute per-second throughput and RTT, every source side by side on the
-    same replayed capacity: the measured Starlink trace (data/raw, stock BBR),
-    real Linux BBR on the testbed, and the simulator's stock, QA2C and A2C.
-
-    Read the policy against SIMULATED stock (same model, same forcing); the
-    measured and testbed boxes show how far that model sits from reality, which
-    is the scale any policy effect has to beat. Policies are the deployed seed 0
-    (the paired multi-seed deltas are in replay_deltas_ieee.pdf)."""
+    """
+    Absolute per-second throughput and RTT, every source side by side on the same replayed
+    capacity: the measured Starlink trace (data/raw, stock BBR), real Linux BBR on the testbed,
+    and the simulator's stock, QA2C and A2C.
+    """
     series = json.loads((ROOT / "reports" / "per_second_series.json").read_text())["series"]
     calibration = json.loads((PACKAGE_ROOT / "data" / "calibrated" / "per_location_constants_v14.json").read_text())
     sources = [("real_trace", "measured Starlink trace", NEUTRAL, None),
@@ -374,9 +346,6 @@ def policy_boxes(out_dir: Path, preview: Path | None) -> None:
                 v = np.concatenate([np.asarray(r[key][metric], float) for r in series
                                     if r["location"] == city and key in r])
                 if metric == "rtt_ms":
-                    # RTT above the path's propagation floor: raw RTT spans 30-400 ms
-                    # across paths, which flattens every box; the floor is physics,
-                    # the remainder is the queueing a controller influences.
                     v = np.clip(v - calibration[city]["downlink"]["RTT_min_ms"], 0.0, None)
                 data.append(v)
             positions = np.arange(len(CITIES)) + (offset - 2) * width
@@ -414,13 +383,7 @@ def policy_boxes(out_dir: Path, preview: Path | None) -> None:
 
 
 def tier1_cells(out_dir: Path, preview: Path | None) -> None:
-    """Tier-1 hold-out result for every location-direction cell and both arms.
-
-    Left: throughput delta vs stock -- each training seed as a dot, the median
-    as a bar with its 95% bootstrap interval. Right: RTT p90 delta, seeds as
-    dots, and the cell's derived RTT budget as a black tick. The RTT criterion
-    requires EVERY seed to sit at or left of the tick, which is why it, not
-    throughput, decides qualification. Qualified cells are shaded."""
+    """Tier-1 hold-out result for every location-direction cell and both arms."""
     report = json.loads((ROOT / "reports" / "tier1_v14_report.json").read_text())
     cells = [(c, d) for d in ("downlink", "uplink") for c in CITIES]
     row_of = {cell: i for i, cell in enumerate(cells)}
@@ -485,12 +448,7 @@ def tier1_cells(out_dir: Path, preview: Path | None) -> None:
 
 
 def learning_curves(out_dir: Path, preview: Path | None) -> None:
-    """RQ3 at training time: episode return of QA2C and the parameter-matched
-    A2C on every cell. Lines are the mean over five training seeds, bands +/-1
-    s.d. Each panel prints the paired (same seed) difference QA2C - A2C over the
-    last five episodes with a t-based 95% interval, so 'indistinguishable' is a
-    number rather than an impression. Returns are sums of the difference reward
-    under sampled (exploratory) actions, so their scale differs by path."""
+    """RQ3 at training time: episode return of QA2C and the parameter-matched A2C on every cell."""
     from scipy import stats
     report = json.loads((ROOT / "reports" / "tier1_v14_report.json").read_text())
     arms = [("quantum", "QA2C", BLUE, "-"), ("classical", "A2C (matched)", ORANGE, (0, (3.5, 1.5)))]
@@ -530,12 +488,9 @@ def learning_curves(out_dir: Path, preview: Path | None) -> None:
 
 
 def retrained_heldout(out_dir: Path, preview: Path | None) -> None:
-    """Pre-registered retraining on real capacity (bbr runs 1-7), evaluated on
-    held-out runs 8-10. Each marker is one training seed's median over the three
-    held-out traces; the bar is the primary statistic (median over seeds). The
-    dashed line is the registered success threshold, which applies to Sydney
-    only (its measured transport-model throughput error); Tokyo's own error,
-    7.0%, is off this axis."""
+    """
+    Pre-registered retraining on real capacity (bbr runs 1-7), evaluated on held-out runs 8-10.
+    """
     import glob
     rows = []
     for path in sorted(glob.glob(str(ROOT / "reports" / "train_on_traces" / "*_seed*.json"))):
@@ -574,16 +529,9 @@ def retrained_heldout(out_dir: Path, preview: Path | None) -> None:
 
 
 def sixcity_boxes(out_dir: Path, preview: Path | None) -> None:
-    """Six-city comparison in the layout the literature uses: one box per arm per
-    city, for throughput, retransmissions and RTT.
-
-    Arms are the measured Starlink BBR runs from the dataset, real Linux BBR on
-    the testbed, and the three simulated arms -- all driven by capacity replayed
-    from those same measured runs, so the measured box is the thing the model is
-    trying to reproduce rather than a competitor. Stock is seed-independent
-    (5 traces per city); the policies add 5 seeds on top (25 values). The fourth
-    panel is measured-only: neither the fluid model nor the testbed reports a
-    congestion window the way the dataset's TCP_INFO logs do.
+    """
+    Six-city comparison in the layout the literature uses: one box per arm per city, for
+    throughput, retransmissions and RTT.
     """
     import pandas as pd
     from qbbr.data.catalog import build_catalog, FileRecord
@@ -664,9 +612,6 @@ def sixcity_boxes(out_dir: Path, preview: Path | None) -> None:
                                boxprops=dict(linewidth=0.0))
             for patch in box["boxes"]:
                 patch.set_facecolor(colour)
-                # Same-colour edge, not white: several arms have near-zero spread
-                # (the simulator's retransmission rate barely moves), and a white
-                # edge erases a box that thin.
                 patch.set_edgecolor(colour)
                 patch.set_linewidth(0.5)
                 if hatch:

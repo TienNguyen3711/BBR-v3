@@ -1,15 +1,6 @@
-"""Mechanism diagnosis (Step 2, mechanism half): how does activating the
-reward's ECN-level term (gamma=5.0) actually reshape the trained policy,
-compared to the published gamma=0.0 checkpoints? Rolls out both checkpoint
-generations under the SAME single-head pacing_gain action space and
-records the discrete pacing_gain INDEX chosen at every decision (index
-0..4 -> levels [0.75, 0.9, 1.0, 1.1, 1.25], ascending), plus the resulting
-RTT/retransmit profile -- same style as analyze_ecn_behavior_shift.py, but
-comparing gamma=0.0 vs. gamma=5.0 checkpoints (both trained on the CURRENT,
-post-merge single-head action space -- no state-truncation workaround
-needed, unlike the older exploit-era checkpoints that script covers).
-
-Output -> outputs/gamma5_mechanism_report.json
+"""
+Mechanism diagnosis (Step 2, mechanism half): how does activating the reward's ECN-level term
+(gamma=5.0) actually reshape the trained policy, compared to the published gamma=0.0 checkpoints?
 """
 from __future__ import annotations
 
@@ -44,9 +35,6 @@ def _rollout_one(checkpoint: Path, location: str, calibration, action_config, le
     from qbbr.agents.classical.mlp_a2c import MLPA2CAgent
     from qbbr.env.fluid_env import FluidSimEnv
 
-    # checkpoints_final/pacing_only (gamma0, published) predates s7_reconfig_phase
-    # (state grew 6->7); gamma5 (trained this session) is current-gen and needs
-    # no truncation. Same pattern as eval_rq1_raw_for_boxplot.py.
     n_qubits = 6 if legacy_6dim else 7
     agent = MLPA2CAgent(n_layers=2, n_qubits=n_qubits, action_dims=(5,))
     agent.load(str(checkpoint))

@@ -1,16 +1,5 @@
-"""Compare our native-action QRL arms against the CCAs actually MEASURED on
-Starlink in qbbr/data/raw.
-
-Measured arms (bbr, bbr2, cubic, ...) are per-run statistics from the real
-iperf3 sequential runs. Simulated arms (stock / A2C / QA2C) come from the
-trace-replay condition, i.e. the fluid proxy driven by capacity forcing taken
-from those same real traces -- validated by the stock-vs-real fidelity printed
-in the figure, so the two families sit on a comparable scale.
-
-They are NOT the same kind of evidence and the figure says so: measured arms
-are drawn solid, simulated arms hatched. The only *controlled* contrast here
-is agent-vs-stock inside the simulator; a simulated arm sitting near a
-measured one is context, not a head-to-head win.
+"""
+Compare our native-action QRL arms against the CCAs actually MEASURED on Starlink in qbbr/data/raw.
 """
 from __future__ import annotations
 

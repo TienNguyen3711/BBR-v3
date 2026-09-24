@@ -1,36 +1,4 @@
-"""Shared-bottleneck coexistence under the frozen native BBR-v3 contract.
-
-`MultiFlowFluidEnv` predates that contract: it exposes an eighth state feature
-(s8_fairness_ratio), rewards with the legacy alpha-fair utility, and carries
-none of the v6/v7 transport work -- no consistent transport, no ProbeBW cycle,
-no calibrated probe queue delay, no capacity replay. Results from it are not
-comparable with any Tier-1 or Tier-2 number and `qbbr.study.protocol` rejects
-its reward contract outright.
-
-This environment is a subclass of `FluidSimEnv` rather than a rewrite, so the
-agent's own flow keeps EVERY property the single-flow results were produced
-with. Competition enters through exactly one hook: the capacity the agent's
-flow is allowed to use in a substep, which is now its proportional share of a
-bottleneck it contends for rather than the whole link.
-
-Two contract consequences, both deliberate:
-
-* **The agent is fairness-blind.** s8_fairness_ratio is dropped, because the
-  canonical state is frozen at seven features and widening it would break the
-  126-parameter match that the QA2C/A2C comparison rests on. Coexistence is
-  therefore MEASURED (rho_alpha, min-flow throughput) rather than observed by
-  the policy or paid into its reward.
-* **The reward is unchanged.** It stays the declared throughput-only or
-  difference reward. The legacy alpha-fair multi-flow reward is not used, so
-  a policy trained here optimises the same objective as every other arm and
-  the comparison stays meaningful.
-
-Competing-CCA dynamics are the documented approximations in
-`qbbr.env.competing_ccas` -- growth and backoff constants chosen to be
-characteristic, not fitted to any measurement. Contention outcomes from this
-environment are therefore a modelling proxy; the measured counterpart is
-`qbbr.scripts.analyze_measured_coexistence`, which reads real competitive runs.
-"""
+"""Shared-bottleneck coexistence under the frozen native BBR-v3 contract."""
 from __future__ import annotations
 
 from typing import Any
@@ -77,29 +45,17 @@ class NativeMultiFlowEnv(FluidSimEnv):
     # ------------------------------------------------------------ coupling
 
     def _total_capacity_at(self, t_s: float) -> float:
-        """Absolute bottleneck capacity, resolving the base class's None.
-
-        The parent returns None to mean "use the synthetic handover-dip model
-        inside step_fluid_state". A shared bottleneck has to be divided, so the
-        number is needed explicitly here.
-        """
+        """Absolute bottleneck capacity, resolving the base class's None."""
         replayed = super()._capacity_at(t_s)
         if replayed is not None:
             return float(replayed)
         return self.params.sustained_x_btl_bps * synthetic_capacity_fraction(t_s)
 
     def _capacity_at(self, t_s: float, **substep: Any) -> float:
-        """The agent's share of a contended bottleneck for this substep.
-
-        Also advances the competing flows, because their window update needs
-        the congestion signal and queue delay produced by this same allocation.
-        """
+        """The agent's share of a contended bottleneck for this substep."""
         dt_s = substep.get("dt_s")
         flow_state = substep.get("flow_state")
         if dt_s is None or flow_state is None:
-            # Reached only if a caller invokes the hook outside step()'s
-            # substep loop; degrade to the uncontended capacity rather than
-            # silently advancing the competitors with an invented timestep.
             return self._total_capacity_at(t_s)
 
         p_tot = float(substep.get("p_tot") or 0.0)

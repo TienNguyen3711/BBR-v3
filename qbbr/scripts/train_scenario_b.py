@@ -1,8 +1,9 @@
-"""Train an agent inside Scenario B (coexistence): the agent's own flow
-competes with a fixed set of other CCAs over one shared Starlink link,
-using MultiFlowFluidEnv's per-flow-aware observation (s8_fairness_ratio)
-and multi-flow alpha-fair reward (qbbr.reward.alpha_fair.compute_multi_flow_reward),
-instead of train.py's single-flow FluidSimEnv pipeline.
+"""
+Train an agent inside Scenario B (coexistence): the agent's own flow competes with a fixed set of
+other CCAs over one shared Starlink link, using MultiFlowFluidEnv's per-flow-aware observation
+(s8_fairness_ratio) and multi-flow alpha-fair reward
+(qbbr.reward.alpha_fair.compute_multi_flow_reward), instead of train.py's single-flow FluidSimEnv
+pipeline.
 """
 from __future__ import annotations
 

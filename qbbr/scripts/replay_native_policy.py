@@ -1,26 +1,4 @@
-"""Replay a trained native QA2C / A2C checkpoint and log the decision path.
-
-For every simulator decision this records the canonical state, the masked
-actor logits, the raw masked probabilities, the actions the shared
-:class:`NativeActionSelector` still admits, the selector-effective
-probabilities, the chosen action, and the resulting throughput / retransmit /
-RTT / queue outcome.  The aggregate answers two diagnostic questions:
-
-  * When does the policy pick a high native gain (1.10 / 1.25), stratified by
-    ``s2`` (excess RTT), ``s3`` (inflight/BDP), ``s4`` (queue) and ``s7``
-    (reconfiguration-phase proximity)?
-  * How often does the simulator actually hand the agent a non-trivial
-    decision, i.e. is the agent deciding far more often than a native BBR-v3
-    ProbeBW override would apply?
-
-This is a simulator diagnostic.  It produces no field-performance claim and
-does not train.
-
-    python -m qbbr.scripts.replay_native_policy \
-        --checkpoint outputs/tier1_native_qa2c_checkpoints/quantum/London/downlink/seed0.pt \
-        --core quantum --location London --direction downlink --seed 1000 \
-        --recovery-proxy --out outputs/replay_qa2c_london_dl_seed0.json
-"""
+"""Replay a trained native QA2C / A2C checkpoint and log the decision path."""
 from __future__ import annotations
 
 import argparse

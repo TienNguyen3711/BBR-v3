@@ -9,13 +9,6 @@ DEFAULT_ALPHA = 1.0
 DEFAULT_DELTA = 1.0
 DEFAULT_BETA = 0.5
 DEFAULT_GAMMA = 0.0  # ECN-style level congestion penalty weight. 0.0 preserves the exact
-# pre-existing reward for any caller not supplying an ecn_mark_fraction column or explicitly
-# opting in with gamma>0 -- unlike beta's delta-only l_t, this is a LEVEL term (Sec.~sec:rq1b's
-# extension-attempt discussion): it can safely penalize a persistently elevated but stable
-# congestion signal, since ecn_mark_fraction (qbbr.env.fluid_sim.ecn_marked) is purely a
-# function of physical queue occupancy against a fixed threshold, not retransmit counts, so it
-# does not conflate Starlink's non-congestive losses with congestion the way an absolute
-# retransmit-level term would.
 EPSILON = 1e-6
 EPSILON_RTX = 1.0
 
@@ -61,13 +54,11 @@ def compute_multi_flow_reward(
     eps: float = EPSILON,
     eps_rtx: float = EPSILON_RTX,
 ) -> float:
-    """Scenario-B analogue of compute_reward: replaces the single-flow
-    utility term with the alpha-fair utility SUMMED across all flows
-    (agent + competing CCAs) at the current decision, so training directly
-    optimizes the same objective qbbr.eval.metrics.alpha_fair_efficiency_ratio
-    reports at evaluation time. Delay/loss-change/ECN terms stay agent-only
-    -- they are operational costs the agent alone controls, not something to
-    sum across flows it doesn't control.
+    """
+    Scenario-B analogue of compute_reward: replaces the single-flow utility term with the alpha-
+    fair utility SUMMED across all flows (agent + competing CCAs) at the current decision, so
+    training directly optimizes the same objective qbbr.eval.metrics.alpha_fair_efficiency_ratio
+    reports at evaluation time.
     """
     rtt_t = telemetry["rtt_ms"].astype(float)
     rtt_min = telemetry["rtt_base_ms"].astype(float)

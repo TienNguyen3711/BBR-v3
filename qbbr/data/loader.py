@@ -1,10 +1,4 @@
-"""Turn a parsed iperf3 JSON object into a tidy per-interval Trace.
-
-Each file is single-stream (test_start.num_streams == 1); intervals[i]
-["streams"][0] is always the transmitting endpoint's telemetry (the server
-for downlink/REV, the client for uplink/FWD) -- confirmed empirically via
-"sender": true on every interval across the corpus.
-"""
+"""Turn a parsed iperf3 JSON object into a tidy per-interval Trace."""
 from __future__ import annotations
 
 from dataclasses import dataclass

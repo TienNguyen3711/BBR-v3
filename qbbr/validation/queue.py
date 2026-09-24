@@ -32,12 +32,7 @@ def queue_model_diagnostics(
     arrival_times_s: Sequence[float] | np.ndarray | None = None,
     alpha: float = 0.05,
 ) -> QueueModelDiagnostics:
-    """Estimate c²_s and test exponential service time against packet traces.
-
-    A non-significant KS result is weak evidence only; it does not prove an
-    M/G/1 approximation is correct.  Empty/non-positive samples are explicitly
-    reported as unavailable rather than coerced into c²_s=1.
-    """
+    """Estimate c²_s and test exponential service time against packet traces."""
 
     if service_times_s is None or len(service_times_s) == 0:
         return QueueModelDiagnostics(0, None, None, None, None, None, None)

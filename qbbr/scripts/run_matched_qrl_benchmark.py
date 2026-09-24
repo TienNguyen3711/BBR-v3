@@ -1,10 +1,4 @@
-"""Preflight or execute a recurrent-QDQN classical-vs-quantum ablation.
-
-It does not replace the primary QA2C/A2C successor. By default this command is
-a no-write preflight. Training requires both ``--execute`` and
-``--allow-simulator-proxy`` so a simulator screen cannot be mistaken for a
-field BBR-v3 experiment.
-"""
+"""Preflight or execute a recurrent-QDQN classical-vs-quantum ablation."""
 
 from __future__ import annotations
 
@@ -219,9 +213,6 @@ def main() -> None:
             }
         )
         for seed in seeds:
-            # Build both arms from a declared seed before either train loop
-            # consumes randomness. Their architectures differ, but their
-            # initialisation/replay RNG provenance is recorded identically.
             torch.manual_seed(seed)
             np.random.seed(seed)
             quantum_agent, classical_agent = build_matched_agents(spec, seed)

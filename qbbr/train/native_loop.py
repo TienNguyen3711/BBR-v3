@@ -101,15 +101,8 @@ def train_native_qrl(
     if seed is not None:
         torch.manual_seed(seed)
         np.random.seed(seed)
-    # Optional entropy schedule: start high, decay linearly to the agent's
-    # own entropy_coef floor over `entropy_decay_episodes` (global episode
-    # index). Keeps exploration alive through the fragile early phase where
-    # some seeds otherwise collapse to constant stock. Off when unset.
     entropy_start = config.get("entropy_start")
     entropy_decay_episodes = float(config.get("entropy_decay_episodes") or (total_episodes or 1))
-    # n_step_update: transitions per gradient step. 0/None keeps the legacy
-    # one-update-per-episode behaviour (which gave ~30 gradient steps for a
-    # whole 30-episode run -- far too few for anything to be learned).
     n_step_update = int(config.get("n_step_update") or 0)
     if reward_scale_mbps <= 0.0:
         raise ValueError("reward_scale_mbps must be positive.")
@@ -142,18 +135,9 @@ def train_native_qrl(
             scaled = reward / reward_scale_mbps
             rollout.add(state, action, action_mask, scaled)
             chunk.add(state, action, action_mask, scaled)
-            # The live native environment reports an explicit safety fallback.
-            # FluidSimEnv represents the same BBR restriction through its
-            # action mask, so this field is intentionally optional there.
             fallback_count += int(info.get("used_stock_fallback", False))
             state = next_state
             episode_reward += reward
-            # n-step A2C: update every n_step transitions instead of once per
-            # episode. One update per episode meant the ENTIRE run was ~30
-            # gradient steps, so no reward change, entropy schedule or
-            # hyperparameter could move the policy at all. A truncated chunk is
-            # bootstrapped from V(s_next); the final chunk of an episode is
-            # terminal and bootstraps from 0.
             if n_step_update and (len(chunk) >= n_step_update or done):
                 bootstrap = 0.0 if done else float(agent.value(next_state))
                 update_metrics.append(

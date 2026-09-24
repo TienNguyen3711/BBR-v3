@@ -1,8 +1,4 @@
-"""Primary successor runner: throughput-only NativeQA2C vs matched Classical A2C.
-
-QDQN is deliberately absent here: it is maintained as an ablation, not the
-primary successor controller.
-"""
+"""Primary successor runner: throughput-only NativeQA2C vs matched Classical A2C."""
 
 from __future__ import annotations
 
@@ -32,9 +28,6 @@ STOCK_ACTION = 2
 
 
 def _env(calibration, location: str, direction: str, config: dict) -> FluidSimEnv:
-    # reward_mode defaults to the locked throughput-only objective; a protocol
-    # declaring the multi-objective variant sets it to legacy_alpha_fair and
-    # supplies reward_kwargs (alpha/delta/beta/gamma).
     simulator = config["simulator"]
     return FluidSimEnv(
         location, direction, calibration, risk_mode=simulator["risk_mode"],
@@ -99,10 +92,6 @@ def _evaluate(agent, calibration, location: str, direction: str, config: dict, d
     delivered = retransmitted = 0.0
     counts: dict[str, int] = {}
     near_high = near_total = far_high = far_total = 0  # high gain (3/4) by s7 handover proximity
-    # Low gain (0/1) split by whether the pipe was actually under pressure. A
-    # sub-1.0 gain under pressure is a drain phase; in HEADROOM it can only
-    # under-fill the pipe, which is the loss the low-gain criterion exists to
-    # prevent. Thresholds mirror native_loop's strata exactly.
     headroom_low = headroom_total = pressure_low = pressure_total = 0
     for seed in config["evaluation"]["holdout_seeds"]:
         env, done = _env(calibration, location, direction, config), False
@@ -223,10 +212,6 @@ def main() -> None:
     if args.out is None:
         args.out = PROJECT_ROOT / "outputs" / f"{protocol_stem}_report.json"
     control, training, agent_config = config["control"], config["training"], config["agent"]
-    # The five-action set stays frozen. The reward contract may be either the
-    # original locked throughput-only objective or the ratifiable
-    # multi-objective variant declared in native_rl_bbr_contract.yaml's
-    # reward_variants -- results under the two are NOT comparable.
     _REWARD_CONTRACTS = {
         "supervisor-locked-throughput-only-v1",
         "multi-objective-alpha-fair-v1",
@@ -365,10 +350,6 @@ def main() -> None:
     plan["records"] = records
     plan["stock_evaluations"] = stock_evaluations
     if args.skip_assessment:
-        # Sharded execution: this invocation holds only part of a cell's seeds,
-        # so its positive-seed fraction and bootstrap CI would be computed over
-        # an incomplete group and would be wrong. merge_shard_reports.py
-        # concatenates the shards' records and assesses once over the whole set.
         plan["selection_assessment"] = None
         plan["assessment_skipped_reason"] = "sharded run; assess via merge_shard_reports.py"
     else:

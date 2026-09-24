@@ -1,35 +1,4 @@
-"""SNR gate: does the learning signal distinguish actions at all?
-
-Run this BEFORE any training run. Every result from v5 to v9 was produced by a
-policy that never moved, and the reason was never visible in the training logs:
-reward scale, entropy, discount, update count and critic learning rate were all
-tuned while the underlying advantage signal carried almost no information about
-which action had been taken. This script measures that directly.
-
-Three numbers, in increasing order of importance:
-
-  R2(return | state)      how much of the return the state can explain at all.
-                          An upper bound on any critic, of any architecture.
-                          Under absolute-throughput reward this measured 0.11:
-                          89% of the return was exogenous capacity.
-
-  corr(advantage, return) 1.0 means the critic is inert -- the advantage is
-                          just the return with a constant subtracted, so the
-                          baseline is removing no variance whatsoever.
-
-  action separation       THE gate. Group the advantage by the action that
-                          produced it and ask whether the group means differ by
-                          more than their standard error. This is what the
-                          policy gradient actually consumes: if action A and
-                          action B have statistically indistinguishable mean
-                          advantage, no amount of training can prefer one.
-
-The gate is green when max |mean adv(a_i) - mean adv(a_j)| exceeds
-GATE_SEPARATION_SIGMA times the standard error of that difference, i.e. when at
-least one pair of actions is genuinely separated. Actions are sampled uniformly
-at random here on purpose: this measures the environment and the reward, not a
-policy, so it must not depend on the policy under test.
-"""
+"""SNR gate: does the learning signal distinguish actions at all?"""
 
 from __future__ import annotations
 
@@ -87,15 +56,7 @@ STATE_NAMES = ["s1_bhat", "s2_rtt_ratio", "s3_inflight_bdp", "s4_queue",
 
 
 def conditional_argmax(states, actions, advantage, n_strata: int = 3):
-    """Does the best action change with the state, or is it a constant?
-
-    Pooled separation only shows that SOME action is better on average. If the
-    same action wins in every stratum of every feature, a state-conditioned
-    policy has nothing to learn that a fixed gain does not already deliver --
-    and a QA2C-vs-A2C comparison on such a reward compares two ways of
-    discovering the same constant. This splits each feature into quantile
-    strata and reports the winning action in each.
-    """
+    """Does the best action change with the state, or is it a constant?"""
     rows = []
     for index, name in enumerate(STATE_NAMES[: states.shape[1]]):
         column = states[:, index]
@@ -154,9 +115,6 @@ def main() -> int:
         }
     else:
         reward_kwargs = declared or None
-    # Everything but the reward is taken from the training protocol, so this
-    # measures the environment training would actually face -- same v7 ProbeBW
-    # dynamics, same phase gate, same calibration.
     env = FluidSimEnv(
         args.location, args.direction, load_calibration(args.calibration),
         risk_mode=simulator["risk_mode"], episode_s=episode_s,
@@ -169,9 +127,6 @@ def main() -> int:
     states, actions, returns = collect(env, seeds, gamma, rng)
 
     r2_state = linear_r2(states, returns)
-    # The critic ceiling above IS the best baseline a linear head could learn,
-    # so the most favourable advantage available to this state representation is
-    # the residual after removing that fit.
     design = np.hstack([states, np.ones((states.shape[0], 1))])
     coefficients, *_ = np.linalg.lstsq(design, returns, rcond=None)
     advantage = returns - design @ coefficients

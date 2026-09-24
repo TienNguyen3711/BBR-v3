@@ -1,22 +1,4 @@
-"""Task 2 -- train the native QRL policy ON real replayed capacity forcing.
-
-`trace_replay.py` showed that a policy trained against the SYNTHETIC periodic
-handover model loses almost all of its advantage on real capacity traces
-(+3..6% -> +0.1..1.2%). This script tests the obvious follow-up: if the policy
-is *trained* on real, irregular capacity forcing, does it find an advantage
-that survives on held-out real traces?
-
-Split: --train-runs (default 1..7) drive training episodes, --eval-runs
-(default 8,9,10) are held out for evaluation. The replay CCA matches the
-calibration provenance of per_location_constants_v7c.json (downlink <- bbr,
-uplink <- bbr2).
-
-Caveat kept in the report: the calibration constants themselves were fit on
-all runs, so the ENVIRONMENT is mildly in-sample. That bias applies identically
-to stock and to the agent, so it largely cancels in the agent-vs-stock delta.
-
-Simulator-proxy only. No Starlink field claim.
-"""
+"""Task 2 -- train the native QRL policy ON real replayed capacity forcing."""
 from __future__ import annotations
 
 import argparse
@@ -104,10 +86,6 @@ def main() -> None:
             print(f"\n=== {location} {direction} (cca={cca}) train={len(train_pool)} traces "
                   f"eval={len(eval_pool)} traces ===", flush=True)
 
-            # TRAINING env uses the protocol's own reward. An earlier version
-            # hard-coded reward_mode="throughput_only" -- the exact objective the
-            # SNR gate showed cannot separate actions (1.88 sigma) -- so it
-            # could not have tested whether the v14 recipe transfers.
             def make_env(pool):
                 return FluidSimEnv(
                     location, direction, calib, episode_s=300.0,
@@ -146,9 +124,6 @@ def main() -> None:
                     critic_lr=a.get("critic_lr"))
                 for core in args.cores:
                     model = quantum if core == "quantum" else classical
-                    # Mirror the runner's loop_config. Passing {} dropped
-                    # n_step_update and silently reverted to ONE gradient step per
-                    # episode -- the v5-v9 failure (30 steps for a whole run).
                     loop_config = {k: a[k] for k in ("entropy_start", "entropy_decay_episodes", "n_step_update")
                                    if k in a}
                     train_native_qrl(

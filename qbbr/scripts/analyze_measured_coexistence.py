@@ -1,26 +1,4 @@
-"""Measured mixed-flow coexistence from the competitive iperf3 logs.
-
-This is RQ4 evidence that needs no simulator and no field campaign: the
-dataset already contains runs in which nine congestion controls contend for
-one Starlink link. It answers "how do real CCAs, including BBR, divide a
-contended LEO link" -- NOT "how would the learned policy behave in contention",
-which requires a native-contract multi-flow environment.
-
-Two properties of the data drive the method and were verified, not assumed:
-
-* **Flows are not perfectly aligned.** Start timestamps within one competitive
-  run span 1-2 s on every uplink and on Sydney/Tokyo downlink, but up to 136 s
-  on Mumbai downlink, against a 300 s test. A per-file mean would average
-  contended and uncontended periods together, so every throughput here is
-  measured inside the window where ALL flows of that run are simultaneously
-  active, and runs whose common window is too short are excluded by name.
-* **Sequential runs are genuinely isolated.** Their per-CCA starts are ~3141 s
-  apart, so they are a valid uncontended baseline for the same path.
-
-alpha is swept over {0, 1, inf} only. `alpha_fair_efficiency_ratio` is
-unbounded for any alpha>1 (see its docstring), so alpha=2 would report a
-ratio in the tens when one flow is near starvation.
-"""
+"""Measured mixed-flow coexistence from the competitive iperf3 logs."""
 from __future__ import annotations
 
 import argparse

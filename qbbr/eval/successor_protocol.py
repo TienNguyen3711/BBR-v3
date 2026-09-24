@@ -42,18 +42,7 @@ def bootstrap_median_ci(
 
 
 def resolve_limit(limit, location: str, direction: str, calibration: dict | None):
-    """Resolve a criterion that is DERIVED per path rather than fixed.
-
-    A criterion may be written as {derived_from: <calibration key>} instead of a
-    number, in which case its value is read from that path's calibrated
-    constants. This exists because an absolute millisecond budget is not the
-    same requirement on every path: 5 ms means one thing where RTT_min is 30 ms
-    (Sydney) and something far stricter where it is 258 ms (London), and it sits
-    an order of magnitude below the run-to-run variability of stock BBR's own
-    RTT p90 on these paths (11-45 ms measured). A derived budget states the
-    REQUIREMENT once -- "not distinguishable from stock's own variation" -- and
-    lets the data set its value per path.
-    """
+    """Resolve a criterion that is DERIVED per path rather than fixed."""
     if not isinstance(limit, dict):
         return limit
     key = limit["derived_from"]
@@ -66,40 +55,7 @@ def resolve_limit(limit, location: str, direction: str, calibration: dict | None
 
 
 def _low_gain_pass(group, low_gain_share: float, criteria: dict) -> bool:
-    """Does the policy waste sub-1.0 gains where they can only lose throughput?
-
-    The original criterion capped the OVERALL share of gains 0.75/0.90. Measured
-    on v12 across 24 arms that proxy is inverted with respect to what it was
-    meant to catch: corr(low-gain share, throughput) = +0.81 and
-    corr(low-gain share, positive-seed fraction) = +0.73. Arms above the 0.10
-    cap averaged +4.45% throughput against +2.19% for arms below it, and 11 of
-    the 12 arms reaching 5/5 positive seeds were blocked by this gate alone.
-    The reason is that the learned policy is bimodal -- probe hard, then drain --
-    and the low gains ARE the drain phase, which is what keeps RTT near stock.
-
-    The criterion's own stated intent (v5.1) was narrower: "in headroom a
-    sub-1.0 gain only under-fills the pipe (pure throughput loss)". So the
-    re-specification scopes the measurement to exactly that case -- low gain
-    while the pipe is NOT under pressure -- and keeps the SAME 0.10 tolerance.
-    Scope is corrected; tolerance is not loosened.
-
-    IMPORTANT -- THIS GATE IS STRUCTURALLY SATISFIED, NOT DISCRIMINATING.
-    NativeActionSelector already drops the low-gain actions whenever the pipe is
-    not congested ("if not congested and action in self.low_gain_actions:
-    continue"), using the SAME thresholds (max_inflight_state 0.45,
-    max_queue_state 0.20). So low_gain_share_in_headroom is zero by
-    construction and this criterion cannot fail unless the mask is broken.
-    Treat it as an INVARIANT CHECK on the mask, not as evidence that a policy
-    passed a meaningful safety bar. The consequence of the v13 change is that
-    the low-gain safety property now rests on the action mask, where it is
-    enforced by construction, rather than on a post-hoc frequency cap that was
-    measured to be anti-correlated with the failure it targeted. The real
-    discriminating safety load is carried by the RTT p90, retransmit and
-    throughput criteria.
-
-    `max_low_gain_action_share` (the overall cap) still applies if a protocol
-    declares it and not the headroom form, so older protocols are unaffected.
-    """
+    """Does the policy waste sub-1.0 gains where they can only lose throughput?"""
     headroom_cap = criteria.get("max_low_gain_in_headroom_share")
     if headroom_cap is None:
         return low_gain_share <= criteria["max_low_gain_action_share"]

@@ -1,34 +1,4 @@
-"""CDF and box-plot views of fidelity and policy effect, per city.
-
-Two figures, because they answer two different questions and mixing them on one
-set of axes is what made the earlier comparisons unreadable.
-
-  fidelity_cdf     Is the simulator faithful? Per-second RTT CDFs of the REAL
-                   TRACE (measured on Starlink), the REAL KERNEL (Linux BBR over
-                   the same replayed capacity) and the SIMULATOR (stock BBR on
-                   that capacity). Kernel vs simulator is the transport-model
-                   error; trace vs kernel is what capacity emulation cannot
-                   reproduce about a satellite link. A mean hides whether the
-                   model matches the body of the distribution but misses its
-                   tail; a CDF shows it.
-
-  policy_boxes     What does the policy do? Per-second throughput and RTT for
-                   stock, QA2C and A2C -- all in the simulator, all on the same
-                   replayed forcing, so their differences are attributable to the
-                   policy. The real kernel is drawn alongside as the reference
-                   the simulated stock should match; the gap between those two
-                   is the error bar every simulated difference has to clear.
-
-All series are at 1-second resolution (the simulator is resampled to match
-iperf3's reporting interval before collection; see collect_per_second_series.py).
-Cities are ordered by path RTT, which is the variable the transport-model error
-tracks (corr +0.96).
-
-Colours: stock/QA2C/A2C/kernel validated as a categorical palette on a light
-surface with the dataviz validator. The real trace is drawn as a dashed neutral
-line because it is a different evidence class (a measurement of a satellite link,
-not an emulation), not a fifth peer series.
-"""
+"""CDF and box-plot views of fidelity and policy effect, per city."""
 
 from __future__ import annotations
 
@@ -46,12 +16,6 @@ ORDER = ["Sydney", "Tokyo", "Mumbai", "Ohio", "London", "SaoPaulo"]
 LABEL_CITY = {"SaoPaulo": "São Paulo"}
 INK, MUTED, GRID = "#12161C", "#6B7280", "#E4E8EE"
 
-# Reference categorical slots 1, 2, 3 and 7, validated --pairs all on the light
-# surface (CDF lines overlap, so every pair must separate, not just neighbours):
-# worst CVD dE 9.2, worst normal-vision dE 16.3. An earlier hand-picked green
-# failed both the chroma floor and the normal-vision floor against the blue
-# (dE 14.5) -- measured, then replaced. Aqua sits below 3:1 contrast, so the
-# relief rule applies: a legend is always drawn and a CSV table view is written.
 COLOR = {
     "sim_quantum": "#2a78d6",    # slot 1
     "sim_classical": "#eb6834",  # slot 2
@@ -118,10 +82,6 @@ def fidelity_cdf(series, out: Path) -> None:
                        fontsize=11.5, color=INK, loc="left")
         axis.set_xlabel("RTT (ms)", fontsize=9.5, color=MUTED)
 
-        # Median gap annotations: the two errors, stated rather than eyeballed.
-        # Both the median AND the p90 are shown. The median alone undersells the
-        # emulation gap: emulated RTT is nearly a vertical line while the real
-        # trace has a long tail, so most of the real difference lives above p50.
         if "real_kernel" in stats and "sim_stock" in stats:
             def gap(a, b, q):
                 return np.percentile(stats[a], q) - np.percentile(stats[b], q)
@@ -160,10 +120,6 @@ def policy_boxes(series, out: Path, calibration: dict | None = None) -> None:
                  fontsize=14, color=INK, y=0.985)
 
     width = 0.19
-    # RTT is plotted ABOVE each path's propagation floor. Raw RTT spans 30 ms
-    # (Sydney) to 390 ms (Sao Paulo), which flattens every box to a line; the
-    # floor is fixed physics, so subtracting it leaves the part a congestion
-    # controller actually influences -- queueing delay -- on one common scale.
     floors = {c: calibration[c]["downlink"]["RTT_min_ms"] for c in cities} if calibration else {c: 0.0 for c in cities}
     for axis, metric, unit in ((axes[0], "throughput_mbps", "throughput (Mbps)"),
                                (axes[1], "rtt_ms", "RTT above propagation floor (ms)")):
@@ -231,8 +187,10 @@ def main() -> int:
 
 
 def write_table(series, out: Path) -> None:
-    """Table view: the relief the palette validator requires, and the numbers a
-    caption can quote without anyone reading them off a plot."""
+    """
+    Table view: the relief the palette validator requires, and the numbers a caption can quote
+    without anyone reading them off a plot.
+    """
     import csv
     sources = ["real_trace", "real_kernel", "sim_stock", "sim_quantum", "sim_classical"]
     with out.open("w", newline="") as handle:

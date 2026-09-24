@@ -1,41 +1,4 @@
-"""Calibrate probe_max_queue_delay_ms from the real Starlink iperf3 logs.
-
-WHY THIS EXISTS. `probe_max_queue_delay_ms` bounds the queueing delay a ProbeBW
-pulse may add in the fluid simulator. It was introduced in v7b and set to 15 ms
-uniformly across every path -- a modelling assumption, never measured. It turns
-out to dominate every RTT claim the simulator makes: on London downlink, sweeping
-it from 15 ms to 6 ms leaves the throughput of gain 1.25 unchanged (+4.01% ->
-+4.04%) while its RTT p90 cost collapses from +9.44 ms to +1.07 ms. That is the
-difference between "no action can gain throughput inside the 5 ms RTT budget"
-and "the highest gain passes comfortably" -- so the value cannot be chosen by
-what makes the agent look good. It has to come from the data.
-
-WHAT IS MEASURED. The parameter is a bound on SELF-INFLICTED queueing delay: the
-standing delay a flow adds to its own path by probing. In an iperf3 log the RTT
-is the sender's smoothed RTT, which mixes that self-inflicted component with the
-path's own drift -- and on Starlink the exogenous component is enormous (London
-RTT_min 258 ms vs RTT_max 347 ms). Subtracting a per-RUN minimum would therefore
-attribute ~90 ms of orbital and handover variation to the congestion controller.
-
-So the estimator uses a ROLLING minimum: within a window of a few seconds the
-propagation floor is effectively constant, so
-
-    elevation(t) = rtt(t) - min(rtt over a window centred on t)
-
-isolates delay the flow imposed on itself over the timescale a probe acts on,
-while slow exogenous drift moves the floor with it and cancels. A high
-percentile of that elevation over BBR runs is the observed ceiling on
-probe-induced queueing -- which is what the parameter bounds.
-
-CONTROL. The same statistic is computed for CUBIC, which is loss-based and fills
-the buffer rather than probing in BBR's bounded way. If BBR's elevation were
-indistinguishable from CUBIC's, the estimator would be measuring generic
-queueing rather than anything probe-specific, and the calibration would not be
-credible. The comparison is reported so that can be judged rather than assumed.
-
-Sequential (isolated, single-CCA) runs only: competitive runs add cross-traffic
-queueing that is not the flow's own probe.
-"""
+"""Calibrate probe_max_queue_delay_ms from the real Starlink iperf3 logs."""
 
 from __future__ import annotations
 
@@ -50,25 +13,6 @@ from qbbr.data.catalog import build_catalog
 from qbbr.data.loader import load_trace
 
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
-# CORRECTION (2026-09-12): this used to pool ("bbr", "bbr1", "bbr2") into one
-# "bbr*" bucket. That was wrong -- the three variants behave completely
-# differently on these paths, and the pooled number was dominated by bbr1's
-# uplink STALL pathology (uplink self-inflicted p90: bbr1 44.6-85.5 ms, bbr
-# 14.3-45.0 ms, bbr2 8.6-20.4 ms). Every constant derived from the pooled
-# bucket was therefore contaminated on the uplink.
-#
-# The reference is now chosen PER DIRECTION, on a stated criterion: use the
-# variant that does not exhibit a pathology BBR-v3 is known to have fixed.
-#   uplink   -> bbr2. Real BBRv1/bbr1 deliver ZERO throughput in 47-57% of
-#               1-second samples on London/Mumbai/Ohio/SaoPaulo/Tokyo. So do
-#               CUBIC (16-62%), Vegas and Hybla -- it is a LINK property, not a
-#               BBR bug -- but bbr2 escapes it (2-7%), and BBR-v3 inherits
-#               BBRv2's inflight_hi/loss machinery.
-#   downlink -> bbr. BBRv1 does not stall there (0.0-1.5% zero samples) and
-#               reaches the higher peak; bbr2's downlink p99 is up to 2.8x
-#               lower (London 94 vs 264 Mbps), which would understate the link.
-# The downlink half of this choice is a JUDGEMENT CALL, not forced by a
-# pathology, and is flagged as such.
 REFERENCE_CCA = {"uplink": ("bbr2",), "downlink": ("bbr",)}
 BBR_CCAS = ("bbr", "bbr1", "bbr2")  # legacy pooled bucket, reported for comparison only
 

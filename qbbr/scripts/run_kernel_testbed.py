@@ -1,30 +1,4 @@
-"""Kernel-in-the-loop: real Linux TCP + real BBR over a replayed Starlink capacity trace.
-
-WHY THIS TIER EXISTS.  qbbr has three tiers of evidence and this is the third:
-
-  simulator      fluid transport model, synthetic forcing
-  trace replay   fluid transport model, REAL capacity forcing from data/raw
-  THIS           REAL Linux TCP and REAL BBR, REAL capacity forcing
-  field trial    real TCP over the actual satellite (needs hardware)
-
-`trace_replay.py` says outright that "only a kernel-in-the-loop testbed closes
-that gap" between modelled and real transport. This is that testbed. It replaces
-the part the fluid model approximates -- the congestion controller and the queue
--- with the real thing, while driving it with the same measured capacity
-schedule the replay uses, so the two are directly comparable.
-
-WHAT IT MEASURES.  Stock BBR's throughput and RTT under a capacity schedule
-lifted from a real measured run. Put beside the simulator's stock on the SAME
-schedule, the difference is the simulator's transport-model error, measured
-rather than assumed. That is the number a reviewer asks for first, and it does
-not depend on owning a dish.
-
-WHAT IT IS NOT.  Emulated capacity, not a satellite. tc reproduces the
-bottleneck rate and its handover dips from the recorded schedule, plus a fixed
-propagation delay. It does NOT reproduce weather-driven loss, LEO-specific
-jitter, ground-station queueing, or Starlink's own scheduler. It replaces the
-transport model with real code; it does not replace the field trial.
-"""
+"""Kernel-in-the-loop: real Linux TCP + real BBR over a replayed Starlink capacity trace."""
 
 from __future__ import annotations
 
@@ -45,13 +19,6 @@ from qbbr.scripts.trace_replay import trace_forcing
 
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 NETWORK = "qbbr-testbed-net"
-# Socket buffer ceilings. Ubuntu's defaults cap tcp_wmem at 4 MB and tcp_rmem at
-# 6 MB, but BBR needs cwnd ~2x the bandwidth-delay product: ~11.5 MB on London
-# (178 Mbps x 258 ms). With the defaults a long-RTT run is limited by the socket
-# BUFFER, not by BBR -- London measured 78 Mbps against a real 141. The real
-# dataset's senders reached snd_cwnd well above the default ceiling, so the
-# testbed must allow it too or it measures its own configuration. net.ipv4.*
-# sysctls are per network namespace, so these apply per container.
 BUFFERS = [
     "--sysctl", "net.ipv4.tcp_rmem=4096 131072 67108864",
     "--sysctl", "net.ipv4.tcp_wmem=4096 16384 67108864",
@@ -87,16 +54,7 @@ def write_schedule(forcing: dict, path: Path) -> None:
 
 
 def verify_schedule_visible(schedule: Path) -> None:
-    """Confirm the container can actually READ the schedule before running.
-
-    colima mounts only the user's home directory into its VM, so a schedule
-    written to /tmp or to a tempfile under /var/folders does not exist inside
-    the VM -- Docker then creates an empty DIRECTORY at the mount point, the
-    shaping loop reads nothing, exits immediately, and tc keeps its initial
-    placeholder rate. The run still completes and reports a throughput that
-    looks plausible but measures the placeholder, not the replayed capacity.
-    That failure is silent, so it is checked rather than trusted.
-    """
+    """Confirm the container can actually READ the schedule before running."""
     probe = _docker("run", "--rm", "-v", f"{schedule}:/schedule.txt:ro", IMAGE,
                     "sh", "-c", "wc -l < /schedule.txt 2>/dev/null", check=False)
     digits = [int(tok) for tok in (probe.stdout or "").split() if tok.isdigit()]
@@ -108,21 +66,7 @@ def verify_schedule_visible(schedule: Path) -> None:
 
 
 def bottleneck_limit_packets(median_capacity_bps: float, rtt_ms: float) -> int:
-    """Size the bottleneck queue to ONE bandwidth-delay product.
-
-    Chosen to match the SIMULATOR's link, not the real trace. FluidParams caps
-    the backlog at cwnd_gain x BDP (cwnd_gain 2.0) with the pipe holding ~1 BDP,
-    so its queue is ~1 BDP deep. The testbed exists to measure transport-model
-    error on an IDENTICAL link, so its buffer must be the same depth.
-
-    Tuning this instead until the kernel's RTT matched the real trace would fit
-    the testbed to the answer and make "sim - kernel" meaningless.
-
-    The earlier fixed netem limit of 20000 packets (~29 MB, ~1.5 s of queue at
-    150 Mbps) let BBR build a queue far deeper than either the simulator or a
-    real Starlink bottleneck holds: London RTT p90 came out at 729 ms against
-    a floor of 258 ms.
-    """
+    """Size the bottleneck queue to ONE bandwidth-delay product."""
     bdp_bytes = median_capacity_bps / 8.0 * rtt_ms / 1000.0
     return max(100, int(round(bdp_bytes / 1448.0)))
 
@@ -133,24 +77,6 @@ def run_once(schedule: Path, rtt_ms: float, duration: int, cca: str, out_json: P
     _docker("network", "create", NETWORK)
     server = client = None
     try:
-        # The SERVER sends (iperf3 -R on the client), matching how the downlink
-        # logs in data/raw were captured: always on the sending side.
-        # ROLES: the SENDER is the iperf3 client, the receiver is the server.
-        # Which side is "client" is irrelevant to BBR -- what matters is which
-        # stack transmits the data. Making the sender the client puts its JSON
-        # (the only side carrying tcp_info: rtt, cwnd, retransmits) on the
-        # client's own stdout, exactly as the uplink logs in data/raw were
-        # captured. Two earlier arrangements failed silently: reading the
-        # server's --logfile returned 0 bytes (never flushed before exit), and
-        # `iperf3 -s -1` at a 258 ms RTT never completed its results exchange,
-        # so it never exited and `docker wait` hung.
-        #
-        # RTT: half the round trip on each egress -- data path on the sender,
-        # ACK path on the receiver. With the delay on one side only, the
-        # emulated round trip was RTT_min/2 (see shape.sh).
-        # The FULL round-trip propagation delay lives on the receiver's egress
-        # (the ACK path), fixed for the whole run -- see testbed/shape.sh for
-        # why it cannot be split or put on the sender.
         _docker(
             "run", "-d", "--rm", "--cap-add=NET_ADMIN", "--network", NETWORK, *BUFFERS,
             "--name", "qbbr-rcv", IMAGE, "sh", "-c",
@@ -168,10 +94,6 @@ def run_once(schedule: Path, rtt_ms: float, duration: int, cca: str, out_json: P
             f"sysctl -w net.ipv4.tcp_congestion_control={cca} >/dev/null 2>&1; "
             "/shape.sh > /shape.log 2>&1 & "
             "sleep 1; "
-            # --get-server-output: the RECEIVER's per-interval rate is the
-            # on-wire throughput. The sender's bits_per_second is the socket
-            # WRITE rate and, with a 64 MB buffer, read a flat 177 Mbps with
-            # 0-Mbps stalls while the verified wire rate was 122-196.
             f"iperf3 -c qbbr-rcv -t {duration} -l 131072 -P 1 -O 0 --json --get-server-output",
             check=False)
         payload = result.stdout
@@ -197,14 +119,7 @@ def run_once(schedule: Path, rtt_ms: float, duration: int, cca: str, out_json: P
 
 
 def check_emulated_rtt(stats: dict, rtt_ms: float) -> bool:
-    """Refuse a run whose emulated round trip is not the configured one.
-
-    The RTT floor BBR sees (p1 of per-second RTT) cannot sit below the path's
-    propagation RTT. If it does, the delay is not being applied to both
-    directions and every number from the run describes a different path. This
-    exact failure -- a floor at 0.50x -- went unnoticed through a full six-city
-    campaign because only means were inspected, so it is now checked per run.
-    """
+    """Refuse a run whose emulated round trip is not the configured one."""
     floor = stats.get("rtt_p1_ms", float("nan"))
     ratio = floor / rtt_ms if rtt_ms else float("nan")
     ok = 0.85 <= ratio <= 1.6
@@ -214,13 +129,7 @@ def check_emulated_rtt(stats: dict, rtt_ms: float) -> bool:
 
 
 def summarise(payload: dict) -> dict:
-    """Throughput from the RECEIVER (wire rate); RTT and retransmits from the SENDER.
-
-    Those two quantities genuinely live on different sides of the connection:
-    only the sender has tcp_info (rtt, retransmits), and only the receiver sees
-    what actually crossed the bottleneck. Mixing them up produced a throughput
-    figure that measured the send buffer rather than the link.
-    """
+    """Throughput from the RECEIVER (wire rate); RTT and retransmits from the SENDER."""
     sender_rtt, sender_retx = [], []
     for interval in payload.get("intervals", []):
         streams = interval.get("streams") or []

@@ -1,9 +1,4 @@
-"""Screen the fixed-action recurrent-QDQN QRL ablation in the legacy simulator.
-
-This is explicitly a simulator proxy, not a BBR-v3 kernel or Starlink field
-result.  It keeps the five pacing gains, seven-feature observation, BBR-state/
-reconfiguration action mask and EMA actuation represented by ``FluidSimEnv``.
-"""
+"""Screen the fixed-action recurrent-QDQN QRL ablation in the legacy simulator."""
 
 from __future__ import annotations
 

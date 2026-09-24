@@ -1,15 +1,4 @@
-"""RQ4-under-gamma5 early picture (5/6 locations -- Sydney's quantum pilot
-still training in the background, see train_gamma5_quantum_parallel.py).
-Evaluates the quantum gamma=5.0 checkpoints (3-seed pilot) vs. stock BBR-v3
-(same style as eval_gamma5_raw.py's classical arm) AND directly vs. the
-already-evaluated classical gamma=5.0 checkpoints (outputs/rq1_gamma5_raw
-.json), Mann-Whitney on retransmit rate -- mirrors RQ4's published design
-(Table tab:qvc: quantum vs. classical, per location) but at gamma=5.0 and
-pilot (n=3) scale, so p-values are read qualitatively (n=3's own floor is
-p=2/C(6,3)=0.10, per main.tex's own caveat on the earlier 3-seed pilot).
-
-Output -> outputs/rq4_gamma5_partial.json
-"""
+"""RQ4-under-gamma5 early picture."""
 from __future__ import annotations
 
 import json

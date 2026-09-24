@@ -1,25 +1,6 @@
-"""Train the per-location classical checkpoints an RQ3 risk-feature ablation
-needs, in the ``<out-root>/classical/<location>/seed<N>.pt`` layout that
-``qbbr.scripts.eval_rq3_parallel`` consumes.
-
-RQ3 compares a policy trained *with* the closed-form risk features
-(``s5``/``s6``) against one trained *without* them (``stub_constant``).
-Both arms use the pacing_gain-only action space and the published reward,
-so the only difference between an arm's checkpoints is ``--risk-mode``:
-
-    # risk-on arm, new dynamic risk model (atmospheric + ISL + handover hazard)
-    python -m qbbr.scripts.train_rq3_checkpoints --risk-mode closed_form_dynamic \
-        --locations London Mumbai Sydney SaoPaulo --seeds 0 1 2 3 4 \
-        --out-root outputs/checkpoints_rq3_dynamic/risk_on
-
-    # matched risk-off arm
-    python -m qbbr.scripts.train_rq3_checkpoints --risk-mode stub_constant \
-        --locations London Mumbai Sydney SaoPaulo --seeds 0 1 2 3 4 \
-        --out-root outputs/checkpoints_rq3_dynamic/risk_off
-
-This is the same training protocol as ``train_gamma5_parallel.py`` (classical
-core, pacing_gain-only, downlink); it exists so the RQ3 checkpoint-building
-step is a committed, parameterised entry point rather than an ad-hoc script.
+"""
+Train the per-location classical checkpoints an RQ3 risk-feature ablation needs, in the ``<out-
+root>/classical/<location>/seed<N>.pt`` layout that ``qbbr.scripts.eval_rq3_parallel`` consumes.
 """
 from __future__ import annotations
 

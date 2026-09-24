@@ -8,11 +8,7 @@ METRICS = ("throughput_delta_pct", "rtt_p90_delta_ms", "retransmits_delta_per_s"
 
 
 def summarize_candidate(rows: list[dict], expected_pairs: set[tuple[int, int]]) -> dict:
-    """Every trace/seed must satisfy both safety limits (zero increase).
-
-    Tolerance is for floating point equality only, not a practical budget.
-    Equal-weight seeds and runs; deterministic baselines have seed -1.
-    """
+    """Every trace/seed must satisfy both safety limits (zero increase)."""
     pairs = [(r["run"], r["seed"]) for r in rows]
     complete = len(pairs) == len(set(pairs)) and set(pairs) == expected_pairs
     finite = bool(rows) and all(

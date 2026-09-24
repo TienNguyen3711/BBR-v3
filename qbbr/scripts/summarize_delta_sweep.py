@@ -1,14 +1,4 @@
-"""Summarise the difference-reward RTT-weight (delta) sweep.
-
-Reads outputs/rq_study/delta-sweep-a2c/delta_<d>/*/result.json and reports,
-per delta and city, the paired policy-minus-stock deltas averaged over the
-validation holdout seeds, then over training seeds. The RTT gate budget is the
-one the v14 protocol derives (stock RTT p90 run half-IQR, from the v14
-calibration), so the sweep is judged by the same rule as the screen.
-
-Validation seeds only (2000-2004): delta is chosen here, and the manuscript
-holdout (1000-1004) stays untouched until the chosen delta is re-run.
-"""
+"""Summarise the difference-reward RTT-weight (delta) sweep."""
 from __future__ import annotations
 
 import json

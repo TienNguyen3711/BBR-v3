@@ -1,8 +1,7 @@
-"""Uplink counterpart of make_comparison_figures.py's fig_rq1_boxplot_vs_bbr:
-stock BBR-v3 (real per-trace-file uplink data) vs. qbbr (pacing_gain-only,
-newly trained under uplink -- see train_uplink_parallel.py +
-eval_rq1_uplink_raw.py). Only one qbbr arm exists for uplink so far (no
-extended-action-space uplink checkpoints yet).
+"""
+Uplink counterpart of make_comparison_figures.py's fig_rq1_boxplot_vs_bbr: stock BBR-v3 (real per-
+trace-file uplink data) vs. qbbr (pacing_gain-only, newly trained under uplink -- see
+train_uplink_parallel.py + eval_rq1_uplink_raw.py).
 """
 from __future__ import annotations
 

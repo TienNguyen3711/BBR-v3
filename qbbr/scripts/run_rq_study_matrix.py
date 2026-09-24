@@ -1,24 +1,4 @@
-"""Execution entry point for the RQ1/RQ2/RQ3 native study matrix.
-
-``run_complete_rq_study`` emits a machine-readable plan; this runs it. The
-matrix is defined by a study config (see ``rq_study_screen.yaml``) and
-executed by :mod:`qbbr.study.runner`, which owns protocol validation, source
-and forcing fingerprints, paired stock-versus-policy holdouts, and exact
-resume.
-
-Arms map to research questions as follows:
-
-* RQ1  ``full`` variant, ``qa2c``/``a2c`` cores, synthetic forcing, plus the
-  unchanged-policy transfer onto measured capacity when ``--dataset`` is given.
-* RQ2  the six ablated variants against ``full`` at a matched core and seed.
-* RQ3  ``qa2c`` against ``a2c`` at the shared 126-parameter budget, and the
-  ``qdqn`` core as the recurrent estimator ablation.
-
-The default invocation is read-only: it validates the protocol, enumerates
-the matrix, prints a cost estimate, and writes a plan. ``--execute`` is
-required to train, and must be acknowledged with ``--allow-simulator-proxy``
-because every artefact it produces is simulator-proxy evidence.
-"""
+"""Execution entry point for the RQ1/RQ2/RQ3 native study matrix."""
 from __future__ import annotations
 
 import argparse
@@ -33,25 +13,6 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = ROOT / "qbbr" / "configs" / "rq_study_screen.yaml"
 DEFAULT_CALIBRATION = ROOT / "qbbr" / "data" / "calibrated" / "per_location_constants_v14.json"
 
-# Wall milliseconds per DECISION, measured 2026-09-20 on Apple M5 Pro with
-# lightning.qubit, Sydney downlink, 30 episodes of 300 s.
-#
-# Cost scales with decisions, NOT with simulated seconds. The decision interval
-# is a function of the path's minimum RTT (see minrtt_100_decision_interval_s),
-# so a 300 s episode is 4967 decisions on Sydney (30 ms) but 615 on SaoPaulo
-# (388 ms). The same protocol therefore costs up to 8x more on one city than
-# another, and a scalar "simulated seconds per wall second" cannot express
-# that -- estimating with one hid the fact that Sydney dominates any matrix
-# it appears in.
-# Measured aggregate speedup from running N shards concurrently on the same
-# machine (6 performance + 12 efficiency cores, OMP_NUM_THREADS=1).
-#
-# The curve PEAKS and then falls: one episode takes 65.7 s alone, ~88 s with 7
-# shards (5.0x aggregate) and ~164.5 s with 12 (4.56x aggregate). Past the six
-# performance cores the scheduler hands work to efficiency cores that run it
-# roughly 2.5x slower, and because every shard finishes together the slowest
-# ones set the batch time. More shards is therefore not more throughput --
-# oversubscribing costs about 9% against the peak.
 MEASURED_SPEEDUP = {1: 1.0, 7: 5.0, 12: 4.56}
 RECOMMENDED_PARALLELISM = 7
 TRAIN_MS_PER_DECISION = {"qa2c": 12.9, "a2c": 4.3, "qdqn": 21.2}
@@ -66,11 +27,7 @@ _SCOPE = {
 
 
 def apply_scope(study: dict[str, Any], args: argparse.Namespace) -> None:
-    """Narrow a declared study, then re-validate it as if it were declared.
-
-    Overrides enter the protocol digest, so a scoped run has its own identity
-    and cannot silently share an output tree with the full matrix.
-    """
+    """Narrow a declared study, then re-validate it as if it were declared."""
     for flag, key in _SCOPE.items():
         value = getattr(args, flag)
         if value is not None:
@@ -96,12 +53,7 @@ def apply_scope(study: dict[str, Any], args: argparse.Namespace) -> None:
 
 
 def speedup(shards: int) -> float:
-    """Interpolate the measured scaling curve; hold the last point beyond it.
-
-    The curve is not monotonic, so this must never be replaced by division by
-    the shard count: that would claim 12 shards are 12x when they measure 4.56x
-    and are slower in aggregate than 7.
-    """
+    """Interpolate the measured scaling curve; hold the last point beyond it."""
     points = sorted(MEASURED_SPEEDUP)
     if shards <= points[0]:
         return MEASURED_SPEEDUP[points[0]]
@@ -133,11 +85,7 @@ def decisions_per_episode(study: dict[str, Any], calibration: dict[str, Any],
 
 def cost(study: dict[str, Any], selected: list[dict[str, Any]], calibration: dict[str, Any],
          with_dataset: bool, scale: float = 1.0) -> dict[str, Any]:
-    """Wall-clock estimate for the selected jobs, by core and by location.
-
-    Stock is counted once per distinct forcing rather than once per job: the
-    baseline is identical across variants and cores, and the runner caches it.
-    """
+    """Wall-clock estimate for the selected jobs, by core and by location."""
     holdout = len(study["holdout_seeds"])
     test_runs = study["trace_split"]["test_runs"]
     train_s = policy_s = stock_decisions = 0.0
@@ -162,9 +110,6 @@ def cost(study: dict[str, Any], selected: list[dict[str, Any]], calibration: dic
         for unit in units:
             for seed in study["holdout_seeds"]:
                 stock_keys[(unit, seed)] = decisions
-    # Cached: one baseline per distinct (location, direction, trace run, seed).
-    # Uncached: one baseline per policy rollout, which is what the runner did
-    # before the cache and what the saving is measured against.
     stock_cached_s = sum(stock_keys.values()) * STOCK_MS_PER_DECISION / 1000
     stock_uncached_s = stock_decisions * STOCK_MS_PER_DECISION / 1000
     total = (train_s + policy_s + stock_cached_s) * scale
@@ -185,10 +130,7 @@ def cost(study: dict[str, Any], selected: list[dict[str, Any]], calibration: dic
 
 
 def shard_filter(study: dict[str, Any], index: int, count: int) -> Callable[[dict[str, Any]], bool]:
-    """Round-robin over the declared order, so shards get comparable work.
-
-    Contiguous blocks would concentrate the expensive replay jobs in one shard.
-    """
+    """Round-robin over the declared order, so shards get comparable work."""
     chosen = {jid for k, jid in enumerate(job_id(job) for job in jobs(study)) if k % count == index}
     return lambda job: job_id(job) in chosen
 

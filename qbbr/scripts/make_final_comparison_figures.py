@@ -1,34 +1,4 @@
-"""Per-second comparison figures for a finished RQ study run.
-
-Replays every trained checkpoint in a study output tree on its holdout seeds,
-alongside stock BBR-v3 on the same forcing, and draws the comparison in the
-layout of the de Silva et al. dedicated-download figure: one panel per metric,
-cities on the x axis, one box per method.
-
-Why a replay: result.json keeps only per-episode summaries (15 numbers per
-box). A box plot of the per-second behaviour needs the samples, so each policy
-is rolled out again with keep_intervals=True. The rollout is deterministic
-given the checkpoint and seed, and every replay is checked against the
-throughput and RTT p90 stored in result.json before it is used.
-
-Per-second resampling follows collect_per_second_series.py: the simulator
-steps once per decision (2 x RTT_min, 60 ms on Sydney, ~780 ms on SaoPaulo),
-iperf3 reports once per second, and distributions at different resolutions
-are not comparable. Bytes and retransmits are summed into 1 s bins and RTT is
-time-weighted.
-
-RTT variance follows the kernel's rttvar (RFC 6298 mean deviation, gain 1/4),
-updated once per simulator decision rather than once per ACK, then
-time-averaged into the same 1 s bins. It is the same quantity as iperf3's
-rttvar, at a coarser update rate.
-
-Congestion window and receiver window are NOT drawn: the fluid simulator
-models neither, so those two panels of the reference figure have no simulated
-counterpart. Everything here is simulator-proxy evidence.
-
-    python -m qbbr.scripts.make_final_comparison_figures \\
-        --study outputs/rq_study/final-queue-delta0.16 --workers 7
-"""
+"""Per-second comparison figures for a finished RQ study run."""
 from __future__ import annotations
 
 import argparse
@@ -44,11 +14,6 @@ DEFAULT_CALIBRATION = ROOT / "qbbr" / "data" / "calibrated" / "per_location_cons
 CITIES = ["Tokyo", "SaoPaulo", "Ohio", "London", "Mumbai", "Sydney"]
 CITY_LABEL = {"SaoPaulo": "Sao Paulo"}
 ARMS = [("a2c", "Classical A2C-BBR"), ("qa2c", "Hybrid QA2C-BBR"), ("stock", "Stock BBR-v3")]
-# Muted blue / orange / green, in the tone of the de Silva et al. figure. The
-# matplotlib tab:orange/tab:green pair that figure uses is ~2 dE apart under
-# protanopia, so green is shifted toward teal: validated with the dataviz
-# palette checker (all checks pass, worst adjacent protan dE 10.8). The fills
-# sit under 3:1 on white, so dark box edges and the legend carry identity too.
 COLOR = {"a2c": "#4f8fcf", "qa2c": "#f0a04b", "stock": "#35a893"}
 EDGE = "#4d4d4d"
 PANELS = [("throughput_mbps", "Mbps", "Throughput"),
@@ -59,12 +24,7 @@ PANELS = [("throughput_mbps", "Mbps", "Throughput"),
 
 
 def per_second(rows: list[dict], base_rtt_ms: float) -> dict[str, list[float]]:
-    """Accumulate decision rows into 1 s bins; RTT and rttvar time-weighted.
-
-    Queueing delay is RTT minus the path's propagation RTT. On long paths the
-    absolute RTT hides a few ms of self-inflicted queue under 150-390 ms of
-    propagation, so the queue is drawn as its own panel.
-    """
+    """Accumulate decision rows into 1 s bins; RTT and rttvar time-weighted."""
     bins: dict[int, dict[str, float]] = {}
     elapsed, srtt, rttvar = 0.0, None, None
     for row in rows:

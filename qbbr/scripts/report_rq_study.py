@@ -1,23 +1,4 @@
-"""Aggregate an executed RQ study matrix into the RQ1/RQ2/RQ3 contrasts.
-
-Read-only. It reports what is on disk, states how many jobs are missing, and
-never fills a gap with an assumption.
-
-Design notes that affect every number below:
-
-* **Pairing.** Arms are compared at a matched (location, core, training seed,
-  holdout seed). A holdout seed fixes the capacity forcing, which is the
-  dominant variance term, so a paired difference removes it. Comparing arm
-  medians instead would drown the effect in forcing noise.
-* **Replicate unit.** Holdout seeds are repeated measurements of one trained
-  policy, not independent replicates. They are aggregated to a median within
-  each (location, training seed) first; that pair is the unit that enters the
-  bootstrap and the sign count.
-* **n is small.** Three training seeds per cell is enough to resolve a 2/3 from
-  a 3/3 pattern, not to place a tight interval. With 18 (location, seed) units
-  the bootstrap interval is reported, but the sign count is the more honest
-  summary at this sample size and is printed beside it.
-"""
+"""Aggregate an executed RQ study matrix into the RQ1/RQ2/RQ3 contrasts."""
 from __future__ import annotations
 
 import argparse

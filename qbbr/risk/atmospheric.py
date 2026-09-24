@@ -18,9 +18,6 @@ _DEFAULT_FREQUENCY_GHZ = 12.5  # Ku-band downlink; ACMA/ITU allocation 10.7-12.7
 _DEFAULT_ANTENNA_DIAMETER_M = 0.5  # Starlink UTA-232 user terminal, approx.
 _P_GRID_PERCENT = np.array([0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 30.0, 50.0])
 _ELEVATION_BIN_WIDTH_DEG = 5.0
-# The constellation is a synthetic geometry proxy, not live TLE data.  A fixed
-# epoch therefore makes its integration reproducible; `ts.now()` made sparse
-# short integrations depend on wall-clock time and could yield no visible pass.
 _SYNTHETIC_REFERENCE_EPOCH_UTC = (2026, 9, 3)
 
 
@@ -114,11 +111,9 @@ def compute_atmospheric_failure_probability(
     antenna_diameter_m: float = _DEFAULT_ANTENNA_DIAMETER_M,
     elevation_weights: list[tuple[float, float]] | None = None,
 ) -> float:
-    """p^at(M) (Eq. 9): elevation-weighted attenuation-exceedance probability, as a fraction in [0, 1].
-
-    elevation_weights defaults to elevation_time_weights(lat, lon) (a real
-    orbital-mechanics computation, not instantaneous); pass a cached result
-    to avoid recomputing it on every call.
+    """
+    p^at(M) (Eq. 9): elevation-weighted attenuation-exceedance probability, as a fraction in [0,
+    1].
     """
     if elevation_weights is None:
         elevation_weights = elevation_time_weights(lat, lon)

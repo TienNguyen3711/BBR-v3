@@ -1,13 +1,4 @@
-"""Robust parsing of raw iperf3 JSON logs.
-
-Roughly half the files in the tcp-cc-starlink dataset have junk text before
-and/or after the primary JSON object, produced by an iperf3 shutdown bug
-(`iperf_json_finish: pthread_mutex_lock: ...`) that emits an error line
-followed by a second, incomplete JSON blob. json.load() fails on these; a
-plain json.JSONDecoder().raw_decode() from offset 0 also fails on the subset
-with junk *before* the opening brace. Scanning to the first "{" first makes
-this fully general.
-"""
+"""Robust parsing of raw iperf3 JSON logs."""
 from __future__ import annotations
 
 import json

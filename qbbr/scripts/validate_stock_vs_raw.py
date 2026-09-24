@@ -1,10 +1,6 @@
-"""Fork-4 Stage-0 check: does the v7b stock fluid sim reproduce the
-distribution of the *real* sequential BBR iperf3 runs in qbbr/data/raw/?
-
-This validates the ENVIRONMENT at the stock operating point -- not the agent.
-It does not train, does not touch checkpoints, and makes no Starlink claim.
-The raw runs are stock-CCA-on-Starlink; a match means the proxy is credible
-for stock, a mismatch says which constant to recalibrate.
+"""
+Fork-4 Stage-0 check: does the v7b stock fluid sim reproduce the distribution of the *real*
+sequential BBR iperf3 runs in qbbr/data/raw/?
 """
 from __future__ import annotations
 

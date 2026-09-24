@@ -1,30 +1,4 @@
-"""Where does the QRL policy sit among real congestion controls on Starlink?
-
-THE ONLY VALID WAY TO PUT SIMULATED AND MEASURED RESULTS ON ONE AXIS.
-
-Absolute throughput and RTT cannot be compared across the simulator boundary:
-this simulator reproduces only ~21% of the self-inflicted RTT elevation real BBR
-shows, and its absolute throughput sits ~28% off. Plotting a simulated arm
-beside a measured one invites a reading that is mostly simulator error.
-
-What both sides CAN express in the same units is a DELTA AGAINST BBR measured
-on the same link:
-
-  real CCAs   mean(cca) vs mean(bbr), over the same 10 sequential runs per city
-  QRL policy  agent vs stock in the simulator, on capacity forcing replayed
-              from those same bbr runs, paired trace by trace
-
-Both are ratios against a BBR baseline on the same path, so the parts of the
-model that are systematically off -- absolute rate level, absolute RTT floor --
-divide out. What does NOT divide out is any error in how the model responds to
-a CHANGE in pacing gain, so this positions the policy among the alternatives
-rather than measuring it against them. The two evidence classes are drawn
-differently for that reason.
-
-Reading the plane: right is more throughput, down is lower RTT, so the
-bottom-right quadrant is unambiguously better than BBR and the top-left is
-unambiguously worse.
-"""
+"""Where does the QRL policy sit among real congestion controls on Starlink?"""
 
 from __future__ import annotations
 

@@ -1,29 +1,4 @@
-"""Is the policy's effect larger than the simulator's own error?
-
-THE QUESTION THIS ANSWERS.  Every result in this project is produced by a fluid
-transport model. A measured effect is only meaningful if it is bigger than that
-model's error, and until the kernel-in-the-loop testbed ran, that error was
-unknown -- so no result could be qualified this way.
-
-Now it is measured, per city: run real Linux TCP with real BBR over the same
-replayed capacity schedule the simulator sees, and the gap between them IS the
-transport-model error. This chart puts the policy's effect beside it.
-
-  grey band   what the simulator cannot resolve -- |sim - real kernel|
-  markers     the policy's effect, |agent - stock|, from the same replay
-
-A marker inside the band is a result the tool cannot distinguish from its own
-error. A marker outside it is a result the tool can actually support.
-
-Log x-axis because both quantities span two orders of magnitude across the six
-paths (model RTT error runs 0.5 ms to 179 ms), and a linear axis would collapse
-every low-RTT city into the origin -- which is exactly where the resolvable
-result lives.
-
-Cities are ordered by path RTT, because that is the variable the model error
-tracks (corr = +0.96): the model is accurate on short paths and degrades on long
-ones. The ordering is the finding, not decoration.
-"""
+"""Is the policy's effect larger than the simulator's own error?"""
 
 from __future__ import annotations
 

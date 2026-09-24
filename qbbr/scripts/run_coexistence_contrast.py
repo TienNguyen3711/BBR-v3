@@ -1,19 +1,4 @@
-"""Does a policy trained on an idle path still help on a contended one?
-
-Zero-shot transfer, deliberately. The policies are the ones already trained
-single-flow by the RQ1/RQ2/RQ3 matrix; nothing is retrained here. Retraining
-against these competitors would be a different experiment and is not
-justified while the competitor models remain uncalibrated
-(qbbr/configs/native_coexistence.yaml).
-
-The contrast is policy versus stock BBR-v3 under an IDENTICAL competitor mix,
-matched on (location, holdout seed) so both arms face the same capacity
-forcing and the same competing flows. That is the one claim the coexistence
-overlay supports: the competitor-model error is common to both arms and
-largely cancels in their difference. Absolute fairness is NOT claimed, and
-rho_alpha is not reported here -- for fairness see
-qbbr.scripts.analyze_measured_coexistence, which uses measured runs.
-"""
+"""Does a policy trained on an idle path still help on a contended one?"""
 from __future__ import annotations
 
 import argparse
@@ -138,11 +123,6 @@ def main() -> None:
             "share_delta_pp_median": round(median(shares.values()), 4),
             "rtt_p90_delta_ms_median": round(median(rtts.values()), 4),
         }
-    # Guard, not decoration. A contrast is only meaningful if the safety axes
-    # can register what the throughput axis gains. They cannot here: RTT p90
-    # clips at the calibrated queue ceiling, so a run that doubles throughput
-    # reports a zero delay difference. Surface that with the result instead of
-    # leaving the headline to be quoted on its own.
     zero_rtt = sum(1 for row in rows if row["rtt_p90_delta_ms"] == 0.0)
     report = {
         "design": "zero-shot: policies trained single-flow, evaluated under contention",

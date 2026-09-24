@@ -1,23 +1,4 @@
-"""Paired agent-vs-stock delta: synthetic training condition vs trace replay.
-
-The absolute-throughput grid cannot show this effect -- a 1% difference beside
-a 244 Mbps baseline is invisible, and zooming that axis until it looks large
-would misrepresent the magnitude. So plot the quantity actually of interest
-instead: the PAIRED delta against a stock run under identical conditions.
-
-Two conditions, same policies, same seeds, one axis:
-
-  synthetic   the periodic-handover model the agent was trained in
-  replay      bottleneck capacity forcing taken from the real qbbr/data/raw
-              runs, with the stock arm validated against each trace's own
-              realised throughput
-
-Points are drawn per seed rather than boxed: two of the five seeds sit at
-exactly 0.00% (they collapse to constant stock), and that bimodality is part
-of the result -- a box would hide it.
-
-Simulator-proxy only.
-"""
+"""Paired agent-vs-stock delta: synthetic training condition vs trace replay."""
 from __future__ import annotations
 
 import argparse
@@ -45,11 +26,7 @@ def synthetic_deltas(report: Path) -> dict:
 
 
 def replay_deltas(files: list[Path]) -> dict:
-    """(city, direction, core) -> {seed: median delta% across replay traces}.
-
-    Rows carry their own location/direction/core, so any mix of replay JSONs
-    can be pooled -- one per (cell, core), or the whole replay6 directory.
-    """
+    """(city, direction, core) -> {seed: median delta% across replay traces}."""
     grouped: dict = {}
     for f in files:
         if not f.exists():

@@ -66,9 +66,6 @@ class NativeMLPA2CAgent(BaseAgent):
             torch.nn.Tanh(),
             torch.nn.Linear(critic_hidden_dim, 1),
         )
-        # Separate learning rates; see NativeQA2CAgent for why the critic needs
-        # a faster rate than the ~1/lr updates a short run can supply.
-        # critic_lr None keeps the single-rate legacy behaviour.
         self.critic_lr = lr if critic_lr is None else float(critic_lr)
         self.optimizer = torch.optim.Adam([
             {"params": list(self.actor.parameters()), "lr": lr},

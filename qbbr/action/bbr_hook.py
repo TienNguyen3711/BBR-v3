@@ -10,11 +10,7 @@ _GAIN_LEVELS = (0.75, 0.90, 1.00, 1.10, 1.25)
 
 
 def set_pacing_gain(gain: float | None) -> None:
-    """Refresh the kernel's one-second command lease; None disables it.
-
-    Requests latch on CRUISE entry. Kernel readback is quantized (e.g.
-    1.10 becomes 282/256); it is not a new admissible command value.
-    """
+    """Refresh the kernel's one-second command lease; None disables it."""
     value = _NO_OVERRIDE_SENTINEL if gain is None else gain
     if isinstance(value, bool) or value not in (*_GAIN_LEVELS, _NO_OVERRIDE_SENTINEL):
         raise ValueError("Expected one of five declared gains, or None/-1 to clear.")

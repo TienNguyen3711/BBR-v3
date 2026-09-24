@@ -7,12 +7,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class NativePerformanceReward:
-    r"""\(R_t=x_t\), with \(x_t\) delivered throughput in Mbps.
-
-    RTT, retransmission rate, queue and risk are passed to preserve the live
-    adapter interface, but deliberately do not alter the learning signal.
-    They remain safety guards and reporting metrics.
-    """
+    """\\(R_t=x_t\\), with \\(x_t\\) delivered throughput in Mbps."""
 
     def throughput_utility(self, throughput_bps: float) -> float:
         return max(float(throughput_bps) / 1e6, 0.0)

@@ -1,32 +1,4 @@
-"""Why do some seeds never leave stock, on some cells but not others?
-
-After v11, 18 of 24 arms fail `positive_training_seed_fraction`, and the per-seed
-deltas outside Sydney are nearly identical across ten physically different paths
-(std between cells for a fixed seed: 0.01-1.31; std between seeds within a cell:
-1.95). Quantum seed 1 is exactly 0.000 in 9 of 10 non-Sydney cells -- yet the
-SAME seed reaches +5.3% on Sydney downlink. Same initialisation, opposite
-outcome, so this is an interaction between the initialisation and the cell, not
-a bad draw. The SNR gate passes on all 12 cells, so it is also not a reward-
-signal problem: it is optimisation dynamics.
-
-This script runs the contrast directly -- one frozen (cell, seed) against the
-same seed on the cell where it works -- and logs, per episode, the four things
-that can produce a frozen policy:
-
-  actor_step_l2          did the actor's parameters move at all? ~0 means no
-                         gradient is reaching it (saturation or a dead signal).
-  stock_logit_margin     logit(stock) - max logit(non-stock) on a FIXED probe
-                         batch. If the actor moves but this never crosses zero,
-                         the policy is moving inside a basin it cannot escape --
-                         the stock_init_bias moat.
-  greedy_nonstock_frac   what the DEPLOYED (argmax) policy would actually do.
-  stock_only_mask_frac   how often the safety mask left no choice but stock --
-                         a frozen policy may simply never be offered an
-                         alternative.
-
-Together these separate "cannot move", "moves but never crosses", "never
-offered the choice", and "moves and crosses but the advantage is noise".
-"""
+"""Why do some seeds never leave stock, on some cells but not others?"""
 
 from __future__ import annotations
 
@@ -99,10 +71,6 @@ def _stock_logit_margin(agent, probe_states) -> float:
 
 def run_case(config, calibration, location, direction, core, seed, episodes,
              stock_init_bias=None, actor_lr=None):
-    # CRITICAL: the runner seeds torch/numpy before constructing the agent
-    # (run_native_qa2c_successor.py), so the initialisation is a function of the
-    # training seed. Without this the diagnostic builds a DIFFERENT agent and
-    # reports on a run that never happened.
     torch.manual_seed(seed)
     np.random.seed(seed)
     env = _env(calibration, location, direction, config)

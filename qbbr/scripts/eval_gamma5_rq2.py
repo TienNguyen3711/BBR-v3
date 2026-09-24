@@ -1,14 +1,4 @@
-"""Side-effect check (Step 1 continued): does activating the reward's
-ECN-level term (gamma=5.0 -- see train_gamma5_parallel.py, which found a
-large retransmit-rate improvement over the published gamma=0.0 reward)
-come at a coexistence-fairness cost under RQ2's Scenario B (competing
-cubic/vegas/hybla flows)? Same alpha sweep and stock-agent baseline as
-eval_rq2_parallel.py, just pointed at the gamma=5.0 checkpoints, so the
-result is directly comparable to outputs/rq2_report.json's published
-(gamma=0.0) numbers at the same alpha values.
-
-Output -> outputs/rq2_gamma5_report.json
-"""
+"""Side-effect check (Step 1 continued): does activating the reward's ECN-level term."""
 from __future__ import annotations
 
 import json
@@ -42,14 +32,7 @@ class _StockAgent:
 
 
 class _StateTruncatingAgent:
-    """This checkpoint was trained on FluidSimEnv (single-flow, 7-feature
-    state: s1..s7). MultiFlowFluidEnv (Scenario B) now additionally emits
-    s8_fairness_ratio (8 features) -- added after this checkpoint's
-    training setup was fixed, so state[:7] keeps this a like-for-like
-    replay of what the checkpoint actually saw, not a mismatched forward
-    pass (same pattern as eval_rq2_extended_action_space.py's wrapper,
-    truncating to 7 instead of 6 since this checkpoint generation is
-    post-s7_reconfig_phase)."""
+    """This checkpoint was trained on FluidSimEnv (single-flow, 7-feature state: s1..s7)."""
 
     def __init__(self, agent):
         self._agent = agent

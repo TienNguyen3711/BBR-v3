@@ -21,12 +21,7 @@ def mask_features(state, variant):
 
 
 class PolicyObservationEnv:
-    """Safety sees raw features; actor/critic/replay see only ablated features.
-
-    Agents used with this wrapper MUST have selector=None: the complete safety
-    mask is computed here and stored in rollouts, including during updates.
-    Masks intentionally reveal safety constraints, identically for every arm.
-    """
+    """Safety sees raw features; actor/critic/replay see only ablated features."""
     def __init__(self, env, selector, variant="full"):
         mask_features(np.zeros(7), variant)
         self.env, self.selector, self.variant = env, selector, variant

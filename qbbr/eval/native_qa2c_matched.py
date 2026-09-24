@@ -29,10 +29,10 @@ def _classical_count(observation_dim: int, action_count: int, actor_hidden: int,
 
 
 def _apply_stock_init_bias(final_linear, stock_action: int, bias: float) -> None:
-    """Warm-start the actor toward stock BBR: a positive prior on the stock
-    logit so a seed does not begin by favouring -- and then self-reinforcing --
-    a sub-1.0 gain. Exploration and every other logit are untouched, and the
-    bias term already exists so no parameter count changes."""
+    """
+    Warm-start the actor toward stock BBR: a positive prior on the stock logit so a seed does
+    not begin by favouring -- and then self-reinforcing -- a sub-1.0 gain.
+    """
     if bias:
         with torch.no_grad():
             final_linear.bias[stock_action] += float(bias)

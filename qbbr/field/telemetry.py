@@ -1,27 +1,4 @@
-"""Telemetry sources for the field agent, and the state vector built from them.
-
-The agent that ran in simulation read its seven features from FluidSimEnv. On
-real hardware those features have to come from the kernel instead, and they must
-come out NUMERICALLY THE SAME or the policy is seeing a different world than the
-one it was trained on. That parity is what `qbbr/tests/test_field_state.py`
-checks, and it is the only part of the field path that can be verified on a
-machine without a Linux kernel.
-
-THE TIME BASE IS LOAD-BEARING.  s7_reconfig_phase is the flow's position within
-the 15-second reconfiguration cycle, and that cycle is anchored to UTC, not to
-when the connection started.  The evidence is `validate_handover_cadence.py`,
-which builds its phase from `wall_s = start.timestamp.timesecs + interval.start`
--- absolute UTC -- and finds a per-run Rayleigh concentration of R_bar = 0.7368
-at mean phase 10.5 s over 60 sequential downlink runs (p < 1e-5), corroborated
-by an independent circular-shift null (R = 0.2341 vs a 0.0686 95th percentile,
-p = 0.0005).
-
-Feeding this module seconds-since-connection-start instead of UTC would leave
-every other feature correct and silently randomise s7. Since s7 is one of only
-two features carrying real variance in this environment (with s3_inflight_bdp),
-that would quietly reduce the policy's state to one dimension. `now_s` is
-therefore required to be UTC epoch seconds, and the runner asserts it.
-"""
+"""Telemetry sources for the field agent, and the state vector built from them."""
 
 from __future__ import annotations
 
@@ -41,12 +18,7 @@ _BHAT_WINDOW_S = 10.0
 
 @dataclass(frozen=True)
 class TcpSample:
-    """One observation of the monitored flow, in the units the kernel reports.
-
-    Deliberately a superset of what tcp_info gives, so a source can fill it from
-    getsockopt(TCP_INFO), from sock_diag netlink, or from a replayed trace
-    without the consumer knowing which.
-    """
+    """One observation of the monitored flow, in the units the kernel reports."""
 
     now_s: float              # UTC epoch seconds -- see the module docstring
     delivered_bytes: float    # since the previous sample
@@ -65,14 +37,7 @@ class TelemetrySource(Protocol):
 
 
 class FieldStateBuilder:
-    """Turn a stream of TcpSamples into the canonical seven-feature state.
-
-    Routes everything through the SAME `compute_state_vector` and
-    `compute_risk_features` the simulator uses, rather than reimplementing the
-    normalisations. A second implementation would drift from the first, and the
-    drift would show up as a policy that behaves differently in the field for
-    reasons no one could attribute.
-    """
+    """Turn a stream of TcpSamples into the canonical seven-feature state."""
 
     def __init__(self, calibration: dict[str, float], risk_mode: str = "closed_form_dynamic",
                  reconfig_cycle_s: float = 15.0, reconfig_mean_phase_s: float = 10.5) -> None:
@@ -122,8 +87,7 @@ class FieldStateBuilder:
 
 
 class ReplayTelemetrySource:
-    """Replays recorded TcpSamples. Lets the whole field path -- state builder,
-    policy, action masking -- be exercised on a machine with no Linux kernel."""
+    """Replays recorded TcpSamples."""
 
     def __init__(self, samples: list[TcpSample]) -> None:
         self._samples = list(samples)
@@ -138,16 +102,7 @@ class ReplayTelemetrySource:
 
 
 class LinuxTcpInfoSource:
-    """Reads tcp_info for one established socket via getsockopt.
-
-    Linux only. Uses the shared length-checked UAPI decoder; unsupported
-    short responses fail instead of substituting unrelated u32 fields.
-
-    The socket must be supplied by whatever owns it. For an iperf3 run the flow
-    belongs to iperf3, so in practice the field harness reads it through
-    sock_diag netlink instead; this class exists for the case where the
-    measurement tool is ours.
-    """
+    """Reads tcp_info for one established socket via getsockopt."""
 
     _TCP_INFO = 11
 

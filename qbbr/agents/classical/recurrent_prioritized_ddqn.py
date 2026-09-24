@@ -1,11 +1,4 @@
-"""Classical counterpart to the recurrent prioritized variational Double-DQN.
-
-The matched benchmark uses a three-dimensional recurrent latent state.  With
-one variational layer, the QNN has nine trainable variational parameters; this
-classical core uses a bias-free 3x3 linear map, also nine parameters.  The GRU
-and five-action output head are identical, so the complete online networks
-have an exact parameter match without padding or unused parameters.
-"""
+"""Classical counterpart to the recurrent prioritized variational Double-DQN."""
 
 from __future__ import annotations
 

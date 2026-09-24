@@ -55,11 +55,6 @@ class NativeQA2CAgent(BaseAgent):
         self.actor_head = torch.nn.Linear(observation_dim, native_action_count)
         self.critic_qnn = build_qnn(observation_dim, n_layers, reupload=reupload)
         self.critic_head = torch.nn.Linear(1, 1)
-        # Separate learning rates. The critic must move its output by O(1) to
-        # reach the (normalised) return, and with Adam that needs ~1/lr steps:
-        # at lr 3e-4 that is ~3000 updates, far past the ~780 a 30-episode run
-        # provides, so the baseline stayed at its initialisation. critic_lr
-        # None keeps the single-rate legacy behaviour.
         actor_params = list(self.actor_qnn.parameters()) + list(self.actor_head.parameters())
         critic_params = list(self.critic_qnn.parameters()) + list(self.critic_head.parameters())
         self.critic_lr = lr if critic_lr is None else float(critic_lr)

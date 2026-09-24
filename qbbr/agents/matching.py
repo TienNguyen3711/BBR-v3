@@ -1,10 +1,4 @@
-"""Exact full-agent parameter matching for RQ4 comparisons.
-
-The archived RQ4 design targeted the quantum variational block only, leaving
-the actor heads and critics unmatched.  New RQ4 runs use this module instead:
-the classical actor and critic widths are searched jointly and the resulting
-full trainable-parameter total must exactly equal the quantum total.
-"""
+"""Exact full-agent parameter matching for RQ4 comparisons."""
 
 from __future__ import annotations
 
@@ -52,12 +46,7 @@ def full_parameter_match(
     reupload: bool = False,
     max_hidden: int = 128,
 ) -> FullParameterMatch:
-    """Find the closest classical full-agent count to the quantum one.
-
-    Ties prefer smaller widths.  Callers running RQ4 must require
-    ``match.exact``; returning the nearest candidate makes unsupported state
-    dimensions diagnosable rather than silently selecting an unfair baseline.
-    """
+    """Find the closest classical full-agent count to the quantum one."""
     if max_hidden < 1:
         raise ValueError("max_hidden must be positive")
     quantum_params = QA2CAgent(

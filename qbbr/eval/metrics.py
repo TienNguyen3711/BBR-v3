@@ -24,21 +24,7 @@ def min_per_flow_throughput(x_achieved: Sequence[float]) -> float:
 
 
 def alpha_fair_efficiency_ratio(x_achieved: Sequence[float], alpha: float, eps: float = EPSILON) -> float:
-    """WARNING: mathematically unbounded for ANY alpha>1, not just alpha=2 --
-    U_alpha(x)=(x+eps)^(1-alpha)/(1-alpha) has a negative exponent whenever
-    alpha>1, so it diverges toward +-inf as any single flow's throughput
-    approaches 0, with severity growing sharply as alpha increases past 1
-    (empirically, with one near-starved flow at ~0.15 of the healthy flows'
-    scale: alpha=1.5 -> rho~4.4, alpha=2 -> rho~57, alpha=3 -> rho~1.3e4,
-    alpha=5 -> rho~6.4e8 -- all far outside the (0,1] range this metric is
-    otherwise documented to have; alpha=2 was simply the first value this
-    was caught at, see main.tex Sec. RQ2 and
-    qbbr/scripts/eval_rq2_parallel.py's ALPHA_LABELS comment). alpha=1's log
-    utility only diverges logarithmically at the same limit and stays
-    well-behaved; alpha in [0,1) has a positive exponent and stays bounded;
-    alpha=0,inf don't route through this term at all. Callers sweeping
-    alpha should keep to [0,1] (inclusive) plus inf unless every
-    x_achieved[i] is bounded well away from 0."""
+    """WARNING: mathematically unbounded for ANY alpha>1, not just alpha=2."""
     x_achieved = np.asarray(x_achieved, dtype=float)
     n = len(x_achieved)
     total_capacity = float(x_achieved.sum())
@@ -55,15 +41,7 @@ def alpha_fair_efficiency_ratio(x_achieved: Sequence[float], alpha: float, eps: 
 def real_cca_distribution_stats(
     dataset_root: str | Path, location: str, direction: str, cca: str, category: str = "sequential"
 ) -> dict[str, float]:
-    """Real per-CCA throughput/RTT/retransmit distribution from the raw dataset.
-
-    category selects "sequential" (single dedicated flow, no contention) or
-    "competitive" (parallel multi-CCA runs sharing one link) -- these are
-    physically different scenarios with very different throughput, so they
-    must not be pooled together. Defaults to "sequential" since that is what
-    a single-flow FluidSimEnv comparison (validate_simulator.py, scenario_a)
-    represents.
-    """
+    """Real per-CCA throughput/RTT/retransmit distribution from the raw dataset."""
     from qbbr.data.catalog import build_catalog, iter_file_records
     from qbbr.data.loader import load_trace
 
@@ -103,12 +81,9 @@ def real_cca_distribution_stats(
 def real_cca_per_run_medians(
     dataset_root: str | Path, location: str, direction: str, cca: str, category: str = "sequential"
 ) -> dict[str, list[float]]:
-    """One median per TRACE FILE (not pooled across files, unlike
-    real_cca_distribution_stats above) -- the real-data analogue of one
-    trained agent's per-seed evaluation summary, needed for a fair n-vs-n
-    Mann-Whitney comparison against qbbr's per-seed medians (RQ1). Each
-    (location, direction, cca, category) cell has exactly 10 trace files in
-    this dataset, matching the paper's >=10-seed protocol on the qbbr side.
+    """
+    One median per TRACE FILE (not pooled across files, unlike real_cca_distribution_stats
+    above).
     """
     from qbbr.data.catalog import build_catalog, iter_file_records
     from qbbr.data.loader import load_trace

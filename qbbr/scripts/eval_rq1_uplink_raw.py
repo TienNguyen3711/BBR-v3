@@ -1,16 +1,7 @@
-"""RQ1-style eval (qbbr vs. stock BBR-v3 + cubic/vegas/hybla as bonus
-context) for the newly-trained UPLINK checkpoints (outputs/checkpoints_uplink
-/pacing_only/classical -- see train_uplink_parallel.py). Unlike the old
-downlink checkpoints, these were trained under the CURRENT (post-merge,
-7-feature) state -- no n_qubits=6 / state-truncation workaround needed;
-verified directly (MLPA2CAgent default input dim == FluidSimEnv's current
-state dim == 7) before this script was written.
-
-Saves raw per-seed (qbbr) / per-trace-file (real CCAs) arrays, same as
-eval_rq1_raw_for_boxplot.py, so a boxplot directly comparable to the
-downlink one can be built from this file too.
-
-Output -> outputs/rq1_uplink_raw.json
+"""
+RQ1-style eval (qbbr vs. stock BBR-v3 + cubic/vegas/hybla as bonus context) for the newly-trained
+UPLINK checkpoints (outputs/checkpoints_uplink /pacing_only/classical -- see
+train_uplink_parallel.py).
 """
 from __future__ import annotations
 

@@ -1,25 +1,4 @@
-"""Per-second throughput and RTT, from every source, on identical capacity forcing.
-
-Distributions (CDFs, box plots) need the underlying samples, not the summary
-statistics the replay and testbed reports keep. This collects them.
-
-  real trace   data/raw iperf3 intervals          native 1 s
-  real kernel  kernel_testbed_logs iperf3 JSON    native 1 s
-  simulator    FluidSimEnv on the same forcing    RESAMPLED to 1 s
-
-THE RESAMPLING IS NOT OPTIONAL.  The simulator steps once per decision interval,
-which is 2 x RTT_min: ~60 ms on Sydney but ~520 ms on London and ~780 ms on
-SaoPaulo. iperf3 reports once per second. Comparing distributions at different
-resolutions manufactures a difference: finer samples resolve more of the queue
-transient, so the finer-grained source shows a wider spread and a longer tail
-purely from how it was sampled. Every simulator step is therefore accumulated
-into 1-second bins -- delivered bytes summed, RTT time-weighted -- before any
-comparison, so all three sources describe the same thing at the same timescale.
-
-The environment is built exactly as trace_replay.py builds it (same calibration,
-dynamics overrides, phase gate, capacity trace and aligned phase offset), so
-these samples are the ones behind that report's summary numbers.
-"""
+"""Per-second throughput and RTT, from every source, on identical capacity forcing."""
 
 from __future__ import annotations
 
@@ -51,14 +30,7 @@ def _iperf_series(intervals) -> tuple[list[float], list[float]]:
 
 
 def _kernel_series(path: Path) -> tuple[list[float], list[float]]:
-    """Per-second wire throughput (RECEIVER) and RTT (SENDER) from a clean log.
-
-    The sender's bits_per_second is its socket-WRITE rate: with a 64 MB send
-    buffer it read a flat ~177 Mbps with 0-Mbps stalls while the verified wire
-    rate was 122-196. Wire throughput therefore comes from the receiver's
-    intervals (server_output_json); RTT, which only the sender measures, comes
-    from the sender. The two series are truncated to a common length.
-    """
+    """Per-second wire throughput (RECEIVER) and RTT (SENDER) from a clean log."""
     payload = json.loads(path.read_text())
     rtt = [s["rtt"] / 1000.0 for i in payload.get("intervals", [])
            for s in (i.get("streams") or [])[:1]

@@ -1,15 +1,4 @@
-"""Merge sharded successor-protocol reports and assess the gates once, globally.
-
-A sharded run splits (location, direction, seed) across processes so 18 idle
-cores are not wasted on a sequential loop. Each shard therefore holds only part
-of a cell's seed group, and the selection gates -- positive-seed fraction and
-the bootstrap median CI in particular -- are only meaningful over the COMPLETE
-group. Shards are run with --skip-assessment and merged here, so the gates see
-exactly the same records a single sequential run would have produced.
-
-Refuses to assess a cell whose seed group is incomplete, rather than silently
-reporting a gate computed on a subset.
-"""
+"""Merge sharded successor-protocol reports and assess the gates once, globally."""
 
 from __future__ import annotations
 
@@ -47,9 +36,6 @@ def main() -> int:
         if not shard_path.exists():
             missing_files.append(str(shard_path))
             continue
-        # The runner writes a <out>.partial.json resume manifest alongside each
-        # report. A plain *.json glob picks up both, which silently DOUBLES
-        # every record and corrupts the seed groups the gates are computed over.
         if shard_path.name.endswith(".partial.json"):
             continue
         shard = json.loads(shard_path.read_text())
@@ -65,9 +51,6 @@ def main() -> int:
     if missing_files:
         print(f"[merge] WARNING: {len(missing_files)} shard file(s) missing: {missing_files}")
 
-    # A record is uniquely identified by cell + core + seed. Duplicates mean the
-    # shard set overlapped (e.g. a resume manifest read as a report), and they
-    # would inflate every seed group -- so fail loudly rather than assess them.
     seen: dict[tuple, int] = defaultdict(int)
     for record in records:
         seen[(record["location"], record["direction"], record["core"], record["seed"])] += 1

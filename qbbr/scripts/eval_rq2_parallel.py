@@ -18,9 +18,6 @@ LOCATIONS = ["London", "Mumbai", "Ohio", "SaoPaulo", "Sydney", "Tokyo"]
 N_SEEDS = 10
 N_EPISODES = 10
 ALPHA_LABELS = ["0.0", "0.25", "0.5", "0.75", "1.0", "inf"]  # every alpha>1 (not just 2.0)
-# is excluded: alpha_fair_efficiency_ratio is mathematically unbounded there whenever any
-# flow is near-starved (see qbbr.eval.metrics.alpha_fair_efficiency_ratio's docstring for
-# the closed-form reason and empirical magnitudes). alpha in [0,1] stays bounded.
 
 
 class _StockAgent:

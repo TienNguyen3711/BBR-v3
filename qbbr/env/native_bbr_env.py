@@ -1,9 +1,4 @@
-"""Real-control-loop environment for the constrained QRL--BBR brain.
-
-No shell/debugfs implementation is hidden here.  A deployment must provide an
-audited adapter for its exact BBR-v3 kernel build before a native semantic can
-be enabled in the contract.
-"""
+"""Real-control-loop environment for the constrained QRL--BBR brain."""
 
 from __future__ import annotations
 
