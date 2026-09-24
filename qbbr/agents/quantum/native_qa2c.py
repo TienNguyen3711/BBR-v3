@@ -8,7 +8,7 @@ from typing import Any, Sequence
 import numpy as np
 import torch
 
-from qbbr.agents.base_agent import BaseAgent, a2c_losses, discounted_returns
+from qbbr.agents.base_agent import BaseAgent, a2c_losses, discounted_returns, RunningReturnNormalizer
 from qbbr.agents.quantum.qnn import build_qnn
 from qbbr.control.native_action_selector import NativeActionSelector
 
@@ -32,6 +32,8 @@ class NativeQA2CAgent(BaseAgent):
         gamma: float = 0.99,
         reupload: bool = False,
         normalize_advantage: bool = True,
+        normalize_returns: bool = False,
+        critic_lr: float | None = None,
         selector: NativeActionSelector | None = None,
         entropy_coef: float = 0.0,
     ) -> None:
@@ -41,6 +43,10 @@ class NativeQA2CAgent(BaseAgent):
         self.native_action_count = native_action_count
         self.gamma = gamma
         self.normalize_advantage = normalize_advantage
+        # Standardise the critic's target so the Linear(1,1) head can represent
+        # it; without this the baseline is inert (see RunningReturnNormalizer).
+        self.normalize_returns = normalize_returns
+        self.return_normalizer = RunningReturnNormalizer()
         if entropy_coef < 0.0:
             raise ValueError("entropy_coef must be non-negative")
         self.selector = selector
@@ -49,13 +55,18 @@ class NativeQA2CAgent(BaseAgent):
         self.actor_head = torch.nn.Linear(observation_dim, native_action_count)
         self.critic_qnn = build_qnn(observation_dim, n_layers, reupload=reupload)
         self.critic_head = torch.nn.Linear(1, 1)
-        params = (
-            list(self.actor_qnn.parameters())
-            + list(self.actor_head.parameters())
-            + list(self.critic_qnn.parameters())
-            + list(self.critic_head.parameters())
-        )
-        self.optimizer = torch.optim.Adam(params, lr=lr)
+        # Separate learning rates. The critic must move its output by O(1) to
+        # reach the (normalised) return, and with Adam that needs ~1/lr steps:
+        # at lr 3e-4 that is ~3000 updates, far past the ~780 a 30-episode run
+        # provides, so the baseline stayed at its initialisation. critic_lr
+        # None keeps the single-rate legacy behaviour.
+        actor_params = list(self.actor_qnn.parameters()) + list(self.actor_head.parameters())
+        critic_params = list(self.critic_qnn.parameters()) + list(self.critic_head.parameters())
+        self.critic_lr = lr if critic_lr is None else float(critic_lr)
+        self.optimizer = torch.optim.Adam([
+            {"params": actor_params, "lr": lr},
+            {"params": critic_params, "lr": self.critic_lr},
+        ])
 
     def _actor_logits(self, state_t: torch.Tensor) -> torch.Tensor:
         return self.actor_head(self.actor_qnn(state_t))
@@ -98,11 +109,15 @@ class NativeQA2CAgent(BaseAgent):
         with torch.no_grad():
             return float(self._critic_value(state_t).item())
 
-    def update(self, batch: Any, entropy_coef: float | None = None) -> dict[str, float]:
+    def update(self, batch: Any, entropy_coef: float | None = None,
+               bootstrap_value: float = 0.0) -> dict[str, float]:
         if not hasattr(batch, "action_masks"):
             raise ValueError("NativeQA2CAgent requires a rollout with per-step action_masks.")
         ec = self.entropy_coef if entropy_coef is None else float(entropy_coef)
-        returns = discounted_returns(batch.rewards, self.gamma)
+        returns = discounted_returns(batch.rewards, self.gamma, bootstrap_value)
+        if self.normalize_returns:
+            self.return_normalizer.update(returns)
+            returns = self.return_normalizer.normalize(returns)
         log_probs, values, entropies, greedy_actions, stock_probabilities = [], [], [], [], []
         for state, action, allowed_indices in zip(batch.states, batch.actions, batch.action_masks):
             state_t = torch.as_tensor(np.asarray(state), dtype=torch.float32)
@@ -157,6 +172,8 @@ class NativeQA2CAgent(BaseAgent):
             "observation_dim": self.observation_dim,
             "native_action_count": self.native_action_count,
             "entropy_coef": self.entropy_coef,
+            "normalize_returns": self.normalize_returns,
+            "return_normalizer": self.return_normalizer.state_dict(),
         }
 
     def load_training_state_dict(self, checkpoint: dict) -> None:
@@ -169,6 +186,8 @@ class NativeQA2CAgent(BaseAgent):
         self.critic_qnn.load_state_dict(checkpoint["critic_qnn"])
         self.critic_head.load_state_dict(checkpoint["critic_head"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
+        if "return_normalizer" in checkpoint:
+            self.return_normalizer.load_state_dict(checkpoint["return_normalizer"])
 
     def save(self, path: str | Path) -> None:
         torch.save(self.training_state_dict(), path)

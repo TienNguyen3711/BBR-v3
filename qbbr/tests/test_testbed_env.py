@@ -73,7 +73,7 @@ def test_step_before_reset_raises():
 
 
 def test_reset_produces_a_valid_6dim_state():
-    raw = _pack_tcp_info(rtt=50_000, snd_cwnd=10, snd_mss=1460)
+    raw = _pack_tcp_info(rtt=50_000, snd_cwnd=10, snd_mss=1460) + bytes(64)
     env = TestbedEnv(_FakeSocket(raw), _SAMPLE_CALIBRATION, episode_s=10.0)
     s0 = env.reset()
     assert s0.shape == (6,)

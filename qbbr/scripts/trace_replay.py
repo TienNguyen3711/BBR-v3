@@ -133,7 +133,10 @@ def _load_agent(cfg, probe, ckpt_root: Path, location: str, direction: str, seed
         stock_init_bias=float(a.get("stock_init_bias", 0.0)),
     )
     model = quantum if core == "quantum" else classical
-    candidates = [ckpt_root / f"ckpt_{location}_{direction}_s{seed}",
+    # The current runner writes straight to <root>/<core>/<loc>/<dir>/seedN.pt;
+    # the ckpt_<loc>_<dir>* forms below are older layouts kept for old runs.
+    candidates = [ckpt_root,
+                  ckpt_root / f"ckpt_{location}_{direction}_s{seed}",
                   ckpt_root / f"ckpt_{location}_{direction}"]
     candidates += [ckpt_root / f"ckpt_{location}_{direction}_{tag}" for tag in ("a", "b")]
     for base in candidates:

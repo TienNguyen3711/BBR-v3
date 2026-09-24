@@ -1,0 +1,82 @@
+# RQ3 convergence extension: does the QA2C-versus-A2C null survive a budget at
+# which BOTH arms have stopped improving?
+#
+# WHY THIS RUN EXISTS. In the 30-episode screen
+# (rq_study_screen.yaml, study native-bbr-rq-screen-v2-sixcity) the two arms
+# were not in the same state when they were compared:
+#   a2c   +5.280% at episode 15 -> +5.307% at episode 30  (converged)
+#   qa2c  +3.388% at episode 15 -> +4.828% at episode 30  (still climbing)
+#   qdqn  +4.107% at episode 15 -> +5.157% at episode 30  (still climbing)
+# A "no quantum advantage" claim read off that comparison is confounded with
+# the episode budget. This run removes the confound; it does not re-open RQ2,
+# whose answer is structural (the classical arm's throughput is IDENTICAL to
+# four decimal places across all three state variants, so more episodes cannot
+# make a policy that ignores s5/s6/s7 begin to use them).
+#
+# PROMOTION PRECONDITION, declared in tier1_v14_fidelity.yaml as "Promote to 50
+# only if positive seeds, bootstrap CI, action distribution, and retransmissions
+# pass first", and MEASURED ON THE 30-EPISODE RUN BEFORE THIS ONE WAS WRITTEN:
+#   city      median  CI95 lower  positive seeds  max retransmit/s  action JS
+#   London    +3.18%     +0.55%        3/3             0.000          0.153
+#   Mumbai    +5.49%     +3.18%        3/3            -0.000          0.143
+#   Ohio      +4.87%     +3.03%        3/3            -0.000          0.147
+#   SaoPaulo  +4.53%     +3.59%        3/3             0.000          0.144
+#   Sydney    +6.50%     +6.42%        3/3            -0.006          0.038
+#   Tokyo     +4.65%     +2.97%        3/3            -0.001          0.156
+# All four criteria pass in all six cells (thresholds: CI lower >= 0, positive
+# fraction >= 0.70, retransmit delta <= +0.25/s, mean action JS <= 0.20). This
+# is the first run in the project to satisfy them, so the promotion is the
+# pre-registered rule firing rather than a budget chosen after seeing a result.
+#
+# NOT A CONTINUATION. Changing `episodes` changes the protocol digest, so the
+# 30-episode checkpoints are refused and these arms train from scratch. That is
+# intended: a 50-episode policy is a different experiment, not a longer one.
+# The 30-episode results stay untouched in their own output tree and remain the
+# reported basis for RQ1 and RQ2.
+study_id: native-bbr-rq3-convergence-50ep
+base_protocol: tier1_v14_fidelity.yaml
+
+locations: [London, Mumbai, Ohio, SaoPaulo, Sydney, Tokyo]
+directions: [downlink]
+training_seeds: [0, 1, 2]
+holdout_seeds: [1000, 1001, 1002, 1003, 1004]
+
+episodes: 50
+duration_s: 300.0
+
+# Only the full state. The ablated variants belong to RQ2, which this run does
+# not revisit, and carrying them would triple the cost for no RQ3 information.
+variants: [full]
+cores: [qa2c, a2c, qdqn]
+forcing: [synthetic]
+
+trace_split:
+  train_runs: [1, 2, 3, 4, 5, 6, 7]
+  test_runs: [8, 9, 10]
+  reference_cca: {downlink: bbr, uplink: bbr2}
+  capacity_proxy: envq90_w5
+# Every 10 episodes, so convergence is OBSERVED rather than asserted from two
+# endpoints. The curve is the primary output of this run; the final checkpoint
+# is still the reported one and the curve never selects it.
+curve_every: 10
+
+qdqn:
+  quantum_dim: 4
+  n_layers: 2
+  history_window: 8
+  replay_capacity: 10000
+  warmup_steps: 32
+  batch_size: 16
+  update_every: 4
+  target_sync_every: 50
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+
+bootstrap: {resamples: 10000, confidence: 0.95, seed: 20260921}
+field:
+  minimum_terminals: 2
+  minimum_locations: 2
+  minimum_span_days: 14
+  minimum_distinct_days_per_terminal: 7
+  directions: [uplink, downlink]
+  required_profiles: [bulk, video_streaming, voip, gaming]

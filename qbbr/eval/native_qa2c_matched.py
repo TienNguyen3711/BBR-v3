@@ -43,12 +43,14 @@ def build_matched_native_a2c_agents(
     gamma: float = 0.99, reupload: bool = False, max_hidden: int = 128,
     selector: NativeActionSelector | None = None, entropy_coef: float = 0.0,
     stock_action: int = 2, stock_init_bias: float = 0.0,
+    normalize_returns: bool = False, critic_lr: float | None = None,
 ) -> tuple[NativeQA2CAgent, NativeMLPA2CAgent, NativeQA2CMatch]:
     """Construct the primary QA2C and an exactly parameter-matched A2C arm."""
     quantum = NativeQA2CAgent(
         observation_dim=observation_dim, native_action_count=action_count,
         n_layers=n_layers, lr=lr, gamma=gamma, reupload=reupload,
         selector=selector, entropy_coef=entropy_coef,
+        normalize_returns=normalize_returns, critic_lr=critic_lr,
     )
     _apply_stock_init_bias(quantum.actor_head, stock_action, stock_init_bias)
     target = quantum.param_count()
@@ -65,6 +67,7 @@ def build_matched_native_a2c_agents(
         observation_dim=observation_dim, native_action_count=action_count,
         actor_hidden_dim=actor_hidden, critic_hidden_dim=critic_hidden, lr=lr, gamma=gamma,
         selector=selector, entropy_coef=entropy_coef,
+        normalize_returns=normalize_returns, critic_lr=critic_lr,
     )
     _apply_stock_init_bias(classical.actor[-1], stock_action, stock_init_bias)
     if classical.param_count() != target:

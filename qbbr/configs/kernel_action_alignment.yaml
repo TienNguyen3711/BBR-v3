@@ -1,0 +1,6 @@
+# Dynamics overlay for a NEW experiment; merge into dynamics_overrides.
+# This aligns the actuator, not the entire BBR phase clock or transport model.
+consistent_transport: true
+probe_bw_cycle: true
+native_cruise_override: true
+kernel_action_semantics: true

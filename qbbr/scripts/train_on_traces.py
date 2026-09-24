@@ -60,8 +60,8 @@ def build_pool(catalog, location, direction, cca, runs, capacity_proxy) -> list[
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--config", type=Path, default=PKG / "configs" / "tier1_native_qa2c_successor_protocol.yaml")
-    ap.add_argument("--calibration", type=Path, default=PKG / "data" / "calibrated" / "per_location_constants_v7c.json")
+    ap.add_argument("--config", type=Path, default=PKG / "configs" / "tier1_v14_fidelity.yaml")
+    ap.add_argument("--calibration", type=Path, default=PKG / "data" / "calibrated" / "per_location_constants_v14.json")
     ap.add_argument("--dataset-root", type=Path, default=PKG / "data" / "raw")
     ap.add_argument("--locations", nargs="+", default=["London", "Sydney"])
     ap.add_argument("--directions", nargs="+", default=["downlink", "uplink"])
@@ -104,9 +104,15 @@ def main() -> None:
             print(f"\n=== {location} {direction} (cca={cca}) train={len(train_pool)} traces "
                   f"eval={len(eval_pool)} traces ===", flush=True)
 
+            # TRAINING env uses the protocol's own reward. An earlier version
+            # hard-coded reward_mode="throughput_only" -- the exact objective the
+            # SNR gate showed cannot separate actions (1.88 sigma) -- so it
+            # could not have tested whether the v14 recipe transfers.
             def make_env(pool):
                 return FluidSimEnv(
-                    location, direction, calib, episode_s=300.0, reward_mode="throughput_only",
+                    location, direction, calib, episode_s=300.0,
+                    reward_mode=cfg["simulator"].get("reward_mode", "throughput_only"),
+                    reward_kwargs=cfg["simulator"].get("reward_kwargs"),
                     risk_mode=cfg["simulator"]["risk_mode"], dynamics_overrides=ov,
                     probe_bw_phase_gate=gate, capacity_trace_pool=pool)
 
@@ -135,11 +141,18 @@ def main() -> None:
                     reupload=a["reupload"], max_hidden=a["max_classical_hidden"],
                     selector=_selector(cfg), entropy_coef=float(a.get("entropy_coef", 0.0)),
                     stock_action=int(cfg["control"]["stock_action"]),
-                    stock_init_bias=float(a.get("stock_init_bias", 0.0)))
+                    stock_init_bias=float(a.get("stock_init_bias", 0.0)),
+                    normalize_returns=bool(a.get("normalize_returns", False)),
+                    critic_lr=a.get("critic_lr"))
                 for core in args.cores:
                     model = quantum if core == "quantum" else classical
+                    # Mirror the runner's loop_config. Passing {} dropped
+                    # n_step_update and silently reverted to ONE gradient step per
+                    # episode -- the v5-v9 failure (30 steps for a whole run).
+                    loop_config = {k: a[k] for k in ("entropy_start", "entropy_decay_episodes", "n_step_update")
+                                   if k in a}
                     train_native_qrl(
-                        model, make_env(train_pool), args.episodes, {}, start_episode=0,
+                        model, make_env(train_pool), args.episodes, loop_config, start_episode=0,
                         total_episodes=args.episodes, environment_seed_base=seed * 1_000_000,
                         reward_scale_mbps=cfg["training"]["reward_scale_mbps"])
                     deltas = []
