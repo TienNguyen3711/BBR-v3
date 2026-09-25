@@ -1,0 +1,11 @@
+FROM ubuntu:24.04
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential bc bison flex libssl-dev libelf-dev curl ca-certificates python3 \
+    qemu-system-arm busybox-static cpio iproute2 iperf3 kmod \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /lab
+RUN curl -fL --retry 3 https://codeload.github.com/google/bbr/tar.gz/b16a9a18178b55103fbd2028967952db52d19f36 -o linux.tar.gz \
+    && mkdir linux && tar -xzf linux.tar.gz -C linux --strip-components=1 && rm linux.tar.gz
+COPY gain_parser.h bbr_qrl_ctl.h bbr_qrl_ctl.c Makefile prepare_source.py /lab/adapter/
+COPY build_audit.sh /lab/build_audit.sh
+RUN sh /lab/build_audit.sh

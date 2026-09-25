@@ -1,0 +1,107 @@
+# Runnable screen for RQ1/RQ2/RQ3 on the v14 difference-reward contract.
+#
+# rq_complete_study.yaml declares the full 1800-job matrix (~800 single-core
+# hours at the measured per-decision timings). This config is the screen that
+# precedes it:
+#
+#   RQ1  full/qa2c/a2c on synthetic forcing, plus the unchanged-policy
+#        transfer onto measured capacity when --dataset is supplied.
+#   RQ2  full vs telemetry vs telemetry_queue at a matched core and seed.
+#   RQ3  qa2c vs a2c at the shared 126-parameter budget, and qdqn as the
+#        recurrent estimator ablation.
+#
+# 6 locations x 1 direction x 3 seeds x (3 variants x 2 cores + qdqn) = 126
+# jobs, ~20.7 single-core hours, ~4.1 h across the recommended 7 shards.
+study_id: native-bbr-rq-screen-v2-sixcity
+base_protocol: tier1_v14_fidelity.yaml
+
+# SCOPE, PRE-REGISTERED BEFORE THE RUN.
+#
+# An earlier version of this file scoped the screen to Sydney and Mumbai, on
+# the grounds that v14's achievability check (reports/achievability_12cells.json)
+# predicted real headroom only in a few cells and that Sydney has the cleanest
+# learning signal (dl R^2 0.254 / 19.8 sigma). That reasoning was sound but the
+# cost model behind it was wrong, and correcting it removed the reason to
+# restrict the locations at all.
+#
+# Cost scales with DECISIONS, not with simulated seconds. The decision interval
+# is a function of the path's minimum RTT, so one 300 s episode is 4967
+# decisions on Sydney (RTT_min 30 ms) but 615 on SaoPaulo (388 ms) -- an 8x
+# spread for the same protocol. Sydney alone was 81% of the old two-city screen
+# and is 51% of the full matrix; the five other downlinks together cost about
+# as much as Sydney by itself. Running all six is therefore CHEAPER than the
+# two-city screen was (4.1 h vs 5.1 h at 7 shards) while covering six cells.
+#
+# The external-validity caveat that the two-city version had to carry -- that a
+# positive result would not generalise beyond the cells chosen for having the
+# effect -- is retired by this scope, and RQ2 now shares its cell set with the
+# six locations RQ4 reports.
+locations: [London, Mumbai, Ohio, SaoPaulo, Sydney, Tokyo]
+directions: [downlink]
+
+# Three training seeds resolve a 2/3 vs 3/3 pattern, not the >=0.70 stability
+# gate, which needs the five seeds of the full matrix. Seed-level outcomes are
+# reported individually; no seed is selected on its holdout score.
+training_seeds: [0, 1, 2]
+# Five holdout seeds rather than ten. Holdout evaluation, not training, is what
+# makes the full matrix unaffordable: it is repeated at every curve point.
+holdout_seeds: [1000, 1001, 1002, 1003, 1004]
+
+# NOT REDUCED, DELIBERATELY. Both were candidates for cutting and both were
+# rejected on evidence already in this repository:
+#  - episodes: v12's diagnose_seed_freeze_v11.py measured seeds whose greedy
+#    policy needs ~26 episodes for the stock/non-stock logit margin to change
+#    sign. A 15-episode budget would reproduce the frozen-seed artefact and
+#    measure the budget rather than the features.
+#  - duration_s: the closed_form_dynamic handover cycle is 5.4 min (324 s). An
+#    episode shorter than one cycle never completes a period of s5, and would
+#    not be comparable with the Tier-1 and v14 results, which are at 300 s.
+episodes: 30
+duration_s: 300.0
+
+cores: [qa2c, a2c, qdqn]
+# STAGE 1 of a two-stage variant design. The RQ2 question is whether the
+# anticipatory features help at all, which is the full/telemetry contrast;
+# telemetry_queue splits that into "queue" versus "handover + reconfiguration".
+# The four leave-one-out variants (no_queue, no_handover, no_failure, no_phase)
+# are diagnostics that EXPLAIN a non-null contrast -- they have nothing to
+# explain if stage 1 is null. Promote to the full seven only if stage 1 shows
+# a difference, by adding them to `variants` here; completed stage-1 jobs are
+# reused from their checkpoints rather than retrained.
+variants: [full, telemetry, telemetry_queue]
+# Synthetic only. A synthetic job run with --dataset also reports the
+# unchanged synthetic-trained policy on measured capacity as
+# transfer_evaluation, which is the RQ1 transfer contrast; separate replay
+# TRAINING arms are deferred to the full matrix because each costs three
+# times a synthetic job.
+forcing: [synthetic]
+
+trace_split:
+  train_runs: [1, 2, 3, 4, 5, 6, 7]
+  test_runs: [8, 9, 10]
+  reference_cca: {downlink: bbr, uplink: bbr2}
+  capacity_proxy: envq90_w5
+# Held-out curve at the midpoint and the end only. The FINAL checkpoint is
+# always the reported one; the curve is never used to select it.
+curve_every: 15
+
+qdqn:
+  quantum_dim: 4
+  n_layers: 2
+  history_window: 8
+  replay_capacity: 10000
+  warmup_steps: 32
+  batch_size: 16
+  update_every: 4
+  target_sync_every: 50
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+
+bootstrap: {resamples: 10000, confidence: 0.95, seed: 20260920}
+field:
+  minimum_terminals: 2
+  minimum_locations: 2
+  minimum_span_days: 14
+  minimum_distinct_days_per_terminal: 7
+  directions: [uplink, downlink]
+  required_profiles: [bulk, video_streaming, voip, gaming]

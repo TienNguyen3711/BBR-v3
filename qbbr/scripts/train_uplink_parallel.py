@@ -1,23 +1,10 @@
-"""Trains qbbr (classical core, pacing_gain-only action space, closed_form
-risk mode) from scratch under UPLINK dynamics -- every existing checkpoint
-in this project (checkpoints_final, checkpoints_multihead, ...) was trained
-under downlink only, even though per_location_constants.json already holds
-a fully-calibrated, physically distinct uplink parameter set (much lower
-B_max, much higher baseline retransmit rate -- see qbbr/env/calibration.py)
-and the real trace dataset already has uplink coverage for every CCA. This
-is the first script to actually exercise that half of the calibration.
-
-Mirrors base.yaml (seed 0, gamma 0.99, lr 1e-3, n_layers 2, 200 episodes --
-config's target_episodes[0]) and eval_rq1_parallel.py's action space
-default (action_pacing_gain.yaml) exactly, just under direction="uplink"
-instead of "downlink", so the resulting checkpoints are the direct uplink
-counterpart of outputs/checkpoints_final/pacing_only/classical.
-
-No `action_config` is passed to FluidSimEnv -- its own default already is
-the single-head pacing_gain space (confirmed: mirrors what train.py does
-for a plain classical/pacing-only run).
-
-Output -> outputs/checkpoints_uplink/pacing_only/classical/{location}/seed{N}.pt
+"""
+Trains qbbr (classical core, pacing_gain-only action space, closed_form risk mode) from scratch
+under UPLINK dynamics -- every existing checkpoint in this project (checkpoints_final,
+checkpoints_multihead, ...) was trained under downlink only, even though per_location_constants.json
+already holds a fully-calibrated, physically distinct uplink parameter set (much lower B_max, much
+higher baseline retransmit rate -- see qbbr/env/calibration.py) and the real trace dataset already
+has uplink coverage for every CCA.
 """
 from __future__ import annotations
 

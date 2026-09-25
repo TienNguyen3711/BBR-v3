@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from qbbr.action.kernel_contract import CommandState
 
 from scipy.special import i0 as _bessel_i0
 
@@ -11,11 +12,6 @@ _P_TOT_RISK_THRESHOLD = 0.02  # p_tot level considered "active risk" (was inline
 _HANDOVER_CYCLE_S = 15.0  # matches qbbr.risk.ptot._HANDOVER_CYCLE_S; the validated real cadence (Sec. VI-B)
 
 ECN_MARK_THRESHOLD_MULT = 1.0  # v_bytes/bdp ratio above which a substep counts as ECN-marked
-# (RFC 3168/DCTCP-style: any queueing beyond the pure bandwidth-delay product is a congestion
-# signal). A LEVEL-based, congestion-only companion to the reward's delta-only l_t term
-# (qbbr.reward.alpha_fair) -- purely a function of v_bytes/bdp (physical queue occupancy), with
-# a FIXED, non-agent-controllable threshold, so unlike drawdown_activate_mult there is no lever
-# an agent can move to shrink the *measured* signal without genuinely reducing queueing.
 
 
 def ecn_marked(v_bytes: float, bdp: float, threshold_mult: float = ECN_MARK_THRESHOLD_MULT) -> bool:
@@ -23,31 +19,14 @@ def ecn_marked(v_bytes: float, bdp: float, threshold_mult: float = ECN_MARK_THRE
 
 
 STARTUP_GAIN = 2.77  # BBR-v3 STARTUP *pacing* gain. BBR-v1/v2 used 2/ln(2) ~= 2.89; BBR-v3
-# recalibrated the pacing gain to 2.77 via analytic re-derivation (Gomez et al. Sec. 2.5.2).
-# This is a fluid (rate) model, so the injection multiplier IS a pacing-rate gain -- the separate
-# BBR-v3 cwnd_gain recalibration (2.89 -> 2.0) has no analogue here (no congestion window), and
-# the revised loss-based STARTUP exit (6 vs 8 loss events per round) is likewise not modelled:
-# STARTUP here exits on volume (STARTUP_EXIT_MULT) or STARTUP_MAX_DURATION_S, not on loss counting.
-# Applied as the ENTIRE injection multiplier during STARTUP (bypassing the normal
-# i_crs*pacing_gain + (1-i_crs)*stock_multiplier blend below) -- the agent does not control
-# pacing during STARTUP in real BBR-v3 either, matching main.tex's design (overrides apply only
-# in ProbeBW_CRUISE).
 STARTUP_EXIT_MULT = 2.5  # v_bytes/bdp level at which STARTUP is considered to have filled the
-# pipe and exits -- matches this project's existing V_OVER_BDP_CAP convention
-# (qbbr.features.state_builder) and the ~2-2.9x overshoot range Scherrer et al. report during
-# real BBR-v2/v3 STARTUP.
 STARTUP_MAX_DURATION_S = 10.0  # fallback exit if the exit-volume condition is never reached
 # (e.g. a severely capacity-limited multi-flow scenario) -- a small fraction of a 300s episode.
 
 
 @dataclass(frozen=True)
 class PhaseProfile:
-    """Empirical handover-phase concentration of the retransmit process
-    (Sec. VI-B: run-level Rayleigh test, sequential downlink traces), encoded
-    as a von Mises density so retransmit_phase_multiplier() has a closed form.
-    Not a fitted/assumed shape: mean_phase_s and r_bar are the measured
-    values (mean phase, mean resultant length) from validate_handover_cadence.py.
-    """
+    """Empirical handover-phase concentration of the retransmit process."""
 
     mean_phase_s: float
     r_bar: float
@@ -55,8 +34,10 @@ class PhaseProfile:
 
     @property
     def kappa(self) -> float:
-        """Standard R-bar -> von Mises concentration approximation (Fisher 1993,
-        Sec. 5.3), valid for R_bar in [0, 1)."""
+        """
+        Standard R-bar -> von Mises concentration approximation (Fisher 1993, Sec. 5.3),
+        valid for R_bar in.
+        """
         r = self.r_bar
         if r < 0.53:
             return 2 * r + r**3 + 5 * r**5 / 6
@@ -66,12 +47,10 @@ class PhaseProfile:
 
 
 def retransmit_phase_multiplier(t_s: float, phase_profile: PhaseProfile | None) -> float:
-    """m(phi(t)): phase-dependent multiplier on the per-location retransmit
-    rate, normalized so its average over one full cycle is 1.0 -- it
-    redistributes a location's calibrated rate IN TIME to match the measured
-    handover-phase-lock (Sec. VI-B), without changing the calibrated total.
-    phase_profile=None disables modulation (uniform rate, m=1 everywhere),
-    e.g. for tests that don't care about phase structure.
+    """
+    m(phi(t)): phase-dependent multiplier on the per-location retransmit rate, normalized so its
+    average over one full cycle is 1.0 -- it redistributes a location's calibrated rate IN TIME
+    to match the measured handover-phase-lock.
     """
     if phase_profile is None:
         return 1.0
@@ -98,96 +77,39 @@ class FluidParams:
     relax_rate_hz: float = 4.0  # how fast i_dwn/i_crs relax toward their sigmoid targets
     dwn_retransmit_rate_pps: float = _DWN_RETRANSMIT_RATE_PPS  # calibrated per-location; see env/calibration.py
     phase_profile: PhaseProfile | None = None  # shared across locations (Sec. VI-B pooled measurement)
-    # Disabled by default to preserve legacy results. When positive, this is
-    # the recovery time constant of BBR's delivery-bandwidth estimate after a
-    # handover capacity dip. It must be calibrated from observed telemetry
-    # before it can be treated as a field-model parameter.
     bandwidth_estimate_recovery_s: float = 0.0
-    # Disabled by default (legacy: delivered throughput was pinned at the
-    # bottleneck for any pacing gain >= 1, so over-pacing was free on
-    # throughput and only cost retransmits). When positive, sustained
-    # over-pacing that drives BBR into DRAIN (high i_dwn) also depresses
-    # delivered throughput -- effective capacity is scaled by
-    # (1 - drain_throughput_penalty * i_dwn). This is BBR's own behaviour
-    # (inflight clamps, the pipe partially drains); it makes "always
-    # aggressive" strictly worse on throughput than a gain that is only
-    # raised when it is needed. It is a modelling parameter, not a fitted
-    # Starlink constant, until calibrated against observed DRAIN episodes.
+    bw_estimate_max_filter_rounds: float = 0.0
     drain_throughput_penalty: float = 0.0
-    # Stage 1b fit fixes (default 0.0 = legacy). The rate-balance delivery
-    # model above lets v_bytes fall to ~0 under stock pacing, but real BBR-v3
-    # holds ~1 BDP in flight (cwnd = 2 BDP, one-RTT delivery lag). When
-    # positive, the *reported* inflight/BDP carries a persistent pipe term of
-    # this many BDP (shrunk while draining); v_bytes itself still tracks only
-    # the queue backlog, so i_crs/i_dwn, ECN, and q_packets are unchanged.
-    # Calibrated per location from observed snd_cwnd/BDP (env/calibration.py).
     steady_inflight_bdp_frac: float = 0.0
-    # Real BBR-v3 retransmits continuously over Starlink (aggressive probing +
-    # LEO loss), not only during modelled DRAIN. When positive, this
-    # per-location baseline rate (packets/s, phase-modulated) is added to the
-    # DRAIN-gated term. Calibrated from the observed retransmit rate.
     base_retransmit_rate_pps: float = 0.0
 
-    # --- Goal-2 dynamics (throughput vs retransmit/RTT). All default off (0.0)
-    # => legacy behaviour. They make the *cost* of over-pacing faithful so a
-    # throughput-seeking pacing_gain policy cannot inflate queue/loss for free.
-    #
-    # cwnd_gain: BBR-v3's inflight *cap* = cwnd_gain * BDP (real default 2.0).
-    # When > 0 the queue backlog is clamped at (cwnd_gain-1)*BDP*inflight_hi_scale,
-    # so past the cap a higher pacing_gain buys nothing (BBR stops sending at
-    # cwnd) and RTT / buffer-loss are bounded rather than unbounded.
     consistent_transport: bool = False  # versioned queue/goodput proxy; requires recalibration
     cwnd_gain: float = 0.0
-    # Loss response: if the per-round retransmission fraction (retransmits / total serviced
-    # packets) exceeds loss_thresh (real BBR-v3 ~0.02), inflight_hi_scale is cut
-    # by loss_beta (real ~0.7); it recovers toward 1.0 over inflight_hi_recover_s.
     loss_thresh: float = 0.0
     loss_beta: float = 0.7
     inflight_hi_recover_s: float = 3.0
-    # ECN response: a continuous pull on inflight_hi_scale toward
-    # (1 - ecn_response_factor) while modelled inflight sits above
-    # ecn_response_thresh_bdp * BDP (a standing-queue signal the AQM would mark).
     ecn_response_factor: float = 0.0
     ecn_response_thresh_bdp: float = 1.0
-    # ProbeRTT: every probe_rtt_interval_s (real ~5 s) drain inflight toward
-    # probe_rtt_cwnd_frac * BDP (real ~0.5) for probe_rtt_duration_s (real
-    # ~0.2 s), refreshing min-RTT and clearing the queue. off when interval = 0.
     probe_rtt_interval_s: float = 0.0
     probe_rtt_duration_s: float = 0.2
     probe_rtt_cwnd_frac: float = 0.5
 
-    # --- v7 ProbeBW cycle (goal-2 fidelity). Default off => legacy behaviour.
-    # When on, a chosen gain > 1.0 is executed as a real BBR-v3 ProbeBW_UP
-    # pulse of probe_up_rounds round(s), then a ProbeBW_DOWN drain of
-    # probe_down_rounds round(s) at probe_down_gain (0.75, a native action
-    # value), then ProbeBW_CRUISE at <= 1.0 until the next probe is due
-    # (probe_bw_interval_s, Eq. 22). The queue then sawtooths at ~(gain-1)*BDP
-    # instead of holding a full cwnd of standing backlog, so a *sustained*
-    # high gain no longer roughly doubles RTT -- only a well-timed probe pays.
-    # A chosen gain <= 1.0 is pure cruise: stock 1.0 reproduces the pre-v7
-    # baseline exactly (no autonomous probe). This changes how the frozen
-    # action maps to queue/RTT dynamics, not the action set or the
-    # throughput-only reward. See docs/transport_v6_review.md (v7 section);
-    # supervisor-flagged reinterpretation of the ProbeBW hook.
     probe_bw_cycle: bool = False
+    native_cruise_override: bool = False
+    kernel_action_semantics: bool = False
+    native_probe_up_gain: float = 1.25
+    native_probe_down_gain: float = 0.90
     probe_up_rounds: float = 1.0
     probe_down_rounds: float = 1.0
     probe_down_gain: float = 0.75
-    # v7b: hard ceiling on the standing queue a ProbeBW_UP/DOWN pulse may build,
-    # expressed as queuing delay (ms) rather than a BDP fraction. On a
-    # degenerate low-capacity path (e.g. the util=0.05 uplinks) 0.5 BDP is tens
-    # of ms of RTT; this bounds the probe's RTT cost the same on every link.
-    # 0.0 disables (v7 behaviour: only the cwnd cap / 0.5-BDP hold limit apply).
     probe_max_queue_delay_ms: float = 0.0
-    # Queue-pressure retransmissions (goal-2). Default 0.0 => legacy. When > 0,
-    # once the modelled inflight backlog exceeds the buffer ceiling
-    # (cwnd_gain * BDP, or drawdown_activate_mult * BDP when the cwnd cap is
-    # off) a fraction overflow_retransmit_frac of the packets serviced that
-    # substep are also retransmitted, scaled by how far over the ceiling the
-    # backlog sits. This restores a causal link from over-pacing to loss
-    # without a reward term (the throughput-only reward is unchanged); it is
-    # enforced only through the reported retransmission safety gate.
     overflow_retransmit_frac: float = 0.0
+
+    def __post_init__(self) -> None:
+        if self.kernel_action_semantics and not self.native_cruise_override:
+            raise ValueError("kernel_action_semantics requires native_cruise_override")
+        if self.native_cruise_override and not (self.probe_bw_cycle and self.consistent_transport):
+            raise ValueError("native_cruise_override requires probe_bw_cycle and consistent_transport")
 
     @property
     def sustained_x_btl_bps(self) -> float:
@@ -217,10 +139,8 @@ class FluidState:
     i_crs: float = 1.0  # cruise indicator, continuous in [0, 1]
     t_since_probe_s: float = 0.0
     startup_done: bool = True  # True = skip STARTUP modeling (pre-STARTUP-prefix default
-    # behavior: every existing caller that constructs FluidState without this field, e.g. every
-    # unit test written before STARTUP was added, is unaffected). Only FluidSimEnv.reset() sets
-    # this False, opting a fresh episode into the STARTUP-phase prefix (see step_fluid_state).
     bbr_bw_est_bps: float = 0.0  # zero means use instantaneous capacity (legacy path)
+    bbr_bw_est_age_s: float = 0.0  # time held by the BtlBw max filter; unused when it is off
     # Goal-2 dynamics state (defaults are the legacy no-op values):
     inflight_hi_scale: float = 1.0  # multiplicative backoff on the cwnd cap from loss / ECN
     t_since_probe_rtt_s: float = 0.0  # ProbeRTT phase timer
@@ -232,8 +152,12 @@ class FluidState:
     pipe_bytes: float = 0.0
     service_rate_bytes_s: float = 0.0
     in_probe_rtt: bool = False
-    probe_phase: int = 0  # v7 ProbeBW state: 0 = CRUISE, 1 = UP, 2 = DOWN
+    probe_phase: int = 0  # 0 = CRUISE, 1 = UP, 2 = DOWN, 3 = REFILL (native audit)
     probe_phase_elapsed_s: float = 0.0
+    command: CommandState = CommandState()
+    action_loss_credit: float = 0.0
+    action_loss: bool = False
+    action_ce: bool = False
 
 
 def sigmoid(x: float, k: float = 8.0) -> float:
@@ -334,7 +258,7 @@ def bbr_offered_rate_bps(
 
 def step_fluid_state(
     state: FluidState,
-    pacing_gain: float,
+    pacing_gain: float | None,
     dt_s: float,
     params: FluidParams,
     p_tot: float,
@@ -345,6 +269,8 @@ def step_fluid_state(
     inflight_hi_mult_override: float | None = None,
     inflight_lo_mult_override: float | None = None,
     drawdown_activate_mult_override: float | None = None,
+    refresh_command: bool = True,
+    action_eligible: bool = True,
 ) -> tuple[FluidState, float, float]:
 
     bdp = params.bdp_bytes
@@ -367,10 +293,6 @@ def step_fluid_state(
 
     crs_target = _vol_sigmoid(bdp_lo_mult_now * bdp - state.v_bytes) * (1.0 - dwn_target)
 
-    # consistent_transport (v6+) uses the exact exponential relaxation factor
-    # so i_dwn / i_crs -- and everything they gate (retransmits, the loss
-    # backoff, the RTT tail) -- do not depend on substep_s. The legacy path
-    # keeps the original explicit factor to preserve calibrated outputs.
     relax = (
         -math.expm1(-params.relax_rate_hz * dt_s)
         if params.consistent_transport
@@ -393,11 +315,35 @@ def step_fluid_state(
     probe_phase = state.probe_phase
     probe_phase_elapsed_s = state.probe_phase_elapsed_s
     t_since_probe_s = state.t_since_probe_s + dt_s
+    command = state.command
+    if params.kernel_action_semantics:
+        if refresh_command:
+            command = command.write(pacing_gain, state.t_s)
+        pacing_gain = 1.0  # only the actuator below may apply a request
     eff_gain = pacing_gain
-    if params.probe_bw_cycle and not in_startup:
-        # A pipe genuinely below its bandwidth-delay target: the post-handover
-        # underfill window where pacing above 1.0 recovers throughput. Empty in
-        # steady cruise (estimate tracked), so it never fires there.
+    if params.native_cruise_override and not in_startup:
+        if state.in_probe_rtt:
+            eff_gain = 1.0
+        elif probe_phase == 1:
+            eff_gain = params.native_probe_up_gain
+            probe_phase_elapsed_s += dt_s
+            if probe_phase_elapsed_s + 1e-12 >= params.probe_up_rounds * params.rtt_rtp_s:
+                probe_phase, probe_phase_elapsed_s = 2, 0.0
+        elif probe_phase == 2:
+            eff_gain = 232 / 256 if params.kernel_action_semantics else params.native_probe_down_gain
+            probe_phase_elapsed_s += dt_s
+            if probe_phase_elapsed_s + 1e-12 >= params.probe_down_rounds * params.rtt_rtp_s:
+                probe_phase, probe_phase_elapsed_s, t_since_probe_s = 0, 0.0, 0.0
+        elif probe_phase == 3:
+            eff_gain = 1.0
+            probe_phase_elapsed_s += dt_s
+            if probe_phase_elapsed_s + 1e-12 >= params.rtt_rtp_s:
+                probe_phase, probe_phase_elapsed_s = 1, 0.0
+        else:
+            eff_gain = pacing_gain if state.i_crs >= 0.5 else 1.0
+            if t_since_probe_s + 1e-12 >= probe_interval_s:
+                probe_phase, probe_phase_elapsed_s = 3, 0.0
+    elif params.probe_bw_cycle and not in_startup:
         underfilled = (
             recovery_enabled
             and capacity_bps_now > bw_estimate_bps * 1.02
@@ -420,10 +366,6 @@ def step_fluid_state(
                 probe_phase = 0
         else:  # ProbeBW_CRUISE: a chosen gain > 1.0 waits here for the UP window
             eff_gain = min(pacing_gain, 1.0)
-            # Leave CRUISE for ProbeBW_UP on the periodic timer (Eq. 22) OR
-            # early when the pipe is underfull -- the latter is what lets a
-            # *well-timed* high gain recover a post-handover hole a fixed
-            # cadence would miss, without adding any RTT cost in steady cruise.
             if pacing_gain > 1.0 and (t_since_probe_s >= probe_interval_s or underfilled):
                 probe_phase, probe_phase_elapsed_s = 1, 0.0
                 t_since_probe_s = 0.0 if underfilled else t_since_probe_s - probe_interval_s
@@ -431,6 +373,10 @@ def step_fluid_state(
         t_since_probe_s = 0.0  # legacy reset (no cycle; value is vestigial)
 
     multiplier = STARTUP_GAIN if in_startup else (i_crs * eff_gain + (1.0 - i_crs) * stock_multiplier)
+    if params.native_cruise_override and not in_startup:
+        # Do not blend the discrete applied gain with the legacy soft phase
+        # indicator. Native UP/DOWN/REFILL gains belong to stock control.
+        multiplier = eff_gain
 
     # --- ProbeRTT phase (goal-2): a short periodic drain. off when interval == 0.
     probe_rtt_on = params.probe_rtt_interval_s > 0.0 and not in_startup
@@ -445,6 +391,17 @@ def step_fluid_state(
         in_probe_rtt, t_since_probe_rtt_s = False, 0.0
     if in_probe_rtt:
         multiplier = min(multiplier, params.probe_rtt_cwnd_frac)  # pace down to drain
+
+    if params.kernel_action_semantics:
+        # The fluid phase clock is still a proxy. Observe the phase serving
+        # this substep, not the next phase already scheduled above.
+        cruise = not in_startup and not in_probe_rtt and state.probe_phase == 0
+        native = (710 if in_startup else 256 if in_probe_rtt else
+                  {0: 256, 1: 320, 2: 232, 3: 256}[state.probe_phase])
+        command = command.observe(state.t_s, cruise=cruise,
+            eligible=cruise and action_eligible and not state.action_loss and not state.action_ce,
+            native=native)
+        multiplier = command.applied / 256
 
     pacing_rate_bps = bw_estimate_bps * multiplier
 
@@ -467,11 +424,6 @@ def step_fluid_state(
     if params.cwnd_gain > 0.0:
         cap_frac = params.probe_rtt_cwnd_frac if in_probe_rtt else params.cwnd_gain
         max_backlog = max((cap_frac * state.inflight_hi_scale - 1.0) * bdp, 0.0)
-        # v7b: cap the standing queue at a fixed queuing-delay budget (drained
-        # at the current service rate) so a ProbeBW pulse -- and any residual
-        # it leaves into cruise or a handover dip -- adds a bounded RTT cost,
-        # the same on every path (fixes the +50 ms the probe cost on the
-        # util=0.05 uplinks where a cwnd of queue is hundreds of ms).
         if params.probe_bw_cycle and params.probe_max_queue_delay_ms > 0.0:
             max_backlog = min(max_backlog, params.probe_max_queue_delay_ms / 1000.0 * effective_capacity_bps)
         if params.consistent_transport:
@@ -482,13 +434,20 @@ def step_fluid_state(
     delivered_bytes = min(capacity_bytes, state.v_bytes + injected_bytes)
     v_bytes = max(state.v_bytes + injected_bytes - delivered_bytes, 0.0)
 
-    if recovery_enabled:
+    next_bw_est_age_s = 0.0
+    if recovery_enabled and params.bw_estimate_max_filter_rounds > 0.0:
+        window_s = params.bw_estimate_max_filter_rounds * params.rtt_rtp_s
+        if capacity_bps_now >= bw_estimate_bps:
+            next_bw_estimate_bps, next_bw_est_age_s = capacity_bps_now, 0.0
+        elif state.bbr_bw_est_age_s + dt_s < window_s:
+            next_bw_estimate_bps = bw_estimate_bps
+            next_bw_est_age_s = state.bbr_bw_est_age_s + dt_s
+        else:
+            next_bw_estimate_bps, next_bw_est_age_s = capacity_bps_now, 0.0
+    elif recovery_enabled:
         if capacity_bps_now <= bw_estimate_bps:
             next_bw_estimate_bps = capacity_bps_now
         else:
-            # Exact exponential approach to a piecewise-constant target (same
-            # idiom as pipe_bytes / inflight_hi_scale below): substep-size
-            # independent, unlike the former explicit dt/tau Euler step.
             recovery = -math.expm1(-dt_s / params.bandwidth_estimate_recovery_s)
             next_bw_estimate_bps = bw_estimate_bps + recovery * (capacity_bps_now - bw_estimate_bps)
     else:
@@ -530,6 +489,7 @@ def step_fluid_state(
         t_since_probe_s=t_since_probe_s,
         startup_done=startup_done_now,
         bbr_bw_est_bps=next_bw_estimate_bps,
+        bbr_bw_est_age_s=next_bw_est_age_s,
         inflight_hi_scale=next_scale,
         t_since_probe_rtt_s=t_since_probe_rtt_s,
         in_probe_rtt=in_probe_rtt,
@@ -542,5 +502,11 @@ def step_fluid_state(
         service_rate_bytes_s=effective_capacity_bps,
         probe_phase=probe_phase,
         probe_phase_elapsed_s=probe_phase_elapsed_s,
+        command=command,
+        # Fractional fluid retransmission demand accumulates to packet signals;
+        # a positive fractional expectation is not a loss on every ACK.
+        action_loss_credit=(state.action_loss_credit + retransmits) % 1.0,
+        action_loss=state.action_loss_credit + retransmits >= 1.0,
+        action_ce=ecn_marked(v_bytes, bdp),
     )
     return new_state, delivered_bytes, retransmits

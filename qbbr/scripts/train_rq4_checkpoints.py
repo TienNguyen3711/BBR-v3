@@ -1,33 +1,6 @@
-"""Train the RQ4 quantum-vs-classical comparison at the full seeded protocol,
-parallelised over (location x seed x core).
-
-RQ4 asks whether a quantum policy core outperforms, matches, or trails a
-classical network *under an equal trainable-parameter budget*, with state,
-action space, reward, environment and seeds held identical. The classical
-arm is built through ``build_full_parameter_matched_classical`` (the
-``--rq4-full-match`` contract: every actor/critic parameter matched, not just
-the variational block); the quantum arm is the ``QA2CAgent`` VQC core.
-
-This mirrors ``train_rq3_checkpoints.py``: it exists so the RQ4
-checkpoint-building step is a committed, parameterised entry point that
-fans jobs out across a process pool, rather than ``run_ablation.py``'s
-sequential per-(location,core) seed loop. Checkpoints land at
-``<out-root>/<core>/<location>/seed<N>.pt``; a summary JSON with per-location
-quantum-vs-classical medians, IQRs and a Mann-Whitney test is written to
-``--out``.
-
-    # the current seven-input L=2 grid point (matches archived tab:qvc scope)
-    python -m qbbr.scripts.train_rq4_checkpoints \
-        --out-root outputs/checkpoints_rq4_full --out outputs/rq4_full_report.json
-
-    # Sydney at fewer seeds (its low RTT makes the quantum arm the wall-clock
-    # bottleneck; the other five locations stay at the full 10)
-    python -m qbbr.scripts.train_rq4_checkpoints --locations Sydney --seeds 0 1 2 \
-        --out-root outputs/checkpoints_rq4_full --out outputs/rq4_full_sydney.json
-
-The fast simulator backend (lightning.qubit + adjoint, see qbbr/agents/
-quantum/qnn.py) is used automatically for the quantum arm; set
-QBBR_QUANTUM_DEVICE=default.qubit to force the reference backend.
+"""
+Train the RQ4 quantum-vs-classical comparison at the full seeded protocol, parallelised over
+(location x seed x core).
 """
 from __future__ import annotations
 

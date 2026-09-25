@@ -1,21 +1,4 @@
-"""RQ4 figure: quantum vs. parameter-matched classical policy core.
-
-Top row -- one zoomed panel per location, the 10 per-seed final-episode
-rewards for each core as a jittered strip with a median bar, Mann-Whitney p
-annotated. The two clouds overlap at every location: the point is that the
-difference is smaller than either core's own seed-to-seed spread.
-
-Bottom panel -- median(quantum) - median(classical) per location for the
-current seven-input run and for the archived six-input run, against a shaded
-band of +/- a typical seven-input core IQR. Both straddle zero and the sign
-of the sub-IQR gap flips between the two architectures.
-
-Source: outputs/rq4_full_report.json (train_rq4_checkpoints.py). The
-six-input medians are the archived tab:qvc values (primary-module match,
-109 quantum vs 74 classical full parameters).
-
-    python -m qbbr.scripts.make_rq4_figure
-"""
+"""RQ4 figure: quantum vs. parameter-matched classical policy core."""
 from __future__ import annotations
 
 import json
@@ -67,9 +50,6 @@ def main() -> None:
         ax = fig.add_subplot(gs[0, i])
         c, q = samples(loc, "classical"), samples(loc, "quantum")
         pooled = np.array(c + q)
-        # Zoom to the central 70% of the pooled seeds with generous padding;
-        # a few worse-converging seeds fall outside and are counted in an
-        # annotation rather than allowed to compress the informative range.
         p15, p85 = np.percentile(pooled, [15, 85])
         pad = max((p85 - p15) * 1.9, 0.003)
         lo, hi = p15 - pad, p85 + pad

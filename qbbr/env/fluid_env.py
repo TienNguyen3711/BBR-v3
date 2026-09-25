@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, Literal
@@ -23,6 +24,7 @@ from qbbr.env.fluid_sim import (
 from qbbr.features.bbr_internals import compute_bhat_mbps
 from qbbr.features.state_builder import compute_state_vector
 from qbbr.reward.alpha_fair import compute_reward
+from qbbr.reward.difference import compute_difference_reward, stock_baseline
 from qbbr.reward.throughput_only import compute_throughput_only_reward
 from qbbr.risk.ptot import closed_form_p_tot, compute_risk_features
 
@@ -35,13 +37,6 @@ _HANDOVER_PHASE_PROFILE = PhaseProfile(mean_phase_s=10.5, r_bar=0.7368)
 _CRUISE_MASK_MIN = 0.5  # i_crs below this = not in ProbeBW_CRUISE; see probe_bw_phase_gate
 
 _EMA_ALPHA = 0.5  # weight on the newly-chosen level each decision, vs. (1-alpha) on
-# the running effective value. DNCCQ-PPO's EMA-smoothed action-magnitude technique
-# (Yu et al., Eq. 4-5/9-11) applies compounding smoothing to damp abrupt action
-# transitions, which can otherwise cause self-inflicted, oscillation-driven
-# retransmits; adapted here to qbbr's per-decision discrete levels rather than
-# their continuous direction+magnitude formulation, so 0.5 is a deliberately
-# chosen moderate middle ground, not their paper's own alpha value (whose
-# convention isn't directly comparable to this per-dimension formulation).
 
 
 def minrtt_100_decision_interval_s(min_rtt_ms: float) -> float:
@@ -61,7 +56,7 @@ class FluidSimEnv(BaseEnv):
         episode_s: float = 300.0,
         substep_s: float = _SUBSTEP_S,
         reward_kwargs: dict[str, float] | None = None,
-        reward_mode: Literal["legacy_alpha_fair", "throughput_only"] = "legacy_alpha_fair",
+        reward_mode: Literal["legacy_alpha_fair", "throughput_only", "difference"] = "legacy_alpha_fair",
         dynamics_overrides: dict[str, float] | None = None,
         ablate_s7: bool = False,
         probe_bw_phase_gate: bool = False,
@@ -69,15 +64,6 @@ class FluidSimEnv(BaseEnv):
         phase_offset_s: float | None = None,
         capacity_trace_pool: list[dict[str, Any]] | None = None,
     ) -> None:
-        # capacity_trace: (times_s, capacity_bytes_per_s) sampled from a REAL
-        # measured run. When given, the bottleneck capacity is driven by that
-        # trace instead of synthetic_capacity_fraction()'s synthetic handover
-        # dip -- the exogenous forcing becomes real while the queue / loss /
-        # ProbeBW response stays this fluid proxy. Everything else (the
-        # calibrated rtt_rtp_s propagation floor, the reconfiguration-phase
-        # clock, retransmit phase modulation) is unchanged.
-        # phase_offset_s: pin the reconfiguration phase (replay alignment)
-        # instead of redrawing it per episode in reset().
         self._capacity_trace = None
         if capacity_trace is not None:
             times, values = capacity_trace
@@ -85,27 +71,13 @@ class FluidSimEnv(BaseEnv):
             if self._capacity_trace[0].size < 2:
                 raise ValueError("capacity_trace needs at least two samples.")
         self._fixed_phase_offset_s = phase_offset_s
-        # capacity_trace_pool: several real traces; reset() draws one per episode
-        # (entries: times_s, capacity_bytes_s, phase_offset_s, duration_s). This
-        # is how a policy is TRAINED against real, irregular capacity forcing
-        # instead of the synthetic periodic-handover model.
         self._capacity_trace_pool = list(capacity_trace_pool) if capacity_trace_pool else None
         if self._capacity_trace_pool and capacity_trace is not None:
             raise ValueError("Pass capacity_trace or capacity_trace_pool, not both.")
         self.location = location
         self.direction = direction
         self.calibration = calibration[location][direction]
-        # ablation switch for the Point-2 causal isolation study: when True,
-        # s7_reconfig_phase is fixed at its neutral midpoint (0.5) instead of
-        # tracking the real wall-clock reconfig phase, holding every other
-        # dimension (incl. observation_dim / param_count) identical so the
-        # only thing that changes is whether the agent can observe phase.
         self.ablate_s7 = ablate_s7
-        # When True, non-stock native gains are only offered while BBR is
-        # genuinely in ProbeBW_CRUISE (i_crs high). This matches the audited
-        # contract (Table II: the non-1.0 gains are "PROBE_BW only") and stops
-        # the agent from issuing a gain override every decision interval
-        # regardless of BBR phase.
         self.probe_bw_phase_gate = probe_bw_phase_gate
 
         if action_config is None:
@@ -118,16 +90,22 @@ class FluidSimEnv(BaseEnv):
         self.episode_s = episode_s
         self.substep_s = substep_s
         self.reward_kwargs = reward_kwargs or {}
-        if reward_mode not in {"legacy_alpha_fair", "throughput_only"}:
-            raise ValueError("reward_mode must be 'legacy_alpha_fair' or 'throughput_only'")
+        if reward_mode not in {"legacy_alpha_fair", "throughput_only", "difference"}:
+            raise ValueError("reward_mode must be 'legacy_alpha_fair', 'throughput_only' or 'difference'")
         # The historic simulator remains reproducible by default.  New QRL
         # pilots opt into the supervisor-approved throughput-only contract.
         self.reward_mode = reward_mode
+        self._difference_baselines: dict[Any, dict] = {}
+        self._is_baseline_twin = False
+        self._decision_index = 0
+        self._last_seed: int | None = None
 
         rtt_rtp_s = self.calibration["RTT_min_ms"] / 1000.0
         x_btl_bps = self.calibration["B_max_mbps"] * 1e6 / 8.0
         utilization_fraction = self.calibration.get("utilization_fraction", 1.0)
 
+        probe_max_queue_delay_ms = self.calibration.get(
+            "probe_max_queue_delay_ms", FluidParams.__dataclass_fields__["probe_max_queue_delay_ms"].default)
         dwn_retransmit_rate_pps = self.calibration.get("dwn_retransmit_rate_pps", FluidParams.__dataclass_fields__["dwn_retransmit_rate_pps"].default)
         drawdown_activate_mult = self.calibration.get("drawdown_activate_mult", FluidParams.__dataclass_fields__["drawdown_activate_mult"].default)
         steady_inflight_bdp_frac = self.calibration.get("steady_inflight_bdp_frac", 0.0)
@@ -137,6 +115,7 @@ class FluidSimEnv(BaseEnv):
             dwn_retransmit_rate_pps=dwn_retransmit_rate_pps, drawdown_activate_mult=drawdown_activate_mult,
             steady_inflight_bdp_frac=steady_inflight_bdp_frac,
             base_retransmit_rate_pps=base_retransmit_rate_pps,
+            probe_max_queue_delay_ms=probe_max_queue_delay_ms,
             phase_profile=_HANDOVER_PHASE_PROFILE,
         )
         if dynamics_overrides:
@@ -152,16 +131,39 @@ class FluidSimEnv(BaseEnv):
         self._state: FluidState | None = None
         self._history: list[dict[str, float]] = []
 
-    def _capacity_at(self, t_s: float) -> float | None:
-        """Bottleneck capacity (bytes/s) from the replayed trace, or None to
-        fall back on the synthetic handover-dip model."""
+    def _capacity_at(self, t_s: float, **substep: Any) -> float | None:
+        """
+        Bottleneck capacity (bytes/s) from the replayed trace, or None to fall back on the
+        synthetic handover-dip model.
+        """
         if self._capacity_trace is None:
             return None
         times, values = self._capacity_trace
         return float(np.interp(t_s, times, values))
 
+    def _difference_baseline_for(self, seed: int | None) -> dict:
+        """Stock telemetry over this seed's forcing, cached per seed."""
+        if seed in self._difference_baselines:
+            return self._difference_baselines[seed]
+        twin = copy.deepcopy(self)
+        twin.reward_mode = "throughput_only"
+        twin._is_baseline_twin = True
+        twin._difference_baselines = {}
+        baseline = stock_baseline(twin, seed, stock_action=self._stock_action_index())
+        self._difference_baselines[seed] = baseline
+        return baseline
+
+    def _stock_action_index(self) -> int:
+        """Index of the no-op (pacing_gain 1.0) action in the frozen action set."""
+        for index in range(self.action_space_size):
+            if levels_for_action(self._action_config, index).get("pacing_gain") == 1.0:
+                return index
+        raise ValueError("The action space has no stock (pacing_gain 1.0) action.")
+
     def reset(self, seed: int | None = None) -> Any:
         rng = np.random.RandomState(seed) if seed is not None else np.random
+        self._decision_index = 0
+        self._last_seed = seed
         if self._capacity_trace_pool:
             entry = self._capacity_trace_pool[int(rng.randint(len(self._capacity_trace_pool)))]
             self._capacity_trace = (
@@ -175,10 +177,6 @@ class FluidSimEnv(BaseEnv):
             else float(rng.uniform(0.0, 15.0))
         )
 
-        # EMA state for action smoothing, keyed the same way levels_for_action()
-        # keys its dict; initialized to each dimension's stock/no-op value so the
-        # first decision of the episode is smoothed toward "no override" rather
-        # than an arbitrary starting point.
         self._ema_levels = {
             "pacing_gain": 1.0,
             "inflight_hi_mult": self.params.bdp_hi_mult,
@@ -186,11 +184,6 @@ class FluidSimEnv(BaseEnv):
             "drawdown_activate_relative_mult": 1.0,
         }
 
-        # v_bytes=0/i_crs=0/startup_done=False: a fresh episode is a true cold
-        # start, opting into the STARTUP-phase prefix (see step_fluid_state) --
-        # not an already-established connection at steady state (the pre-
-        # STARTUP-prefix default, still used by FluidState()'s own defaults
-        # and every direct construction elsewhere, e.g. unit tests).
         initial_bw_estimate = self.params.sustained_x_btl_bps if self.params.bandwidth_estimate_recovery_s > 0.0 else 0.0
         self._state = FluidState(
             t_s=0.0, v_bytes=0.0, i_dwn=0.0, i_crs=0.0, startup_done=False,
@@ -210,6 +203,10 @@ class FluidSimEnv(BaseEnv):
             reconfig_cycle_s=self.params.phase_profile.cycle_s,
             reconfig_mean_phase_s=self.params.phase_profile.mean_phase_s,
         )
+        if self.reward_mode == "difference" and not self._is_baseline_twin:
+            if seed is None and self._fixed_phase_offset_s is None:
+                raise ValueError("reward_mode 'difference' requires reset(seed=...).")
+            self._difference_baseline_for(seed)
         return self._extract_state(state_df)
 
     def step(self, action: int) -> tuple[Any, float, bool, dict]:
@@ -217,9 +214,13 @@ class FluidSimEnv(BaseEnv):
             raise RuntimeError("call reset() before step()")
 
         levels = levels_for_action(self._action_config, action)
+        if self.params.native_cruise_override and not self.params.kernel_action_semantics and action not in self.allowed_action_indices():
+            action = self._stock_action_index()
+            levels = levels_for_action(self._action_config, action)
         for dim, chosen in levels.items():
             if dim in self._ema_levels:
-                self._ema_levels[dim] = _EMA_ALPHA * chosen + (1.0 - _EMA_ALPHA) * self._ema_levels[dim]
+                self._ema_levels[dim] = (chosen if self.params.native_cruise_override else
+                                        _EMA_ALPHA * chosen + (1.0 - _EMA_ALPHA) * self._ema_levels[dim])
 
         pacing_gain = self._ema_levels["pacing_gain"] if "pacing_gain" in levels else 1.0
         inflight_hi_mult = self._ema_levels["inflight_hi_mult"] if "inflight_hi_mult" in levels else None
@@ -235,16 +236,18 @@ class FluidSimEnv(BaseEnv):
         retransmits_total = 0.0
         ecn_marked_s = 0.0
         remaining = t_dec_s
+        phase_durations = {str(i): 0.0 for i in range(4)}
+        applied_gain_durations = {}
         while remaining > 1e-9:
             dt = min(self.substep_s, remaining, self.params.rtt_rtp_s - state.round_elapsed_s)
-            # Never let a substep straddle a ProbeBW / ProbeRTT phase boundary:
-            # each phase then lasts an exact number of rounds and the RTT
-            # distribution (esp. its p95 tail) stops depending on substep_s
-            # (removes the ~20% timestep drift the v6 audit flagged).
             dt = min(dt, self._substep_ceiling(state))
+            if self.params.kernel_action_semantics:
+                until_refresh = state.command.refreshed_s + 0.1 - state.t_s
+                dt = min(dt, until_refresh if until_refresh > 1e-9 else 0.1)
+            phase_durations[str(state.probe_phase)] += dt
             p_tot = synthetic_ground_truth_p_tot(state.t_s, base_p=self._ground_truth_base_p)
             if in_reconfig_freeze_window(state.t_s, self._phase_offset_s, self.params.phase_profile):
-                step_pacing_gain, step_inflight_hi, step_inflight_lo, step_drawdown = 1.0, None, None, None
+                step_pacing_gain, step_inflight_hi, step_inflight_lo, step_drawdown = (None if self.params.kernel_action_semantics else 1.0), None, None, None
             else:
                 step_pacing_gain, step_inflight_hi, step_inflight_lo, step_drawdown = (
                     pacing_gain, inflight_hi_mult, inflight_lo_mult, drawdown_activate_mult,
@@ -255,8 +258,15 @@ class FluidSimEnv(BaseEnv):
                 state, step_pacing_gain, dt, self.params, p_tot, phase_offset_s=self._phase_offset_s,
                 inflight_hi_mult_override=step_inflight_hi, inflight_lo_mult_override=step_inflight_lo,
                 drawdown_activate_mult_override=step_drawdown,
-                capacity_bps_override=self._capacity_at(state.t_s),
+                capacity_bps_override=self._capacity_at(
+                    state.t_s, dt_s=dt, pacing_gain=step_pacing_gain, flow_state=state, p_tot=p_tot),
+                refresh_command=(not self.params.kernel_action_semantics or
+                    remaining == t_dec_s or step_pacing_gain is None or
+                    state.t_s + 1e-12 >= state.command.refreshed_s + 0.1),
             )
+            if self.params.kernel_action_semantics:
+                key = str(state.command.applied)
+                applied_gain_durations[key] = applied_gain_durations.get(key, 0.) + dt
             delivered_total += delivered
             retransmits_total += retransmits
             if ecn_marked(state.v_bytes, self.params.bdp_bytes):
@@ -275,14 +285,20 @@ class FluidSimEnv(BaseEnv):
             reconfig_cycle_s=self.params.phase_profile.cycle_s,
             reconfig_mean_phase_s=self.params.phase_profile.mean_phase_s,
         )
-        reward_series = (
-            compute_throughput_only_reward(window)
-            if self.reward_mode == "throughput_only"
-            else compute_reward(window, **self.reward_kwargs)
-        )
-
         s_t = self._extract_state(state_df)
-        r_t = float(reward_series.iloc[-1])
+        if self.reward_mode == "difference":
+            r_t = compute_difference_reward(
+                row, self._difference_baselines[self._last_seed],
+                self._decision_index, **self.reward_kwargs,
+            )
+        else:
+            reward_series = (
+                compute_throughput_only_reward(window)
+                if self.reward_mode == "throughput_only"
+                else compute_reward(window, **self.reward_kwargs)
+            )
+            r_t = float(reward_series.iloc[-1])
+        self._decision_index += 1
         done = state.t_s >= self.episode_s - 1e-9
         info = {
             "pacing_gain": pacing_gain,
@@ -296,14 +312,21 @@ class FluidSimEnv(BaseEnv):
             "bbr_bw_est_bps": state.bbr_bw_est_bps,
             "retransmitted_bytes": retransmits_total * MSS_BYTES,
             "queue_bytes": state.v_bytes,
+            "selected_pacing_gain": pacing_gain,
+            "probe_phase_durations_s": phase_durations,
+            "kernel_action_semantics": self.params.kernel_action_semantics,
+            "requested_gain_units": state.command.requested,
+            "latched_gain_units": state.command.latched,
+            "applied_gain_units": state.command.applied,
+            "applied_gain_durations_s": applied_gain_durations,
         }
         return s_t, r_t, done, info
 
     def _substep_ceiling(self, state: FluidState) -> float:
-        """Seconds until the next v7 ProbeBW / ProbeRTT phase boundary that is
-        still ahead, so the substep loop can stop exactly on it (substep-size
-        independent phase durations). Boundaries already reached (or phases
-        with an event-driven, not timed, exit) impose no constraint."""
+        """
+        Seconds until the next v7 ProbeBW / ProbeRTT phase boundary that is still ahead, so
+        the substep loop can stop exactly on it (substep-size independent phase durations).
+        """
         p = self.params
         ceiling = float("inf")
         rems: list[float] = []
@@ -312,6 +335,8 @@ class FluidSimEnv(BaseEnv):
                 rems.append(p.probe_up_rounds * p.rtt_rtp_s - state.probe_phase_elapsed_s)
             elif state.probe_phase == 2:
                 rems.append(p.probe_down_rounds * p.rtt_rtp_s - state.probe_phase_elapsed_s)
+            elif p.native_cruise_override and state.probe_phase == 3:
+                rems.append(p.rtt_rtp_s - state.probe_phase_elapsed_s)
             else:
                 rems.append(probe_bw_interval_s(p.rtt_rtp_s) - state.t_since_probe_s)
         if p.probe_rtt_interval_s > 0.0:
@@ -327,14 +352,8 @@ class FluidSimEnv(BaseEnv):
         ecn_marked_s: float = 0.0,
     ) -> dict[str, float]:
         bdp = self.params.bdp_bytes
-        # Stage 1b: reported inflight = a persistent ~1 BDP pipe term (real
-        # BBR-v3 holds roughly that in flight; it shrinks as the flow drains)
-        # plus the v_bytes queue backlog. pipe_frac = 0 recovers legacy.
         pipe_frac = self.params.steady_inflight_bdp_frac * (1.0 - 0.5 * state.i_dwn)
         inflight_bytes = pipe_frac * bdp + state.v_bytes
-        # Queuing RTT is the inflight *above* 1 BDP, drained at the bottleneck
-        # rate -- consistent with the reported inflight/BDP, so a >1-BDP pipe
-        # and any handover-driven backlog both show up as RTT.
         queue_delay_ms = max(inflight_bytes - bdp, 0.0) / self.params.sustained_x_btl_bps * 1000.0
         if self.params.consistent_transport:
             inflight_bytes = state.pipe_bytes + state.v_bytes
@@ -370,6 +389,9 @@ class FluidSimEnv(BaseEnv):
 
         if self._state is None:
             raise RuntimeError("call reset() before querying available actions")
+        if self.params.kernel_action_semantics:
+            # Requests may be queued in any phase; the actuator gates application.
+            return tuple(range(self.action_space_size))
         stock = next(
             (
                 index
@@ -382,6 +404,8 @@ class FluidSimEnv(BaseEnv):
             self._state.t_s, self._phase_offset_s, self.params.phase_profile
         )
         off_cruise = self.probe_bw_phase_gate and self._state.i_crs < _CRUISE_MASK_MIN
+        if self.params.native_cruise_override:
+            off_cruise = self._state.probe_phase != 0 or self._state.i_crs < _CRUISE_MASK_MIN
         if not self._state.startup_done or self._state.in_probe_rtt or frozen or off_cruise:
             return (stock,)
         return tuple(range(self.action_space_size))

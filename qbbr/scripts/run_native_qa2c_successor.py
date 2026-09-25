@@ -1,8 +1,4 @@
-"""Primary successor runner: throughput-only NativeQA2C vs matched Classical A2C.
-
-QDQN is deliberately absent here: it is maintained as an ablation, not the
-primary successor controller.
-"""
+"""Primary successor runner: throughput-only NativeQA2C vs matched Classical A2C."""
 
 from __future__ import annotations
 
@@ -32,11 +28,14 @@ STOCK_ACTION = 2
 
 
 def _env(calibration, location: str, direction: str, config: dict) -> FluidSimEnv:
+    simulator = config["simulator"]
     return FluidSimEnv(
-        location, direction, calibration, risk_mode=config["simulator"]["risk_mode"],
-        episode_s=config["training"]["duration_s"], reward_mode="throughput_only",
-        dynamics_overrides=config["simulator"].get("dynamics_overrides"),
-        probe_bw_phase_gate=bool(config["simulator"].get("probe_bw_phase_gate", False)),
+        location, direction, calibration, risk_mode=simulator["risk_mode"],
+        episode_s=config["training"]["duration_s"],
+        reward_mode=simulator.get("reward_mode", "throughput_only"),
+        reward_kwargs=simulator.get("reward_kwargs"),
+        dynamics_overrides=simulator.get("dynamics_overrides"),
+        probe_bw_phase_gate=bool(simulator.get("probe_bw_phase_gate", False)),
     )
 
 
@@ -93,6 +92,7 @@ def _evaluate(agent, calibration, location: str, direction: str, config: dict, d
     delivered = retransmitted = 0.0
     counts: dict[str, int] = {}
     near_high = near_total = far_high = far_total = 0  # high gain (3/4) by s7 handover proximity
+    headroom_low = headroom_total = pressure_low = pressure_total = 0
     for seed in config["evaluation"]["holdout_seeds"]:
         env, done = _env(calibration, location, direction, config), False
         state = env.reset(seed=seed)
@@ -101,10 +101,15 @@ def _evaluate(agent, calibration, location: str, direction: str, config: dict, d
                 state, env.allowed_action_indices(), deterministic=True, deployment=deployment,
             )
             counts[str(action)] = counts.get(str(action), 0) + 1
-            near = float(np.asarray(state, dtype=float)[6]) >= 0.6
+            state_v = np.asarray(state, dtype=float)
+            near = float(state_v[6]) >= 0.6
             is_high = action in (3, 4)
             near_total += int(near); near_high += int(near and is_high)
             far_total += int(not near); far_high += int((not near) and is_high)
+            pressure = float(state_v[2]) >= 0.45 or float(state_v[3]) >= 0.20
+            is_low = action in (0, 1)
+            pressure_total += int(pressure); pressure_low += int(pressure and is_low)
+            headroom_total += int(not pressure); headroom_low += int((not pressure) and is_low)
             state, _reward, done, info = env.step(action)
             metrics["throughput_mbps"].append(info["delivered_bytes"] * 8.0 / info["t_dec_s"] / 1e6)
             metrics["retransmits_per_s"].append(info["retransmits"] / info["t_dec_s"])
@@ -120,6 +125,9 @@ def _evaluate(agent, calibration, location: str, direction: str, config: dict, d
             | {"action_counts": counts, "action_shares": {str(i): counts.get(str(i), 0) / total for i in range(5)},
                "high_gain_share_near_handover": near_high / max(near_total, 1),
                "high_gain_share_far": far_high / max(far_total, 1),
+               "low_gain_share_in_headroom": headroom_low / max(headroom_total, 1),
+               "low_gain_share_under_pressure": pressure_low / max(pressure_total, 1),
+               "headroom_decision_share": headroom_total / max(total, 1),
                "policy_view": "deployed_hard_masked_logit_margin" if deployment else "learned_hard_masked_argmax"})
 
 
@@ -189,6 +197,9 @@ def main() -> None:
     parser.add_argument("--holdout-seeds", nargs="+", type=int, default=None)
     parser.add_argument("--checkpoint-root", type=Path, default=None)
     parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--skip-assessment", action="store_true",
+                        help="Write records without selection gates (for sharded runs; "
+                             "merge with merge_shard_reports.py, which assesses the full set).")
     parser.add_argument("--calibration", type=Path, default=None,
                         help="override per-location constants JSON (default: data/calibrated/per_location_constants.json)")
     args = parser.parse_args()
@@ -201,8 +212,22 @@ def main() -> None:
     if args.out is None:
         args.out = PROJECT_ROOT / "outputs" / f"{protocol_stem}_report.json"
     control, training, agent_config = config["control"], config["training"], config["agent"]
-    if control["reward_contract"] != "supervisor-locked-throughput-only-v1" or control["fixed_action_count"] != 5:
-        raise ValueError("Primary QA2C runner requires the frozen throughput-only, five-action contract.")
+    _REWARD_CONTRACTS = {
+        "supervisor-locked-throughput-only-v1",
+        "multi-objective-alpha-fair-v1",
+        "counterfactual-difference-v1",
+    }
+    if control["reward_contract"] not in _REWARD_CONTRACTS or control["fixed_action_count"] != 5:
+        raise ValueError(
+            f"Unknown reward contract {control['reward_contract']!r} or non-five-action set. "
+            f"Declared contracts: {sorted(_REWARD_CONTRACTS)}."
+        )
+    if control["reward_contract"] != "supervisor-locked-throughput-only-v1":
+        print(f"[reward] NON-DEFAULT objective: {control['reward_contract']} "
+              f"(reward_mode={config['simulator'].get('reward_mode')}, "
+              f"kwargs={config['simulator'].get('reward_kwargs')}). "
+              f"Pending supervisor ratification; not comparable to throughput-only runs.",
+              flush=True)
     if args.locations:
         training["locations"] = args.locations
     if args.directions:
@@ -225,6 +250,8 @@ def main() -> None:
         selector=_selector(config), entropy_coef=float(agent_config.get("entropy_coef", 0.0)),
         stock_action=int(control["stock_action"]),
         stock_init_bias=float(agent_config.get("stock_init_bias", 0.0)),
+        normalize_returns=bool(agent_config.get("normalize_returns", False)),
+        critic_lr=agent_config.get("critic_lr"),
     )
     contract = {"control": control, "agent": agent_config, "canonical_mdp": canonical_mdp, "simulator": config["simulator"], "parameter_match": match.__dict__}
     plan = {
@@ -260,6 +287,8 @@ def main() -> None:
                     selector=_selector(config), entropy_coef=float(agent_config.get("entropy_coef", 0.0)),
                     stock_action=int(control["stock_action"]),
                     stock_init_bias=float(agent_config.get("stock_init_bias", 0.0)),
+                    normalize_returns=bool(agent_config.get("normalize_returns", False)),
+                    critic_lr=agent_config.get("critic_lr"),
                 )
                 for core, model in (("quantum", quantum), ("classical", classical)):
                     print(
@@ -271,7 +300,8 @@ def main() -> None:
                     if training["resume"] and path.exists():
                         completed, rewards, episode_diagnostics = _restore(path, config["protocol_id"], contract, model)
                     loop_config = {
-                        k: agent_config[k] for k in ("entropy_start", "entropy_decay_episodes")
+                        k: agent_config[k]
+                        for k in ("entropy_start", "entropy_decay_episodes", "n_step_update")
                         if k in agent_config
                     }
                     while completed < training["episodes"]:
@@ -319,7 +349,13 @@ def main() -> None:
                     )
     plan["records"] = records
     plan["stock_evaluations"] = stock_evaluations
-    plan["selection_assessment"] = assess_full_successor_records(records, config["selection_criteria"], config["bootstrap"])
+    if args.skip_assessment:
+        plan["selection_assessment"] = None
+        plan["assessment_skipped_reason"] = "sharded run; assess via merge_shard_reports.py"
+    else:
+        plan["selection_assessment"] = assess_full_successor_records(
+            records, config["selection_criteria"], config["bootstrap"], calibration
+        )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(plan, indent=2))
     print(json.dumps(plan, indent=2))

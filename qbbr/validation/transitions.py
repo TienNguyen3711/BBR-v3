@@ -34,12 +34,7 @@ def transition_fit_by_scenario(
     predicted_state_key: str = "predicted_bbr_state",
     observed_state_key: str = "bbr_state",
 ) -> list[TransitionFit]:
-    """Compare model and observed state transitions per location/direction.
-
-    Matching is indexed by decision interval.  This makes the required timing
-    alignment visible; callers must not use illustrative single-city plots as
-    a substitute for this all-scenario table.
-    """
+    """Compare model and observed state transitions per location/direction."""
 
     grouped: dict[tuple[str, str], list[Mapping[str, object]]] = {}
     for row in rows:

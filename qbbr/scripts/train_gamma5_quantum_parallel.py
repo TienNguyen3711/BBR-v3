@@ -1,13 +1,10 @@
-"""RQ4-under-gamma5 (Step 2 of the gamma=5.0 follow-up): trains the quantum
-core under the same gamma=5.0 reward as train_gamma5_parallel.py's
-classical checkpoints, at RQ4's exact published grid point (alpha=1, L=2,
-no data re-uploading, risk features on, 200 episodes, pacing_gain-only) --
-see main.tex Sec. sec:rq4 -- so the quantum-vs-classical comparison
-(Table tab:qvc's design) can be re-run under gamma=5.0 and checked against
-the gamma=0.0 published null (quantum and classical statistically
-indistinguishable at every location).
-
-Output -> outputs/checkpoints_gamma5/pacing_only/quantum/{location}/seed{N}.pt
+"""
+RQ4-under-gamma5 (Step 2 of the gamma=5.0 follow-up): trains the quantum core under the same
+gamma=5.0 reward as train_gamma5_parallel.py's classical checkpoints, at RQ4's exact published grid
+point (alpha=1, L=2, no data re-uploading, risk features on, 200 episodes, pacing_gain-only) -- see
+main.tex Sec. sec:rq4 -- so the quantum-vs-classical comparison (Table tab:qvc's design) can be re-
+run under gamma=5.0 and checked against the gamma=0.0 published null (quantum and classical
+statistically indistinguishable at every location).
 """
 from __future__ import annotations
 
@@ -25,11 +22,6 @@ CONFIG_PATH = PACKAGE_ROOT / "configs" / "pilot_gamma5.yaml"
 CALIBRATION_PATH = PACKAGE_ROOT / "data" / "calibrated" / "per_location_constants.json"
 LOCATIONS = ["London", "Mumbai", "Ohio", "SaoPaulo", "Sydney", "Tokyo"]
 N_SEEDS = 3  # pilot scale (matches this project's own precedent -- main.tex sec:rq4's
-# "earlier 3-seed pilot"), chosen after measuring quantum training at ~42s/episode
-# (~20x classical): a full 10-seed run would take ~11-23h depending on scheduling,
-# vs. ~3-7h for this pilot. Not a substitute for a full run if the pilot result
-# looks decision-relevant -- see main.tex's own caveat about 3-seed's p-value floor
-# (p=2/C(6,3)=0.10, cannot reach significance at any effect size).
 DIRECTION = "downlink"
 CORE = "quantum"
 RISK_MODE = "closed_form"
@@ -40,14 +32,6 @@ CHECKPOINT_ROOT = PROJECT_ROOT / "outputs" / "checkpoints_gamma5" / "pacing_only
 def _train_one(job: dict) -> dict:
     import os
 
-    # MUST happen before numpy/pennylane/torch are imported in this worker
-    # process (spawn start method -> fresh interpreter per worker, so this
-    # is still early enough): torch.set_num_threads(1) alone does not
-    # constrain PennyLane's underlying numpy/BLAS thread pool, which was
-    # silently oversubscribing across all 6 concurrent workers -- the
-    # likely cause of an 11h stall producing zero completed checkpoints
-    # (each worker fighting the others for the same physical cores via
-    # independent BLAS thread pools, instead of one thread each).
     for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
         os.environ[var] = "1"
 
@@ -107,10 +91,6 @@ def main() -> None:
           f"gamma={base_config['reward']['gamma']}")
 
     t0 = time.time()
-    # Fewer workers than the classical runs (max_workers=10): this job runs
-    # concurrently alongside the risk-off classical retrain (also 10
-    # workers) on an 18-core machine, and per-step quantum circuit
-    # simulation is heavier than the classical MLP forward pass.
     with ProcessPoolExecutor(max_workers=6) as pool:
         futures = {pool.submit(_train_one, job): job for job in jobs}
         for i, future in enumerate(as_completed(futures), start=1):

@@ -40,3 +40,13 @@ def test_in_probe_bw_cruise_reads_state_file(_redirect_debugfs_paths):
     assert bbr_hook.in_probe_bw_cruise() is True
     cruise_path.write_text("0\n")
     assert bbr_hook.in_probe_bw_cruise() is False
+
+
+@pytest.mark.parametrize("gain", [1.05, 1.125, -2, float("nan"), float("inf"), True])
+def test_undeclared_gain_does_not_touch_command(_redirect_debugfs_paths, gain):
+    gain_path, _ = _redirect_debugfs_paths
+    bbr_hook.set_pacing_gain(1.0)
+    previous = gain_path.read_text()
+    with pytest.raises(ValueError):
+        bbr_hook.set_pacing_gain(gain)
+    assert gain_path.read_text() == previous

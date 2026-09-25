@@ -78,12 +78,6 @@ def plot_comparison(long_form: pd.DataFrame, out_path: Path) -> None:
                 data.append(match.iloc[0][key])
                 colors.append(CCA_COLORS[cca])
 
-        # Standard Tukey whiskers (1.5x IQR), not min/max: a handful of
-        # genuine extreme samples exist in this real satellite dataset
-        # (e.g. one interval in Tokyo/hybla run1 reads an 11.9s RTT --
-        # almost certainly a single corrupted TCP_INFO read, not a real
-        # network event) and dominate the axis under min/max whiskers.
-        # Outliers are suppressed as points, not excluded from the data.
         bp = ax.boxplot(
             data, positions=positions, widths=box_width * 0.9,
             patch_artist=True, showfliers=False, whis=1.5,

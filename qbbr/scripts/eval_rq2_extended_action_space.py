@@ -1,20 +1,6 @@
-"""Does the extended (inflight_hi/lo) action space change RQ2's coexistence
-picture at all, compared to the pacing_gain-only checkpoints RQ2 has used
-so far?
-
-Reuses outputs/checkpoints_multihead (the expansion-only-range, post-
-exploit-fix 3-head checkpoint set already trained and validated for RQ1b)
-under Scenario B -- no new training. This checkpoint predates
-s7_reconfig_phase (the state vector has since grown from 6 to 8 features
-under MultiFlowFluidEnv: s1-s6, s7_reconfig_phase, s8_fairness_ratio), so
-n_qubits=6 and a state truncated to its first 6 entries keep this a
-like-for-like replay of what the checkpoint actually saw during training,
-not a mismatched forward pass.
-
-Same anchor design as eval_rq2_parallel.py: qbbr (now: extended action
-space) vs. a stock-BBR-v3 anchor (neutral gain, no overrides), same
-alpha sweep restricted to the bounded region (alpha>1 excluded -- see
-qbbr.eval.metrics.alpha_fair_efficiency_ratio's docstring).
+"""
+Does the extended (inflight_hi/lo) action space change RQ2's coexistence picture at all, compared to
+the pacing_gain-only checkpoints RQ2 has used so far?
 """
 from __future__ import annotations
 
@@ -41,10 +27,7 @@ OUT_PATH = PROJECT_ROOT / "outputs" / "rq2_extended_action_space_report.json"
 
 
 class _StockAgent:
-    """Neutral gain, no inflight overrides -- the multihead analogue of
-    eval_rq2_parallel.py's _StockAgent (pacing_gain index 2 == 1.0 there;
-    here all three heads sit at their own config's default index: pacing_gain
-    index 2 == 1.0, inflight_hi/lo index 0 == each's floored default)."""
+    """Neutral gain, no inflight overrides."""
 
     def __init__(self):
         from qbbr.action.registry import encode_flat_action
@@ -56,9 +39,10 @@ class _StockAgent:
 
 
 class _StateTruncatingAgent:
-    """Wraps a 6-input agent so it can be evaluated under environments whose
-    state vector has since grown past what that checkpoint was trained on
-    (see module docstring)."""
+    """
+    Wraps a 6-input agent so it can be evaluated under environments whose state vector has since
+    grown past what that checkpoint was trained on (see module docstring).
+    """
 
     def __init__(self, agent):
         self._agent = agent

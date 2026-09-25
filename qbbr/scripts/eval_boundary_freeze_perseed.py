@@ -1,26 +1,9 @@
-"""Per-seed boundary-freeze effect-size table: baseline (pre-registered,
-pacing-only, no freeze/ECN/STARTUP/s5-fix -- outputs/checkpoints, ORIGINAL
-pre-multihead-refactor format) vs. freeze (exploratory extension: s5-fix +
-boundary-freeze + EMA -- outputs/checkpoints_final/pacing_only, CURRENT
-multi-head-compatible format), each seed's retransmit reduction vs. the
-index-matched real BBR trace file, plus each seed's within-seed IQR.
-
-The baseline checkpoints predate today's actor_trunk/actor_heads refactor
-(single nn.Sequential("actor") with keys "0.*"/"2.*", not split into a
-trunk + per-dimension heads). This script does NOT touch the shipped
-MLPA2CAgent.load() -- it carries a local, read-only remap
-(_load_legacy_single_head_agent) that is exact and lossless for the
-single-head case: actor.0.* is the trunk's only linear layer (identical
-before and after the refactor), and actor.2.* is the trunk output layer,
-which is exactly what actor_heads[0] is when there is only one head.
-Confirmed byte-shape-identical against the current _best_hidden_size(...)
-computation before use (hidden=3 actor / 4 critic for n_qubits=6, actor
-out_dim=5, budget=36).
-
-Per-seed pairing here (agent seed i vs. real-trace file i) is an index
-convention for building an interpretable per-row diagnostic table, not a
-formal paired statistical test -- the pre-registered RQ1/RQ1b comparisons
-already run the correct unpaired n-vs-n Mann-Whitney (eval_rq1_parallel.py).
+"""
+Per-seed boundary-freeze effect-size table: baseline (pre-registered, pacing-only, no
+freeze/ECN/STARTUP/s5-fix -- outputs/checkpoints, ORIGINAL pre-multihead-refactor format) vs. freeze
+(exploratory extension: s5-fix + boundary-freeze + EMA -- outputs/checkpoints_final/pacing_only,
+CURRENT multi-head-compatible format), each seed's retransmit reduction vs. the index-matched real
+BBR trace file, plus each seed's within-seed IQR.
 """
 from __future__ import annotations
 

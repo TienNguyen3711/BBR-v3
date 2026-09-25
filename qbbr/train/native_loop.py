@@ -21,10 +21,6 @@ _PRESSURE_S4 = 0.20         # s4 queue
 
 
 def _phase_stratified_diagnostics(agent, rollout, gamma: float) -> dict[str, float]:
-    """Per-episode action x context breakdown: is the policy conditioning its
-    high gains on handover proximity and its low gains on queue pressure, or
-    just mixing them at a constant rate? Uses a Monte-Carlo advantage
-    (discounted return minus the critic baseline); cheap, no extra gradient."""
     if not rollout.states:
         return {}
     returns = discounted_returns(rollout.rewards, gamma).tolist()
@@ -105,12 +101,9 @@ def train_native_qrl(
     if seed is not None:
         torch.manual_seed(seed)
         np.random.seed(seed)
-    # Optional entropy schedule: start high, decay linearly to the agent's
-    # own entropy_coef floor over `entropy_decay_episodes` (global episode
-    # index). Keeps exploration alive through the fragile early phase where
-    # some seeds otherwise collapse to constant stock. Off when unset.
     entropy_start = config.get("entropy_start")
     entropy_decay_episodes = float(config.get("entropy_decay_episodes") or (total_episodes or 1))
+    n_step_update = int(config.get("n_step_update") or 0)
     if reward_scale_mbps <= 0.0:
         raise ValueError("reward_scale_mbps must be positive.")
     total_episodes = total_episodes if total_episodes is not None else start_episode + n_episodes
@@ -126,26 +119,39 @@ def train_native_qrl(
         done, episode_reward = False, 0.0
         fallback_count = 0
         stock_only_mask_count = 0
+        scheduled_entropy = None
+        if entropy_start is not None:
+            frac = max(0.0, 1.0 - episode / max(entropy_decay_episodes, 1e-9))
+            scheduled_entropy = agent.entropy_coef + (float(entropy_start) - agent.entropy_coef) * frac
+        chunk = NativeRolloutBuffer()
+        update_metrics: list[dict[str, float]] = []
         while not done:
             action_mask = env.allowed_action_indices()
             stock_only_mask_count += int(len(action_mask) == 1)
             action, _log_probability = agent.act(state, action_mask)
             next_state, reward, done, info = env.step(action)
-            # Positive scaling is numerical conditioning only; the objective
-            # remains delivered throughput alone.
-            rollout.add(state, action, action_mask, reward / reward_scale_mbps)
-            # The live native environment reports an explicit safety fallback.
-            # FluidSimEnv represents the same BBR restriction through its
-            # action mask, so this field is intentionally optional there.
+            # Positive scaling is numerical conditioning only; it does not
+            # change the objective's ordering.
+            scaled = reward / reward_scale_mbps
+            rollout.add(state, action, action_mask, scaled)
+            chunk.add(state, action, action_mask, scaled)
             fallback_count += int(info.get("used_stock_fallback", False))
             state = next_state
             episode_reward += reward
+            if n_step_update and (len(chunk) >= n_step_update or done):
+                bootstrap = 0.0 if done else float(agent.value(next_state))
+                update_metrics.append(
+                    agent.update(chunk, entropy_coef=scheduled_entropy, bootstrap_value=bootstrap)
+                )
+                chunk = NativeRolloutBuffer()
         strata = _phase_stratified_diagnostics(agent, rollout, agent.gamma)
-        scheduled_entropy = None
-        if entropy_start is not None:
-            frac = max(0.0, 1.0 - episode / max(entropy_decay_episodes, 1e-9))
-            scheduled_entropy = agent.entropy_coef + (float(entropy_start) - agent.entropy_coef) * frac
-        metrics = agent.update(rollout, entropy_coef=scheduled_entropy)
+        if n_step_update:
+            keys = update_metrics[0].keys() if update_metrics else ()
+            metrics = {k: float(np.mean([m[k] for m in update_metrics])) for k in keys}
+            metrics["gradient_steps"] = float(len(update_metrics))
+        else:
+            metrics = agent.update(rollout, entropy_coef=scheduled_entropy)
+            metrics["gradient_steps"] = 1.0
         summary = {
             "episode_reward": episode_reward,
             "episode_length": len(rollout),

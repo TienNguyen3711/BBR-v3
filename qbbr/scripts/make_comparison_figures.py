@@ -1,49 +1,7 @@
-"""Bar/point/line comparison figures for every remaining result set that has
-NOT yet been turned into a figure, complementing make_cdf_figures.py (which
-covers the datasets that still have raw per-seed/per-grid-point arrays on
-disk). Everything here only has an already-aggregated median (and
-sometimes IQR or p-value) per location -- not a raw distribution -- so a
-bar/point/line chart is the honest representation, not a CDF.
-
-Covers:
-1. RQ1a/RQ1b headline (rq1_report_final_pacingonly_classical.json,
-   rq1_report_final_multihead_classical.json) -- retransmit reduction %,
-   pacing_gain-only vs. the extended action space, both under final
-   dynamics (matches Table rq1b-extension in main.tex).
-2. RQ2 (rq2_report_extended.json + rq2_extended_action_space_report.json)
-   -- alpha-fair efficiency ratio, qbbr vs. stock, across the full alpha
-   sweep, per location, with the extended-action-space checkpoint overlaid
-   as a robustness check.
-3. RQ3 (rq3_report.json) -- risk_on vs. risk_off, retransmit rate and
-   throughput, per location.
-4. RQ4 (quantum_vs_classical_final.json) -- classical vs. quantum retransmit
-   reduction (median, quantum with IQR), per location.
-5. Shifted-freeze decoy-phase control (shifted_freeze_report.json) -- real
-   vs. pooled-decoy phase retransmit rate, per location.
-6. ECN/exploit behavior-shift v2 (ecn_behavior_shift_report.json) --
-   mean inflight level minus each arm's own default, exploit vs. fixed,
-   per location (visualizes the finding added to main.tex sec:rq1b-extensions).
-7. Freeze-window retransmit attribution (freeze_window_retransmit_attribution
-   .json) -- share of retransmits vs. share of time inside the freeze
-   window, per location (the "concentration_ratio" claim).
-8. Reward decomposition under sustained throttle
-   (reward_decomposition_sustained_throttle.json) -- utility / delay_term /
-   beta*l_t, stock vs. throttle, per location (the reward "blind spot"
-   argument in sec:rq1b-reward-episode).
-9. Anticipatory lead-time sweep vs. decoy-lag control
-   (anticipatory_throttle_test.json + decoy_lag_throttle_test.json) --
-   retransmit reduction vs. stock as a function of lead/lag time, per
-   location (predecessor sanity check to the shifted-freeze design).
-10. RQ1 raw boxplot (rq1_raw_for_boxplot.json, produced by
-    eval_rq1_raw_for_boxplot.py) -- stock BBR-v3 vs. qbbr (pacing_gain-only
-    and extended), Throughput/RTT/Retransmissions, boxplotted from the real
-    per-seed (qbbr) / per-trace-file (BBR-v3) raw values -- the direct
-    analogue of a reference boxplot-grid figure, restricted to the three
-    metrics this project's fluid simulator actually tracks (it does not
-    model congestion window or receiver-advertised window).
-
-Output -> figures/*.png (same consolidated directory as make_cdf_figures.py
-and every other paper figure).
+"""
+Bar/point/line comparison figures for every remaining result set that has NOT yet been turned into a
+figure, complementing make_cdf_figures.py (which covers the datasets that still have raw per-
+seed/per-grid-point arrays on disk).
 """
 from __future__ import annotations
 
@@ -334,13 +292,13 @@ def fig_anticipatory_vs_decoy_lag():
 
 # ---------------------------------------------------------------- 10. RQ1 boxplot (BBR-v3 vs qbbr, raw per-seed)
 def fig_rq1_boxplot_vs_bbr():
-    """The direct analogue of the reference "Competitive/Dedicated ... over
-    Starlink" boxplot grids: real per-seed (qbbr) / per-trace-file (stock
-    BBR-v3) raw values, boxplotted per location, for every metric this
-    project's fluid simulator actually tracks (throughput, RTT, retransmit
-    rate -- it does not model congestion window or receiver-advertised
-    window, so this grid has 3 panels, not 6). Source: outputs/
-    rq1_raw_for_boxplot.json (eval_rq1_raw_for_boxplot.py), n=10 both sides."""
+    """
+    The direct analogue of the reference "Competitive/Dedicated ... over Starlink" boxplot
+    grids: real per-seed (qbbr) / per-trace-file (stock BBR-v3) raw values, boxplotted per
+    location, for every metric this project's fluid simulator actually tracks (throughput, RTT,
+    retransmit rate -- it does not model congestion window or receiver-advertised window, so
+    this grid has 3 panels, not 6).
+    """
     d = json.load(open(OUT_DIR / "rq1_raw_for_boxplot.json"))
     arms = [("bbr", "stock BBR-v3", "#7f7f7f"), ("pacing_only", "qbbr (pacing_gain only)", C1),
             ("extended", "qbbr (extended action space)", C2)]

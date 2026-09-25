@@ -1,14 +1,10 @@
-"""Robustness check (Step 1 of the reward-blind-spot follow-up): retrains
-qbbr (classical core, pacing_gain-only, downlink, closed_form risk -- same
-protocol as outputs/checkpoints_final/pacing_only/classical) with the
-reward's already-built ECN-style LEVEL term active (gamma=5.0 instead of
-the published gamma=0.0 -- see configs/pilot_gamma5.yaml) to test whether
-this closes any retransmit-reducing pathway the delta-only l_t term cannot
-see, beyond the one already found and closed at the action-space level
-(inflight_hi/lo). No new mechanism, no new action space -- only the reward
-weight changes vs. the published pacing_gain-only checkpoints.
-
-Output -> outputs/checkpoints_gamma5/pacing_only/classical/{location}/seed{N}.pt
+"""
+Robustness check (Step 1 of the reward-blind-spot follow-up): retrains qbbr (classical core,
+pacing_gain-only, downlink, closed_form risk -- same protocol as
+outputs/checkpoints_final/pacing_only/classical) with the reward's already-built ECN-style LEVEL
+term active (gamma=5.0 instead of the published gamma=0.0 -- see configs/pilot_gamma5.yaml) to test
+whether this closes any retransmit-reducing pathway the delta-only l_t term cannot see, beyond the
+one already found and closed at the action-space level (inflight_hi/lo).
 """
 from __future__ import annotations
 

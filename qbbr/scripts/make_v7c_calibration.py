@@ -1,19 +1,6 @@
-"""Regenerate `per_location_constants_v7c.json` (gitignored, so this recipe is
-the reproducible artefact).
-
-v7c calibration = downlink constants from BBRv1 (`cca=bbr`, the existing
-`per_location_constants.json`) + uplink constants refit from BBRv2
-(`cca=bbr2`).
-
-Why the uplink is different: `utilization_fraction` floors at 0.05 on four of
-the six uplinks, and that is FAITHFUL to BBRv1 -- real BBRv1 uplink on Starlink
-stalls to a median throughput of 0.0 Mbps. BBRv2 does not (it sustains ~40-50%
-of peak). BBR-v3 inherits BBRv2's inflight_hi / loss machinery, so BBRv2 is the
-better stand-in for what a BBR-v3 uplink would deliver. This is a MODELLING
-CHOICE, not a bug fix, and it is supervisor-flagged.
-
-    python -m qbbr.scripts.make_v7c_calibration            # writes the file
-    python -m qbbr.scripts.make_v7c_calibration --show     # print the diff only
+"""
+Regenerate `per_location_constants_v7c.json` (gitignored, so this recipe is the reproducible
+artefact).
 """
 from __future__ import annotations
 

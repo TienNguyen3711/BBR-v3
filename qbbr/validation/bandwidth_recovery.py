@@ -1,9 +1,4 @@
-"""Fit a post-handover BBR delivery-bandwidth recovery time constant.
-
-The fit intentionally needs observed handover events and delivery rate samples.
-It refuses to invent a value from the fluid model; the output is the parameter
-for ``FluidParams.bandwidth_estimate_recovery_s`` once field coverage exists.
-"""
+"""Fit a post-handover BBR delivery-bandwidth recovery time constant."""
 
 from __future__ import annotations
 
@@ -33,14 +28,7 @@ def fit_bandwidth_recovery(
     post_handover_window_s: float = 10.0,
     min_events: int = 3,
 ) -> list[BandwidthRecoveryFit]:
-    """Estimate per-location recovery from handover-labelled interval records.
-
-    For each observed handover, the post-event 90th-percentile delivery rate
-    is the local recovered reference. The first sample reaching
-    ``target_fraction`` of that reference yields an exponential-equivalent
-    time constant: ``tau = t / -log(1-target_fraction)``. This is a robust,
-    auditable estimator rather than a claim about an unobserved BBR variable.
-    """
+    """Estimate per-location recovery from handover-labelled interval records."""
 
     if not 0.0 < target_fraction < 1.0:
         raise ValueError("target_fraction must be strictly between zero and one")

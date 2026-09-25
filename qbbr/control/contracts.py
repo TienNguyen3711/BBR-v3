@@ -27,12 +27,7 @@ class ObservationSpec:
 
 @dataclass(frozen=True)
 class ActionSpec:
-    """One BBR semantic that the RL layer may select.
-
-    A numeric parameter is valid only when it is a member of the declared,
-    fixed BBR action set.  The brain selects an existing choice; it never
-    synthesises a new gain or inflight value.
-    """
+    """One BBR semantic that the RL layer may select."""
 
     action_id: str
     native_semantic: str

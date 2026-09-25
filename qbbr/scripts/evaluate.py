@@ -78,9 +78,6 @@ def main() -> None:
     calibration = load_calibration(args.calibration_path)
     action_config = load_action_space(args.action_config)
     action_dims = _action_dims(action_config)
-    # FluidSimEnv (scenario a) exposes 7 state features; MultiFlowFluidEnv
-    # (scenario b) adds s8_fairness_ratio on top, so a scenario-b-trained
-    # checkpoint needs one more input than a scenario-a one.
     n_qubits = 8 if args.scenario == "b" else 7
 
     if args.rq4_full_match and args.core != "classical":

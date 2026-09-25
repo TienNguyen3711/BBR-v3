@@ -1,0 +1,9 @@
+FROM qbbr-kernel-audit:20260917
+COPY gain_parser.h bbr_qrl_ctl.h bbr_qrl_ctl.c Makefile prepare_source.py /lab/adapter/
+RUN python3 /lab/adapter/prepare_source.py /lab/linux/net/ipv4/tcp_bbr.c --out /lab/adapter/tcp_bbr_qrl.c \
+    && make -C /lab/adapter KDIR=/lab/linux clean \
+    && make -C /lab/adapter KDIR=/lab/linux -j4 \
+    && cp /lab/adapter/bbr_qrl.ko /lab/artifacts/
+COPY guest_audit.py build_guest.py /lab/
+RUN python3 /lab/build_guest.py
+CMD ["qemu-system-aarch64", "-machine", "virt", "-cpu", "cortex-a72", "-smp", "2", "-m", "512", "-nographic", "-nic", "none", "-kernel", "/lab/artifacts/Image", "-initrd", "/lab/artifacts/initramfs.gz", "-append", "console=ttyAMA0 rdinit=/init panic=-1"]

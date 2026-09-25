@@ -1,43 +1,6 @@
-"""Deep-dive analysis: how did closing the inflight_hi/lo reward exploit
-actually reshape the trained policy's behavior?
-
-Compares two already-trained checkpoint generations, EACH REPLAYED UNDER
-ITS OWN NATIVE ACTION SPACE (not a shared one -- see "v2 fix" note below):
-- "exploit": outputs/checkpoints_multihead_symmetric_exploit -- trained
-  under an earlier, symmetric [1.5..2.5]/[0.75..1.25] inflight_hi/lo
-  range. That exact range is no longer present in action_multihead.yaml
-  (overwritten when the fix shipped), but it IS still documented verbatim
-  in that file's own module comment ("A first full retraining pass with a
-  symmetric [1.5..2.5]/[0.75..1.25] range let every trained agent converge
-  to a smaller-than-default inflight_hi/lo"), so the 5-evenly-spaced-level,
-  default-in-the-middle (index 2) reconstruction used here
-  (_reconstruct_symmetric_exploit_config) is not a guess -- it is read
-  back from that comment, keeping every other field (hooks, clamp_state,
-  pacing_gain levels, which were never part of the exploit/fix) identical
-  to the current config.
-- "fixed": outputs/checkpoints_multihead -- trained after the range was
-  restricted to expansion-only (index 0 = default, no shrinkage possible
-  structurally), evaluated under the CURRENT action_multihead.yaml as-is.
-
-v2 fix: an earlier version of this script loaded ONE action_config and
-used it for both arms. That silently forced the "exploit" checkpoint's
-replay through the current expansion-only range, where index 0 is the
-floor and shrinkage is structurally impossible -- so its chosen indices
-could never express the shrink-toward-default behavior it was actually
-trained to prefer, making exploit-vs-fixed indistinguishable by
-construction, independent of whether the two policies actually differ.
-Each arm now gets its own action_config matching what it was trained
-under, so a chosen index maps back to the physical dynamics (and thus
-the RTT/retransmit outcomes) that checkpoint's training actually saw.
-
-No new training. Rolls out existing checkpoints and records the discrete
-action INDEX chosen at every decision interval for the inflight_hi_mult
-and inflight_lo_mult heads (index semantics: ascending level order in
-both configs, so "low index" means "toward/at shrinkage, below the
-index-2 default" for the exploit generation and "at the index-0 default,
-no expansion used" for the fixed generation), plus each arm's
-retransmit/RTT profile for cross-reference against the already-published
-RQ1b tables.
+"""
+Deep-dive analysis: how did closing the inflight_hi/lo reward exploit actually reshape the trained
+policy's behavior?
 """
 from __future__ import annotations
 
@@ -67,12 +30,13 @@ OUT_PATH = PROJECT_ROOT / "outputs" / "ecn_behavior_shift_report.json"
 
 
 def _reconstruct_symmetric_exploit_config(current_config: dict) -> dict:
-    """Deep-copy the current (fixed) action config and swap in the old
-    symmetric inflight_hi/lo ranges the "exploit" checkpoints were actually
-    trained under (see module docstring -- read back from action_multihead
-    .yaml's own comment, not guessed). pacing_gain levels, hooks, and
-    clamp_state are untouched since only inflight_hi/lo's range changed
-    between the two checkpoint generations."""
+    """
+    Deep-copy the current (fixed) action config and swap in the old symmetric inflight_hi/lo
+    ranges the "exploit" checkpoints were actually trained under (see module docstring -- read
+    back from action_multihead .yaml's own comment, not guessed). pacing_gain levels, hooks, and
+    clamp_state are untouched since only inflight_hi/lo's range changed between the two
+    checkpoint generations.
+    """
     import copy
 
     cfg = copy.deepcopy(current_config)
@@ -88,12 +52,6 @@ def _rollout_one(checkpoint: Path, location: str, calibration, action_config) ->
     from qbbr.agents.classical.mlp_a2c import MLPA2CAgent
     from qbbr.env.fluid_env import FluidSimEnv
 
-    # Both checkpoint generations here predate s7_reconfig_phase (the state
-    # vector has since grown from 6 to 7 features) -- n_qubits=6 matches
-    # what they were actually trained on, and the env's state is truncated
-    # to its first 6 entries (s1..s6, dropping s7) before being handed to
-    # the agent, so this stays a like-for-like replay of their original
-    # training-time observation, not a mismatched forward pass.
     agent = MLPA2CAgent(n_layers=2, n_qubits=6, action_dims=ACTION_DIMS)
     agent.load(str(checkpoint))
 
@@ -154,9 +112,6 @@ def main() -> None:
               f"inflight_hi levels={action_config['dimensions']['inflight_hi_mult']['levels']} ===")
         per_location = {}
         for location in LOCATIONS:
-            # aggregate across a handful of seeds per location for a stable picture,
-            # not the full 10-seed statistical protocol -- this is qualitative
-            # behavioral analysis, not a pre-registered comparison.
             agg_counts = [Counter() for _ in HEAD_NAMES]
             tputs, rtts, rtxs = [], [], []
             for seed in range(min(N_SEEDS, 5)):

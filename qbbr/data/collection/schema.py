@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from typing import Any, Iterable, Mapping
 
 
@@ -33,6 +34,7 @@ class CollectionQualityReport:
     physical_telemetry_coverage: dict[str, float]
     path_stability_coverage: dict[str, float]
     longitudinal_span_days: float | None = None
+    distinct_days_by_terminal: dict[str, int] | None = None
 
     @property
     def is_minimally_ready(self) -> bool:
@@ -62,11 +64,7 @@ def _coverage(rows: list[Mapping[str, Any]], fields: frozenset[str]) -> dict[str
 
 
 def validate_collection_rows(rows: Iterable[Mapping[str, Any]]) -> CollectionQualityReport:
-    """Assess readiness without silently filling unavailable ground truth.
-
-    This intentionally reports coverage instead of manufacturing weather, SNR,
-    handover, or route information from a theoretical model.
-    """
+    """Assess readiness without silently filling unavailable ground truth."""
 
     materialized = list(rows)
     missing_required = {
@@ -80,6 +78,24 @@ def validate_collection_rows(rows: Iterable[Mapping[str, Any]]) -> CollectionQua
         for row in materialized
         if row.get("geographic_location")
     }
+    timestamps = []
+    days_by_terminal: dict[str, set[str]] = {}
+    for row in materialized:
+        raw = row.get("started_at_utc")
+        if not raw:
+            continue
+        try:
+            value = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        timestamps.append(value)
+        terminal = str(row.get("terminal_id", ""))
+        if terminal:
+            days_by_terminal.setdefault(terminal, set()).add(value.date().isoformat())
+    span_days = None
+    if len(timestamps) >= 2:
+        span_days = (max(timestamps) - min(timestamps)).total_seconds() / 86400.0
+    distinct_days = {terminal: len(days) for terminal, days in days_by_terminal.items()}
     return CollectionQualityReport(
         rows=len(materialized),
         terminals=len(terminals),
@@ -87,4 +103,6 @@ def validate_collection_rows(rows: Iterable[Mapping[str, Any]]) -> CollectionQua
         missing_required=missing_required,
         physical_telemetry_coverage=_coverage(materialized, PHYSICAL_TELEMETRY_FIELDS),
         path_stability_coverage=_coverage(materialized, PATH_STABILITY_FIELDS),
+        longitudinal_span_days=span_days,
+        distinct_days_by_terminal=distinct_days,
     )

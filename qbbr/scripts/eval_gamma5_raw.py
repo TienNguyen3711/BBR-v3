@@ -1,12 +1,7 @@
-"""Evaluates the gamma=5.0 checkpoints (see train_gamma5_parallel.py) vs.
-stock BBR-v3, same protocol as eval_rq1_raw_for_boxplot.py's pacing_only
-arm (downlink, closed_form risk, 10 seeds/10 episodes, raw per-seed arrays
-saved). The published (gamma=0.0) numbers are already in
-outputs/rq1_raw_for_boxplot.json's "London|pacing_only" etc. keys -- this
-script only re-derives the gamma=5.0 side, then the two are compared
-directly (same real BBR-v3 baseline either way, so no need to reload it).
-
-Output -> outputs/rq1_gamma5_raw.json
+"""
+Evaluates the gamma=5.0 checkpoints (see train_gamma5_parallel.py) vs. stock BBR-v3, same protocol
+as eval_rq1_raw_for_boxplot.py's pacing_only arm (downlink, closed_form risk, 10 seeds/10 episodes,
+raw per-seed arrays saved).
 """
 from __future__ import annotations
 
@@ -84,9 +79,6 @@ def main() -> None:
                   f"tput={r['throughput_mbps_median']:7.2f}Mbps  rtt={r['rtt_ms_median']:7.1f}ms  "
                   f"rtx/s={r['retransmits_per_s_median']:6.2f}")
 
-    # Reuse the already-computed real BBR-v3 per-run arrays saved by
-    # eval_rq1_raw_for_boxplot.py -- same dataset, same category/direction,
-    # no need to recompute.
     published = json.load(open(PROJECT_ROOT / "outputs" / "rq1_raw_for_boxplot.json"))
     published_pacing_only = published["qbbr"]
 

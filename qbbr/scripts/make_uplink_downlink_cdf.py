@@ -1,26 +1,4 @@
-"""Empirical-CDF comparison of qbbr vs. stock BBR-v3, UPLINK vs. DOWNLINK,
-per location.
-
-Reads the two raw per-seed / per-trace-file dumps that are actually on disk:
-  * outputs/rq1_raw_for_boxplot.json   (direction=downlink; qbbr key "{loc}|pacing_only")
-  * outputs/rq1_uplink_raw.json        (direction=uplink;   qbbr key "{loc}")
-
-Each metric -> one 2x3 figure (one panel per location). Every panel overlays
-four ECDFs:
-    qbbr   downlink   (blue, solid)      BBR-v3 downlink   (gray, solid)
-    qbbr   uplink     (blue, dashed)     BBR-v3 uplink     (gray, dashed)
-
-n = 10 per curve (10 seeds for qbbr, 10 trace-files for the real CCAs) -- these
-are small-sample ECDFs, read them as distribution shape, not smooth estimates.
-
-"Improvement" for retransmits/RTT = the blue (qbbr) curve sits LEFT of the gray
-(BBR-v3) curve of the SAME linestyle (lower is better). For throughput, left =
-worse. The throughput panel uses a log x-axis because uplink (~0-44 Mbps) and
-downlink (~100-240 Mbps) live on different scales; exact-zero throughput runs
-(BBR-v3 uplink stalls) are clipped to 0.1 Mbps so they still plot.
-
-Output -> figures/cdf_ul_dl_{retransmits,throughput,rtt}.png
-"""
+"""Empirical-CDF comparison of qbbr vs. stock BBR-v3, UPLINK vs."""
 from __future__ import annotations
 
 import json
@@ -119,9 +97,10 @@ def _make_metric_figure(data, metric, xlabel, title, out_name, logx=False,
 
 
 def _write_summary(data):
-    """Per-location numeric backing for the CDF panels: qbbr-vs-BBR-v3 median
-    shift + distribution tests (Mann-Whitney, Kolmogorov-Smirnov), each
-    direction separately."""
+    """
+    Per-location numeric backing for the CDF panels: qbbr-vs-BBR-v3 median shift + distribution
+    tests (Mann-Whitney, Kolmogorov-Smirnov), each direction separately.
+    """
     from scipy import stats as ss
 
     lines = [

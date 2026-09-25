@@ -56,6 +56,72 @@ reward:
     Supervisor-locked objective: delivered throughput only. RTT, loss, queue,
     and risk remain state, safety, and reporting signals; they are not reward
     terms.
+# The block above is the ORIGINAL locked record and is left byte-for-byte
+# intact for traceability. The variant below is an addition, not an edit.
+reward_variants:
+  - reward_id: multi-objective-alpha-fair-v1
+    status: unlocked_by_student_request_pending_supervisor_ratification
+    unlocked_on: 2026-09-10
+    implementation: qbbr.reward.alpha_fair.compute_reward
+    throughput_utility: alpha_fair_log_utility
+    rtt_penalty: true
+    retransmission_penalty: true
+    ecn_penalty: optional
+    form: >-
+      log(throughput_mbps) - delta*log(rtt_t / rtt_min) - beta*l_t
+      - gamma*ecn_mark_fraction, where l_t is the RELATIVE CHANGE in
+      retransmits between decisions (a delta term, not a level, so Starlink's
+      non-congestive baseline loss is not charged to the controller).
+    rationale: >-
+      The declared project objectives are (1) maximise throughput and
+      (2) minimise retransmissions and RTT. Under the locked contract only (1)
+      entered the objective; (2) was enforced solely as post-hoc selection
+      gates, so the actor received no gradient toward lower RTT or loss. The
+      measured consequence: a policy that traded -5% throughput for -10 ms RTT
+      scored as a failure. This variant puts objective (2) into the reward.
+    caveats: >-
+      Changes the optimisation target, so results are NOT comparable to any
+      throughput-only run. Reward is a log utility, so reward_scale_mbps must
+      be 1.0, not the 10000 used for the raw-Mbps reward. Selection gates are
+      retained on top as a safety net. Requires supervisor ratification before
+      any result under it is reported.
+  - reward_id: counterfactual-difference-v1
+    status: unlocked_by_student_request_pending_supervisor_ratification
+    unlocked_on: 2026-09-11
+    implementation: qbbr.reward.difference.compute_difference_reward
+    throughput_utility: log_ratio_against_stock_on_identical_forcing
+    rtt_penalty: true
+    retransmission_penalty: true
+    ecn_penalty: false
+    form: >-
+      log(thr_agent / thr_stock) - delta*log(rtt_agent / rtt_stock)
+      - beta*(rtx_agent - rtx_stock)/(rtx_stock + 1), where the stock terms come
+      from a cached deterministic stock-BBR rollout over the SAME capacity
+      forcing and seed (common random numbers).
+    rationale: >-
+      Measured with qbbr/scripts/snr_probe.py on London downlink, the
+      multi-objective-alpha-fair-v1 reward separates no pair of actions by even
+      2 sigma (best 1.88 sigma, R^2(return|state) 0.046). The advantage the
+      policy gradient consumes is therefore almost pure exogenous-capacity
+      noise, which is why every v5-v9 tuning attempt (reward scale, entropy
+      schedule, discount, n-step updates, critic learning rate) left the policy
+      unchanged. Differencing against stock on identical forcing cancels the
+      exogenous term by construction: the same probe reports 9.2 sigma
+      separation at delta=2.
+    caveats: >-
+      Changes the optimisation target; NOT comparable to throughput-only or to
+      multi-objective-alpha-fair-v1 runs. Requires reset(seed=...) so the
+      counterfactual twin faces identical forcing, and costs one extra stock
+      rollout per unseen seed. The stock row is a counterfactual for the same
+      FORCING, not for the agent's own state -- by decision t the two
+      trajectories have diverged, which is precisely the effect being measured,
+      but it is not a per-state counterfactual. delta is load-bearing: the probe
+      finds no interior optimum, with delta<=2 favouring the highest gain,
+      delta~4 cancelling the signal entirely, and delta>=8 favouring the lowest.
+      delta=2 is chosen as the smallest value showing state-dependent structure
+      (best action varies across s1_bhat and s3_inflight_bdp strata) rather than
+      a constant-gain optimum. Requires supervisor ratification before any
+      result under it is reported.
 safety:
   stock_fallback_action: pacing_gain_100
   only_declared_states: true

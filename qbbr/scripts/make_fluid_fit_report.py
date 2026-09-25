@@ -1,20 +1,6 @@
-"""Stage 1b -- Block 1: fit test of the fluid BBR-v3 model against observed
-BBR-v3 dynamics in the iperf3 sequential logs (qbbr/data/raw).
-
-§sec:validation asks the fluid model to be validated against observed
-ProbeBW and ProbeRTT transitions, inflight_hi and inflight_lo -- not merely
-checked for internal consistency. This script measures, per city/direction:
-
-  from the real `bbr` traces      from a fluid stock rollout
-  ------------------------------   --------------------------------
-  ProbeRTT dip cadence / depth     (fluid has no ProbeRTT phase)
-  ProbeBW sawtooth period          probe_bw_interval_s + v_over_bdp autocorr
-  snd_cwnd / BDP  p5/p50/p95       v_bytes / BDP  p5/p50/p95
-  retransmit rate (per s)          retransmit rate (per s)
-  RTT p50 / RTT std (ms)           RTT p50 / RTT std (ms)
-
-Writes outputs/fluid_fit_report.{json,md} and figures/fluid_fit_{dir}.png.
-No training. Reads checkpoints of nothing -- stock BBR-v3 needs no policy.
+"""
+Stage 1b -- Block 1: fit test of the fluid BBR-v3 model against observed BBR-v3 dynamics in the
+iperf3 sequential logs (qbbr/data/raw).
 """
 
 from __future__ import annotations

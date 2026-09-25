@@ -1,8 +1,4 @@
-"""Run a clearly labelled simulator-only variational Double-DQN ablation.
-
-This script is a technical screening experiment.  Its output is not field
-evidence and must not be used for an RL--BBR performance claim.
-"""
+"""Run a clearly labelled simulator-only variational Double-DQN ablation."""
 
 from __future__ import annotations
 

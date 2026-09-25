@@ -8,7 +8,7 @@ from typing import Any, Sequence
 import numpy as np
 import torch
 
-from qbbr.agents.base_agent import BaseAgent, a2c_losses, discounted_returns
+from qbbr.agents.base_agent import BaseAgent, a2c_losses, discounted_returns, RunningReturnNormalizer
 from qbbr.control.native_action_selector import NativeActionSelector
 
 
@@ -33,6 +33,8 @@ class NativeMLPA2CAgent(BaseAgent):
         lr: float = 1e-3,
         gamma: float = 0.99,
         normalize_advantage: bool = True,
+        normalize_returns: bool = False,
+        critic_lr: float | None = None,
         selector: NativeActionSelector | None = None,
         entropy_coef: float = 0.0,
     ) -> None:
@@ -44,6 +46,10 @@ class NativeMLPA2CAgent(BaseAgent):
         self.native_action_count = native_action_count
         self.gamma = gamma
         self.normalize_advantage = normalize_advantage
+        # Standardise the critic's target so the Linear(1,1) head can represent
+        # it; without this the baseline is inert (see RunningReturnNormalizer).
+        self.normalize_returns = normalize_returns
+        self.return_normalizer = RunningReturnNormalizer()
         if entropy_coef < 0.0:
             raise ValueError("entropy_coef must be non-negative")
         self.selector = selector
@@ -60,9 +66,11 @@ class NativeMLPA2CAgent(BaseAgent):
             torch.nn.Tanh(),
             torch.nn.Linear(critic_hidden_dim, 1),
         )
-        self.optimizer = torch.optim.Adam(
-            list(self.actor.parameters()) + list(self.critic.parameters()), lr=lr
-        )
+        self.critic_lr = lr if critic_lr is None else float(critic_lr)
+        self.optimizer = torch.optim.Adam([
+            {"params": list(self.actor.parameters()), "lr": lr},
+            {"params": list(self.critic.parameters()), "lr": self.critic_lr},
+        ])
 
     def _distribution(
         self, state_t: torch.Tensor, allowed_indices: Sequence[int],
@@ -99,11 +107,15 @@ class NativeMLPA2CAgent(BaseAgent):
         with torch.no_grad():
             return float(self.critic(state_t).squeeze(0).item())
 
-    def update(self, batch: Any, entropy_coef: float | None = None) -> dict[str, float]:
+    def update(self, batch: Any, entropy_coef: float | None = None,
+               bootstrap_value: float = 0.0) -> dict[str, float]:
         if not hasattr(batch, "action_masks"):
             raise ValueError("NativeMLPA2CAgent requires a rollout with per-step action_masks.")
         ec = self.entropy_coef if entropy_coef is None else float(entropy_coef)
-        returns = discounted_returns(batch.rewards, self.gamma)
+        returns = discounted_returns(batch.rewards, self.gamma, bootstrap_value)
+        if self.normalize_returns:
+            self.return_normalizer.update(returns)
+            returns = self.return_normalizer.normalize(returns)
         log_probs, values, entropies, greedy_actions, stock_probabilities = [], [], [], [], []
         for state, action, allowed_indices in zip(batch.states, batch.actions, batch.action_masks):
             state_t = torch.as_tensor(np.asarray(state), dtype=torch.float32)
@@ -151,6 +163,8 @@ class NativeMLPA2CAgent(BaseAgent):
             "native_action_count": self.native_action_count,
             "actor_hidden_dim": self.actor_hidden_dim, "critic_hidden_dim": self.critic_hidden_dim,
             "entropy_coef": self.entropy_coef,
+            "normalize_returns": self.normalize_returns,
+            "return_normalizer": self.return_normalizer.state_dict(),
         }
 
     def load_training_state_dict(self, checkpoint: dict) -> None:
@@ -166,6 +180,8 @@ class NativeMLPA2CAgent(BaseAgent):
         self.actor.load_state_dict(checkpoint["actor"])
         self.critic.load_state_dict(checkpoint["critic"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
+        if "return_normalizer" in checkpoint:
+            self.return_normalizer.load_state_dict(checkpoint["return_normalizer"])
 
     def save(self, path: str | Path) -> None:
         torch.save(self.training_state_dict(), path)

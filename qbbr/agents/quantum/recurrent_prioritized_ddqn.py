@@ -61,11 +61,7 @@ class PrioritizedReplayBuffer:
 
 
 class RecurrentPrioritizedVariationalDoubleDQN:
-    """GRU context encoder + QNN Double-DQN head, with frozen BBR actions.
-
-    The GRU models temporal RTT/queue/reconfiguration patterns.  The QNN still
-    produces Q-values only for the fixed choices supplied by the action mask.
-    """
+    """GRU context encoder + QNN Double-DQN head, with frozen BBR actions."""
 
     def __init__(
         self,

@@ -1,9 +1,4 @@
-"""Reward contract for the successor QRL--BBR brain.
-
-The supervisor-approved objective is deliberately only delivered throughput.
-Delay, loss, queue and risk remain observations and reported safety metrics;
-they are not additional optimisation terms.
-"""
+"""Reward contract for the successor QRL--BBR brain."""
 
 from __future__ import annotations
 

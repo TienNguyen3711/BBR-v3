@@ -10,9 +10,6 @@ import yaml
 from .contracts import ActionSpec, ContractError
 
 
-# Per-action level grids would create a new action set.  A single fixed value
-# is allowed through ``fixed_parameters`` only after comparison with the
-# canonical BBR action configuration.
 FORBIDDEN_ACTION_SET_KEYS = {"levels", "dimensions"}
 
 

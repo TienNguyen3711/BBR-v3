@@ -11,10 +11,7 @@ class BaseEnv(abc.ABC):
 
     @abc.abstractmethod
     def step(self, action: int) -> tuple[Any, float, bool, dict]:
-        """Apply a pacing_gain action and advance one decision interval T_dec.
-
-        Returns (next_state, reward, done, info).
-        """
+        """Apply a pacing_gain action and advance one decision interval T_dec."""
 
     @property
     @abc.abstractmethod

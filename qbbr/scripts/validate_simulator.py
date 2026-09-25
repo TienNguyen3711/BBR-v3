@@ -114,10 +114,6 @@ def main() -> None:
                   f"throughput Mbps: real={real['throughput_mbps_median']:8.1f}  sim={sim['throughput_mbps_median']:8.1f}  |  "
                   f"RTT ms: real={real['rtt_ms_median']:7.1f}  sim={sim['rtt_ms_median']:7.1f}  |  "
                   f"rtx/s: real={real['retransmits_per_s_median']:6.1f}  sim={sim['retransmits_per_s_median']:6.1f}")
-            # holdout: RTT p95/IQR are never a fitting target (drawdown_activate_mult
-            # is fit against rtt_ms_median only), so unlike the three columns above,
-            # a mismatch here is a genuine, untouched independent check on whether
-            # the sim reproduces RTT's *spread*, not just its central tendency.
             print(f"  RTT holdout: IQR real={real['rtt_ms_iqr']:6.1f}  sim={sim['rtt_ms_iqr']:6.1f}  |  "
                   f"p95 real={real['rtt_ms_p95']:7.1f}  sim={sim['rtt_ms_p95']:7.1f}")
 

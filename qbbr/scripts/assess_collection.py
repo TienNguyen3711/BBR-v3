@@ -1,8 +1,4 @@
-"""Report whether a JSONL field dataset is ready for the active study.
-
-Usage:
-    python -m qbbr.scripts.assess_collection path/to/field_runs.jsonl
-"""
+"""Report whether a JSONL field dataset is ready for the active study."""
 
 from __future__ import annotations
 

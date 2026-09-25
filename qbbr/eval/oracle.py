@@ -1,11 +1,4 @@
-"""One-step counterfactual action-sensitivity diagnostic.
-
-This module follows a stock-action trajectory and, at every decision point,
-branches a copy of the environment once for every *admissible* action.  The
-branches share precisely the same state, phase offset, and EMA history.  It
-therefore measures local control authority, not a trainable policy or a
-globally feasible oracle trajectory.
-"""
+"""One-step counterfactual action-sensitivity diagnostic."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -18,11 +11,7 @@ from qbbr.env.fluid_env import FluidSimEnv
 
 
 def stock_action_index(action_config: dict[str, Any], n_actions: int) -> int:
-    """Return the config action that represents the unmodified BBR defaults.
-
-    Pacing gain defaults to 1.0.  In multi-head configurations, every
-    non-pacing dimension's first level is the documented safe stock value.
-    """
+    """Return the config action that represents the unmodified BBR defaults."""
     for action in range(n_actions):
         levels = levels_for_action(action_config, action)
         if not np.isclose(levels.get("pacing_gain", 1.0), 1.0):
@@ -50,13 +39,7 @@ def action_sensitivity(
     throughput_retention: float = 0.95,
     stock_action: int | None = None,
 ) -> dict[str, Any]:
-    """Measure action headroom along stock trajectories.
-
-    ``one_step_oracle_bound`` sums the best feasible *branch* at each stock
-    state.  Because selecting that action would alter later states, it is an
-    optimistic local bound, deliberately not reported as an achievable policy
-    episode result.
-    """
+    """Measure action headroom along stock trajectories."""
     if not 0.0 < throughput_retention <= 1.0:
         raise ValueError("throughput_retention must be in (0, 1]")
 

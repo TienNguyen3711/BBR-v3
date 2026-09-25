@@ -1,10 +1,4 @@
-"""Safety and deployment selection over the frozen native BBR-v3 actions.
-
-The selector never creates a transport action. Its hard mask retains only
-native actions that are safe in the observed BBR state. It also retains the
-previous soft stock-fold as an explicitly *deployment-audit* distribution;
-that distribution is not used to compute A2C gradients.
-"""
+"""Safety and deployment selection over the frozen native BBR-v3 actions."""
 
 from __future__ import annotations
 
@@ -16,15 +10,7 @@ import torch
 
 @dataclass(frozen=True)
 class NativeActionSelector:
-    """State-aware, stock-anchored selection within existing BBR actions.
-
-    The congestion guard blocks the high native gains when any of four
-    canonical state features cross a configured threshold: inflight/BDP
-    (``s3``), queue occupancy (``s4``), excess RTT (``s2``), or proximity to
-    the reconfiguration-phase centre (``s7``). The RTT and reconfiguration
-    thresholds default to ``1.0`` -- i.e. disabled -- so existing protocols
-    keep their behaviour until they opt in.
-    """
+    """State-aware, stock-anchored selection within existing BBR actions."""
 
     stock_action: int = 2
     min_logit_advantage: float = 0.15
@@ -34,21 +20,7 @@ class NativeActionSelector:
     max_excess_rtt_state: float = 1.0
     max_reconfig_phase_proximity: float = 1.0
     high_gain_actions: tuple[int, ...] = (3, 4)
-    # Low native gains are admissible only under genuine queue/inflight
-    # pressure. In headroom a sub-1.0 gain only under-fills the pipe -- a pure
-    # throughput loss with no compensating benefit -- so a policy should never
-    # converge to it there. Empty tuple (default) disables this guard, keeping
-    # legacy behaviour. It is native-state admissibility over the frozen action
-    # set, not an added action.
     low_gain_actions: tuple[int, ...] = ()
-    # Queue-budget guard (goal-2). A higher-than-stock gain is admissible only
-    # while the pipe has genuine headroom: inflight/BDP (s3) below
-    # queue_budget_max_inflight AND queue (s4) below queue_budget_max_queue.
-    # These sit *below* the congestion thresholds above, so the response is
-    # graduated -- headroom: {stock, high gains}; filling: stock only;
-    # congested: {stock, low gains to drain}. It stops a throughput-seeking
-    # policy from raising the rate into an already-filling pipe. Defaults
-    # (1.0) disable it -- it never triggers on the [0,1]-clipped state.
     queue_budget_max_inflight: float = 1.0
     queue_budget_max_queue: float = 1.0
 
@@ -110,12 +82,7 @@ class NativeActionSelector:
     def hard_distribution(
         self, logits: torch.Tensor, state: torch.Tensor, allowed_actions: Sequence[int],
     ) -> torch.distributions.Categorical:
-        """Policy distribution for learning: native action mask plus hard safety.
-
-        This is the behaviour policy for A2C rollouts and updates. It avoids
-        an on-policy chicken-and-egg loop in which a soft stock anchor must be
-        overcome before the actor can receive credit for a non-stock action.
-        """
+        """Policy distribution for learning: native action mask plus hard safety."""
 
         admitted = self.admissible_actions(logits, state, allowed_actions)
         masked = torch.full_like(logits, float("-inf"))
@@ -125,12 +92,7 @@ class NativeActionSelector:
     def distribution(
         self, logits: torch.Tensor, state: torch.Tensor, allowed_actions: Sequence[int],
     ) -> torch.distributions.Categorical:
-        """Return the legacy soft-fold distribution for deployment audits only.
-
-        Callers must use :meth:`hard_distribution` for A2C sampling and
-        optimisation. Keeping this method makes the old shield observable in
-        reports without silently changing the training policy.
-        """
+        """Return the legacy soft-fold distribution for deployment audits only."""
 
         allowed = tuple(int(item) for item in allowed_actions)
         admitted = self.admissible_actions(logits, state, allowed)
@@ -172,13 +134,7 @@ class NativeActionSelector:
     def deployment_action(
         self, logits: torch.Tensor, state: torch.Tensor, allowed_actions: Sequence[int],
     ) -> int:
-        """Choose one safe existing BBR action for deterministic deployment.
-
-        A non-stock candidate must beat stock by the declared logit margin.
-        This is a deterministic confidence rule, not an added BBR action, and
-        avoids using ``argmax`` on a folded probability distribution whose
-        accumulated stock mass can reverse the actor's ranking.
-        """
+        """Choose one safe existing BBR action for deterministic deployment."""
 
         admitted = self.admissible_actions(logits, state, allowed_actions)
         hard_logits = torch.full_like(logits, float("-inf"))

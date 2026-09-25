@@ -88,12 +88,7 @@ def _empirically_certified_action(
 
 
 class VariationalDoubleDQN:
-    """QRL value learner which selects only a fixed, externally supplied mask.
-
-    Double-DQN selects the next action with the online QNN and evaluates it
-    with a target QNN.  Thus it changes the learning rule, not BBR's action
-    alphabet.
-    """
+    """QRL value learner which selects only a fixed, externally supplied mask."""
 
     def __init__(
         self,

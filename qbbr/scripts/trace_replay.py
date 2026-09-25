@@ -1,21 +1,6 @@
-"""Stage 2.5 -- trace-driven replay: run stock and the trained QA2C policy
-through capacity forcing taken from REAL measured Starlink BBR runs.
-
-The exogenous disturbance (bottleneck capacity over time, including its real
-handover dips) comes from `qbbr/data/raw/`; the queue / loss / ProbeBW
-response is still this repository's fluid proxy. That upgrades "synthetic
-conditions" to "real conditions"; it does NOT upgrade "modelled transport" to
-"real transport" -- only a kernel-in-the-loop testbed closes that gap.
-
-Reports, per (location, direction):
-  * fidelity  -- stock sim on the replayed forcing vs the trace's own realised
-                 throughput. If these disagree the replay is not trustworthy
-                 and the agent delta below means nothing.
-  * agent     -- trained QA2C policy vs stock, on the SAME replayed forcing.
-                 The policy was trained only on synthetic forcing, so every
-                 replay trace is out-of-sample for it.
-
-Simulator-proxy only. No Starlink field claim.
+"""
+Stage 2.5 -- trace-driven replay: run stock and the trained QA2C policy through capacity forcing
+taken from REAL measured Starlink BBR runs.
 """
 from __future__ import annotations
 
@@ -42,17 +27,7 @@ _RECONFIG_CYCLE_S = 15.0
 
 
 def trace_forcing(intervals, capacity_proxy: str = "envq90_w5") -> dict:
-    """(times, capacity bytes/s) plus the trace's own realised statistics.
-
-    capacity_proxy: how available capacity is recovered from BBR's *achieved*
-    rate. "achieved" takes the delivered rate as-is, which under-states the
-    path (BBR under-fills during its own bandwidth-estimate recovery, so the
-    replayed stock run then under-delivers ~25%). "envq90_wN" takes a rolling
-    N-second centred 90th percentile -- what the path sustained in BBR's best
-    moments of that window. The window is picked so the replayed STOCK run
-    reproduces the trace's realised throughput (fidelity ~1.0); the agent
-    delta is then measured against that validated baseline.
-    """
+    """(times, capacity bytes/s) plus the trace's own realised statistics."""
     iv = intervals[(intervals["omitted"] != True) & intervals["bits_per_second"].notna()]  # noqa: E712
     t = iv["t_start"].to_numpy(dtype=float)
     bps = iv["bits_per_second"].to_numpy(dtype=float)
@@ -81,12 +56,7 @@ def trace_forcing(intervals, capacity_proxy: str = "envq90_w5") -> dict:
 
 
 def align_phase_offset(times: np.ndarray, capacity: np.ndarray) -> float:
-    """Pin the simulator's reconfiguration clock to the trace's own dips.
-
-    Dips = samples in the lowest decile of capacity. Their mean position on
-    the 15 s cycle is mapped onto the profile's mean_phase_s, so the modelled
-    freeze window and retransmit phase-lock line up with the real handovers.
-    """
+    """Pin the simulator's reconfiguration clock to the trace's own dips."""
     if times.size < 4:
         return 0.0
     threshold = np.quantile(capacity, 0.10)
@@ -133,7 +103,10 @@ def _load_agent(cfg, probe, ckpt_root: Path, location: str, direction: str, seed
         stock_init_bias=float(a.get("stock_init_bias", 0.0)),
     )
     model = quantum if core == "quantum" else classical
-    candidates = [ckpt_root / f"ckpt_{location}_{direction}_s{seed}",
+    # The current runner writes straight to <root>/<core>/<loc>/<dir>/seedN.pt;
+    # the ckpt_<loc>_<dir>* forms below are older layouts kept for old runs.
+    candidates = [ckpt_root,
+                  ckpt_root / f"ckpt_{location}_{direction}_s{seed}",
                   ckpt_root / f"ckpt_{location}_{direction}"]
     candidates += [ckpt_root / f"ckpt_{location}_{direction}_{tag}" for tag in ("a", "b")]
     for base in candidates:

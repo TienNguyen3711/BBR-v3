@@ -1,0 +1,40 @@
+study_id: native-bbr-four-rq-v1
+base_protocol: tier1_v14_fidelity.yaml
+# Historical v14 actuator semantics remain explicit; aligned-kernel experiments
+# must use a separate protocol ID and dynamics overlay, not overwrite this run.
+locations: [London, Mumbai, Ohio, SaoPaulo, Sydney, Tokyo]
+directions: [downlink, uplink]
+training_seeds: [0, 1, 2, 3, 4]
+holdout_seeds: [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009]
+episodes: 30
+duration_s: 300.0
+cores: [qa2c, a2c, qdqn]
+variants: [full, telemetry, telemetry_queue, no_queue, no_handover, no_failure, no_phase]
+forcing: [synthetic, replay]
+trace_split:
+  train_runs: [1, 2, 3, 4, 5, 6, 7]
+  test_runs: [8, 9, 10]
+  reference_cca: {downlink: bbr, uplink: bbr2}
+  capacity_proxy: envq90_w5
+# Evaluation checkpoints yield a held-out learning curve without selecting a
+# checkpoint by its test score. The FINAL checkpoint is always the reported one.
+curve_every: 5
+qdqn:
+  quantum_dim: 4
+  n_layers: 2
+  history_window: 8
+  replay_capacity: 10000
+  warmup_steps: 32
+  batch_size: 16
+  update_every: 4
+  target_sync_every: 50
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+bootstrap: {resamples: 10000, confidence: 0.95, seed: 20260920}
+field:
+  minimum_terminals: 2
+  minimum_locations: 2
+  minimum_span_days: 14
+  minimum_distinct_days_per_terminal: 7
+  directions: [uplink, downlink]
+  required_profiles: [bulk, video_streaming, voip, gaming]

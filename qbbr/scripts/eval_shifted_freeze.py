@@ -16,10 +16,6 @@ ACTION_CONFIG_PATH = PACKAGE_ROOT / "configs" / "action_pacing_gain.yaml"
 CHECKPOINT_ROOT = PROJECT_ROOT / "outputs" / "checkpoints_final" / "pacing_only"
 LOCATIONS = ["London", "Mumbai", "Ohio", "SaoPaulo", "Sydney", "Tokyo"]
 N_SEEDS = 10  # matches the standard 10-seed protocol used everywhere else (RQ1-RQ4) -- the
-# original 5-seed run's post-hoc MDE was ~12-17% at 5/6 locations (only Sydney, with much lower
-# per-seed variance, was powered down to ~1.3%), well above the -1.3%..+6.8% decoy spread actually
-# observed, so a real effect on the order of the freeze extension's own claimed magnitude (single-
-# digit %) could have been missed at those 5 locations. 10 seeds roughly doubles n on both arms.
 N_EPISODES = 5
 EPISODE_S = 300.0
 REAL_MEAN_PHASE_S = 10.5

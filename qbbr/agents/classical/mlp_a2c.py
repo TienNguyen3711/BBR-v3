@@ -128,12 +128,6 @@ class MLPA2CAgent(BaseAgent):
     def load(self, path: str | Path) -> None:
         checkpoint = torch.load(path, map_location="cpu")
         if "actor" in checkpoint:
-            # Legacy pre-actor_trunk/actor_heads-split format (single nn.Sequential
-            # "actor", e.g. RQ1a's frozen pacing_gain-only baseline checkpoints,
-            # outputs/checkpoints/, predating this split). Only valid for the
-            # single-head case the legacy format was ever trained under; the
-            # Sequential's first Linear is exactly today's actor_trunk, its second
-            # (final) Linear is exactly today's actor_heads[0].
             if len(self.action_dims) != 1:
                 raise ValueError(
                     f"legacy single-head checkpoint {path!r} cannot be loaded into a "

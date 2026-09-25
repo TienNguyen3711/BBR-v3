@@ -1,9 +1,4 @@
-"""Regenerate the 4-RQ x 6-site scorecard used on slide 8 of the status deck.
-
-Replaces the 28 Aug image (RQ4 row = "6-qubit core", p .064) with the current
-seven-input RQ4 result (exact 126-parameter full-agent match, n=10,
-Mann-Whitney p >= 0.47).  -> figures/scorecard.png
-"""
+"""Regenerate the 4-RQ x 6-site scorecard used on slide 8 of the status deck."""
 from pathlib import Path
 
 import matplotlib

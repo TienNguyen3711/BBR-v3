@@ -1,17 +1,6 @@
-"""Paper-style 6-metric x 6-city box-plot grid (Throughput, Retransmissions,
-Congestion Window, Receiver Advertised Window, RTT, RTT Variance), in the
-layout of desilva2026tmc Fig. 5 / Fig. 8.
-
-Two data sources:
-  * measured CCAs  -- parsed straight from the iperf3 sequential (dedicated,
-    single-flow) logs in qbbr/data/raw: BBR-v3 (`bbr`), BBRv1, BBRv2, Cubic,
-    Hybla, Vegas. All six metrics (snd_cwnd, snd_wnd are in the logs).
-  * our agents     -- stock BBR-v3 fluid model and the v5 QA2C brain, rolled
-    out on FluidSimEnv. Only four metrics: the fluid model has NO congestion
-    window and NO receiver window, so those two panels stay measured-only.
-
-Writes figures/paper_style_grid_downlink.png, figures/paper_style_grid_uplink.png
-and the underlying outputs/paper_style_grid_*.json.
+"""
+Paper-style 6-metric x 6-city box-plot grid (Throughput, Retransmissions, Congestion Window,
+Receiver Advertised Window, RTT, RTT Variance), in the layout of desilva2026tmc Fig. 5 / Fig. 8.
 """
 
 from __future__ import annotations

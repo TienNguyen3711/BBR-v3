@@ -1,22 +1,4 @@
-"""Task 2 -- train the native QRL policy ON real replayed capacity forcing.
-
-`trace_replay.py` showed that a policy trained against the SYNTHETIC periodic
-handover model loses almost all of its advantage on real capacity traces
-(+3..6% -> +0.1..1.2%). This script tests the obvious follow-up: if the policy
-is *trained* on real, irregular capacity forcing, does it find an advantage
-that survives on held-out real traces?
-
-Split: --train-runs (default 1..7) drive training episodes, --eval-runs
-(default 8,9,10) are held out for evaluation. The replay CCA matches the
-calibration provenance of per_location_constants_v7c.json (downlink <- bbr,
-uplink <- bbr2).
-
-Caveat kept in the report: the calibration constants themselves were fit on
-all runs, so the ENVIRONMENT is mildly in-sample. That bias applies identically
-to stock and to the agent, so it largely cancels in the agent-vs-stock delta.
-
-Simulator-proxy only. No Starlink field claim.
-"""
+"""Task 2 -- train the native QRL policy ON real replayed capacity forcing."""
 from __future__ import annotations
 
 import argparse
@@ -60,8 +42,8 @@ def build_pool(catalog, location, direction, cca, runs, capacity_proxy) -> list[
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--config", type=Path, default=PKG / "configs" / "tier1_native_qa2c_successor_protocol.yaml")
-    ap.add_argument("--calibration", type=Path, default=PKG / "data" / "calibrated" / "per_location_constants_v7c.json")
+    ap.add_argument("--config", type=Path, default=PKG / "configs" / "tier1_v14_fidelity.yaml")
+    ap.add_argument("--calibration", type=Path, default=PKG / "data" / "calibrated" / "per_location_constants_v14.json")
     ap.add_argument("--dataset-root", type=Path, default=PKG / "data" / "raw")
     ap.add_argument("--locations", nargs="+", default=["London", "Sydney"])
     ap.add_argument("--directions", nargs="+", default=["downlink", "uplink"])
@@ -106,7 +88,9 @@ def main() -> None:
 
             def make_env(pool):
                 return FluidSimEnv(
-                    location, direction, calib, episode_s=300.0, reward_mode="throughput_only",
+                    location, direction, calib, episode_s=300.0,
+                    reward_mode=cfg["simulator"].get("reward_mode", "throughput_only"),
+                    reward_kwargs=cfg["simulator"].get("reward_kwargs"),
                     risk_mode=cfg["simulator"]["risk_mode"], dynamics_overrides=ov,
                     probe_bw_phase_gate=gate, capacity_trace_pool=pool)
 
@@ -135,11 +119,15 @@ def main() -> None:
                     reupload=a["reupload"], max_hidden=a["max_classical_hidden"],
                     selector=_selector(cfg), entropy_coef=float(a.get("entropy_coef", 0.0)),
                     stock_action=int(cfg["control"]["stock_action"]),
-                    stock_init_bias=float(a.get("stock_init_bias", 0.0)))
+                    stock_init_bias=float(a.get("stock_init_bias", 0.0)),
+                    normalize_returns=bool(a.get("normalize_returns", False)),
+                    critic_lr=a.get("critic_lr"))
                 for core in args.cores:
                     model = quantum if core == "quantum" else classical
+                    loop_config = {k: a[k] for k in ("entropy_start", "entropy_decay_episodes", "n_step_update")
+                                   if k in a}
                     train_native_qrl(
-                        model, make_env(train_pool), args.episodes, {}, start_episode=0,
+                        model, make_env(train_pool), args.episodes, loop_config, start_episode=0,
                         total_episodes=args.episodes, environment_seed_base=seed * 1_000_000,
                         reward_scale_mbps=cfg["training"]["reward_scale_mbps"])
                     deltas = []

@@ -41,8 +41,35 @@ def bootstrap_median_ci(
     }
 
 
+def resolve_limit(limit, location: str, direction: str, calibration: dict | None):
+    """Resolve a criterion that is DERIVED per path rather than fixed."""
+    if not isinstance(limit, dict):
+        return limit
+    key = limit["derived_from"]
+    if calibration is None:
+        raise ValueError(f"Criterion derived_from {key!r} needs calibration constants.")
+    value = calibration.get(location, {}).get(direction, {}).get(key)
+    if value is None:
+        raise ValueError(f"Calibration for {location}/{direction} has no {key!r}.")
+    return float(value) * float(limit.get("scale", 1.0))
+
+
+def _low_gain_pass(group, low_gain_share: float, criteria: dict) -> bool:
+    """Does the policy waste sub-1.0 gains where they can only lose throughput?"""
+    headroom_cap = criteria.get("max_low_gain_in_headroom_share")
+    if headroom_cap is None:
+        return low_gain_share <= criteria["max_low_gain_action_share"]
+    shares = [row["evaluation"].get("low_gain_share_in_headroom") for row in group]
+    if any(value is None for value in shares):
+        raise ValueError(
+            "max_low_gain_in_headroom_share requires records carrying "
+            "low_gain_share_in_headroom; re-run evaluation with the current runner."
+        )
+    return float(np.mean(shares)) <= float(headroom_cap)
+
+
 def assess_full_successor_records(
-    records: list[dict], criteria: dict, bootstrap: dict,
+    records: list[dict], criteria: dict, bootstrap: dict, calibration: dict | None = None,
 ) -> list[dict]:
     """Assess independent training seeds; reporting metrics never alter reward."""
     groups: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
@@ -65,12 +92,14 @@ def assess_full_successor_records(
             "median_throughput_vs_stock": ci["point_estimate"] >= criteria["min_median_throughput_delta_vs_stock_pct"],
             "bootstrap_lower_bound": ci["lower"] >= criteria["min_bootstrap_ci_lower_pct"],
             "positive_training_seed_fraction": positive_fraction >= criteria["min_positive_training_seed_fraction"],
-            "avoid_systematic_low_gain": low_gain_share <= criteria["max_low_gain_action_share"],
+            "avoid_systematic_low_gain": _low_gain_pass(group, low_gain_share, criteria),
             "stable_action_distribution": action_jsd <= criteria["max_mean_action_js_divergence"],
         }
+        resolved_limits = {}
         for metric in ("rtt_p90_delta_vs_stock_ms", "rtt_p95_delta_vs_stock_ms", "retransmission_ratio_delta_vs_stock", "retransmits_delta_vs_stock_per_s"):
-            limit = criteria.get("max_" + metric)
+            limit = resolve_limit(criteria.get("max_" + metric), location, direction, calibration)
             if limit is not None:
+                resolved_limits["max_" + metric] = limit
                 passes[metric] = all(np.isfinite(row["evaluation"].get(metric, float("nan"))) and row["evaluation"][metric] <= limit for row in group)
         assessments.append(
             {
@@ -84,8 +113,11 @@ def assess_full_successor_records(
                 "mean_action_shares": {str(i): float(mean_shares[i]) for i in range(5)},
                 "low_gain_action_075_share": float(mean_shares[0]),
                 "low_gain_action_share": low_gain_share,
+                "low_gain_share_in_headroom": float(np.mean(
+                    [row["evaluation"].get("low_gain_share_in_headroom", float("nan")) for row in group])),
                 "mean_action_js_divergence": action_jsd,
                 "mean_retransmits_delta_vs_stock_per_s": float(np.mean(retransmit_deltas)),
+                "resolved_limits": resolved_limits,
                 "criteria_pass": passes,
                 "qualified_simulator_proxy_result": bool(all(passes.values())),
             }

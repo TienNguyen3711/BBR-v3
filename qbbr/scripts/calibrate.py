@@ -36,11 +36,6 @@ def main() -> None:
 
     calib = compute_calibration(args.dataset_root, cca=args.cca)
 
-    # Order matters: drawdown_activate_mult changes i_dwn's dynamics, which
-    # dwn_retransmit_rate_pps's calibration depends on (its slope is i_dwn's
-    # average) -- so it must be fit and locked in FIRST, or c_loc drifts once
-    # this lands. There is no dependency in the other direction: retransmit
-    # generation is a pure output with no feedback into v_bytes/i_dwn/i_crs.
     if not args.skip_drawdown_activate_mult:
         print("calibrating drawdown_activate_mult (iterative RTT-targeted fit per location)...")
         activate_mults = calibrate_drawdown_activate_mult(args.dataset_root, calib, cca=args.cca)

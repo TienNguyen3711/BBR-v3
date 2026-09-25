@@ -117,11 +117,6 @@ class QA2CAgent(BaseAgent):
     def load(self, path: str | Path) -> None:
         checkpoint = torch.load(path, map_location="cpu")
         if "actor_head" in checkpoint and len(self.action_dims) != 1:
-            # Legacy pre-ModuleList format (a single nn.Linear "actor_head", not yet
-            # wrapped in actor_heads: ModuleList -- e.g. RQ4's frozen quantum
-            # checkpoints, outputs/checkpoints/quantum/, predating that wrap) is only
-            # valid for the single-head case it was ever trained under; reject before
-            # touching any state so a bad load never leaves the agent half-updated.
             raise ValueError(
                 f"legacy single-head checkpoint {path!r} cannot be loaded into a "
                 f"{len(self.action_dims)}-head agent"

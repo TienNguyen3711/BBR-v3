@@ -1,8 +1,4 @@
-"""Contracts and safety checks for the active native-action RL programme.
-
-The historical numeric action configurations in :mod:`qbbr.action` supply the
-frozen BBR choice set for the new study; QRL may select, but not expand, it.
-"""
+"""Contracts and safety checks for the active native-action RL programme."""
 
 from .contracts import (
     ActionSpec,

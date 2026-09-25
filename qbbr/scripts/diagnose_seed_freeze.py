@@ -1,13 +1,4 @@
-"""Fork (1): why do training seeds 1 and 3 never leave stock?
-
-Loads the v7b Tier-1 checkpoints and, per seed, reports:
-  * raw actor logits (mean over an eval episode) -- has the actor moved off the
-    stock warm-start at all, or is it still argmax=stock by the +bias?
-  * greedy (argmax) non-stock fraction
-  * STOCHASTIC eval throughput delta vs stock -- does the sampled policy win
-    even where the deterministic/deployed one shows 0.00%?
-Does not train. Simulator-proxy only.
-"""
+"""Fork (1): why do training seeds 1 and 3 never leave stock?"""
 from __future__ import annotations
 import argparse, json
 from pathlib import Path

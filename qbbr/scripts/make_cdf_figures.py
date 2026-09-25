@@ -1,37 +1,6 @@
-"""Empirical CDF comparison figures, built ONLY from raw per-seed / per-grid-point
-arrays that are actually still on disk under outputs/.
-
-IMPORTANT SCOPE NOTE (read before adding a new panel): the majority of this
-project's evaluation scripts (eval_rq1_parallel.py, eval_rq2_parallel.py,
-eval_rq3_parallel.py, eval_shifted_freeze.py, analyze_ecn_behavior_shift.py,
-...) compute a per-seed distribution internally but only ever persist the
-final median + p-value per location to their outputs/*.json report -- the
-raw per-seed array is discarded once the aggregate is computed. That means
-the headline RQ1a/RQ1b/RQ2/RQ3/RQ4 tables in main.tex CANNOT be turned into
-genuine empirical CDFs from what is currently saved; doing so would require
-re-running those scripts with an added raw-array dump. This script does not
-attempt that -- it only covers the five datasets below, which happen to
-already retain seed- or grid-point-level arrays:
-
-1. outputs/boundary_freeze_perseed.json   -- retransmit rate, baseline vs
-   freeze arm, 10 seeds/location, 6 locations (Sec. rq1b-mechanism).
-2. outputs/scaleup_10seed_results.json    -- retransmit rate, beta_default
-   vs beta12 (4x beta robustness check), 10 seeds/location, 6 locations
-   (Sec. rq1b-mechanism, "raising beta 4x left ... outcome unchanged").
-3. outputs/point2_s7_ablation.json        -- retransmit reduction vs stock
-   (%), ref (s7 live) vs abl (s7 ablated/neutral), 10 seeds/location, 5
-   locations (Sydney not present in this file).
-4. outputs/point5_grid_comparison.json    -- retransmit reduction vs stock
-   (%), classical vs quantum (L=2) core, 10 seeds/location, 2 locations
-   only (Mumbai, Ohio -- this file is a screening pass, not the full grid).
-5. outputs/oracle_action_sensitivity_multihead{,_no_freeze}.json --
-   mean per-decision retransmit delta vs stock, across the full 125-point
-   (5x5x5) action grid, with-freeze vs without-freeze, 6 locations.
-
-Each figure is a 2x3 (or smaller) grid of per-location panels; each panel
-overlays one empirical CDF per arm/condition being compared. Output ->
-figures/*.png (consolidated with every other paper figure, not a separate
-outputs/ subdirectory).
+"""
+Empirical CDF comparison figures, built ONLY from raw per-seed / per-grid-point arrays that are
+actually still on disk under outputs/.
 """
 from __future__ import annotations
 

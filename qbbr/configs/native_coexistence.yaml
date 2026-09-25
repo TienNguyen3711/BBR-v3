@@ -1,0 +1,82 @@
+# Declared overlay for shared-bottleneck coexistence (Scenario B) under the
+# frozen native contract. Used with qbbr.env.native_multi_flow_env.
+#
+# It is an OVERLAY, not a protocol: it adds the one dynamics change contention
+# requires and records what the resulting numbers may and may not support.
+protocol_role: coexistence_overlay_not_a_standalone_protocol
+evidence_tier: simulator_proxy_only
+
+competing_ccas: [cubic, vegas, hybla]
+
+# The single dynamics change. Everything else stays exactly as the reporting
+# protocol declares it, so a coexistence run differs from its single-flow
+# counterpart in the competition and nothing else.
+dynamics_overrides:
+  # BtlBw as a windowed max over 10 packet-timed round trips, which is
+  # BBR-v3's own BtlBwFilterLen -- not a value chosen to produce an
+  # allocation. WITHOUT it the agent's flow is starved to exactly zero: the
+  # legacy estimator drops to the instantaneous capacity immediately, that
+  # capacity is the flow's allocated share on a shared link, demand is derived
+  # from the estimate, and the loss compounds. Real BBR has no such failure
+  # mode, and the measured competitive runs confirm it (real BBR retains 7.5%
+  # of its isolated rate, never 0%).
+  #
+  # It defaults to 0.0 (off) in FluidParams so that every single-flow result
+  # already on disk is bit-for-bit unaffected; this overlay is the only place
+  # that turns it on.
+  bw_estimate_max_filter_rounds: 10.0
+
+# WHAT THESE RUNS MAY CLAIM.
+#
+# VALIDATED: the agent's own share. With the filter on, stock BBR holds
+# 37.7-46.6% of a {BBR, cubic, vegas, hybla} bottleneck across the six
+# downlinks, against 30.6-57.4% measured on the same paths in the competitive
+# logs (reports/measured_coexistence.json). Same region, same ordering.
+#
+# NOT VALIDATED: the competitor mix, and therefore fairness. The model
+# collapses cubic and hybla onto the 2-MSS window floor because their
+# loss-reactive update sits at a saturated congestion signal, while
+# measurement makes hybla the STRONGEST competitor (16-52%) and vegas among
+# the weakest (2.7-16.3%). The model inverts that ranking.
+#
+# CONSEQUENCE: rho_alpha and min-flow throughput computed here are NOT
+# evidence about real fairness on Starlink. Use this environment for
+# policy-versus-stock contrasts under an identical competitor mix, where the
+# competitor error is common to both arms and largely cancels. For fairness
+# itself, use the measured analysis, which needs no simulator:
+#   python -m qbbr.scripts.analyze_measured_coexistence
+# SECOND VALIDATION FAILURE, found 2026-09-21 by running the contrast this
+# file previously declared supported. It is recorded here because the earlier
+# judgement in this file was WRONG and the correction matters more than the
+# result it retracts.
+#
+# Displacing another flow costs the displacer nothing. Against an identical
+# competitor mix and seed on Sydney downlink, the most aggressive native gain
+# beats stock on BOTH axes at once: 188.3 vs 15.9 Mbit/s (+1083%) with RTT
+# p90 of 40.2 vs 70.2 ms. The flow it displaces absorbs the whole queue, so
+# aggression buys throughput AND lower delay -- impossible on a real shared
+# bottleneck.
+#
+# The delay gauge cannot catch this either. RTT p90 clips at the calibrated
+# ceiling, equal to RTT_min + probe_max_queue_delay_ms to two decimals in all
+# six cities (Sydney 30.2+40.0=70.2 against 70.17 measured), and a learned
+# policy that mixes gains still sits at that ceiling in its worst decile. So
+# the zero-shot grid reported +126% throughput -- for policies worth +3-6% on
+# an idle path -- with an RTT p90 difference of exactly 0.000 ms in five of
+# six cities and identical retransmissions in four.
+#
+# The number measures the allocation rule's reward for raw demand, not a
+# controller result.
+#
+# This defect is inherited from MultiFlowFluidEnv and is structural, not a
+# tuning matter: feeding the shared delay back would change the agent's base
+# RTT and with it BDP, cwnd and probe timing. It is left unfixed rather than
+# patched until the number looks plausible.
+claims:
+  supported: []
+  unsupported:
+    - absolute_fairness
+    - rho_alpha_as_field_evidence
+    - competitor_ranking
+    # Retracted 2026-09-21; see the note above.
+    - agent_share_vs_stock_under_identical_competition

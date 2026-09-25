@@ -82,9 +82,6 @@ def run_ablation_point(
     samples = []
     for run_idx in range(n_runs):
         seed = base_seed + run_idx
-        # Seeded before agent construction, same reasoning as
-        # qbbr/scripts/train.py: train()'s own seeding is too late to cover
-        # the agent's random weight initialization.
         torch.manual_seed(seed)
         np.random.seed(seed)
 
@@ -129,15 +126,7 @@ def run_ablation(
     checkpoint_root: str | Path | None = None,
     action_config: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """Run every point in ablation_grid(base_config); see run_ablation_point.
-
-    on_point(index, total, result) is called after each grid point
-    finishes, for progress reporting on what is, at full scale, a
-    multi-hour job. If checkpoint_root is given, each grid point's trained
-    agents are saved under checkpoint_root/<point-description>/seed<N>.pt,
-    for later use by Scenario A/B evaluation and RQ4's entanglement
-    analysis (both need an actual trained agent, not just its reward curve).
-    """
+    """Run every point in ablation_grid(base_config); see run_ablation_point."""
     grid = list(ablation_grid(base_config))
     results = []
     for i, point in enumerate(grid):
@@ -157,10 +146,7 @@ def run_ablation(
 def save_ablation_results(
     results: list[dict[str, Any]], path: str | Path, meta: dict[str, Any] | None = None
 ) -> None:
-    """Persist run_ablation()'s output to JSON, with optional run metadata
-
-    (location, direction, n_runs, n_episodes, episode_s, ...) alongside it.
-    """
+    """Persist run_ablation()'s output to JSON, with optional run metadata."""
     payload = {"meta": meta or {}, "results": results}
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)

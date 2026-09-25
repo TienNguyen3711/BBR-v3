@@ -1,10 +1,4 @@
-"""Build a manifest of every run file in the tcp-cc-starlink dataset.
-
-Directory depth is not uniform across categories: sequential-downlink logs
-have an extra `iperf3-downlink-sequential-logs/` nesting level that the
-other three categories don't. A recursive glob per category root handles
-this without hardcoding depth.
-"""
+"""Build a manifest of every run file in the tcp-cc-starlink dataset."""
 from __future__ import annotations
 
 import re

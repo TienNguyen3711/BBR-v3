@@ -1,24 +1,4 @@
-"""CDF + boxplot figures for the current Tier-1 native-QA2C results.
-
-Re-evaluates every QA2C brain checkpoint (v3b -> v4 -> v5, quantum) and the
-v5 matched Classical A2C checkpoints on the CURRENT simulator (v5 config:
-drain_throughput_penalty 0.15, probe_bw_phase_gate on,
-bandwidth_estimate_recovery_s 3.0), capturing throughput per holdout seed so
-the distributions are genuine (train seed x 10 holdout seeds x 4 conditions).
-
-One consistent policy lens: raw learned policy, masked argmax, selector OFF.
-For v5 this coincides with the deployed policy (the v5 report shows identical
-deployed/learned action shares); for v3b/v4 it exposes what the network
-actually learned under the shield in force at the time.
-
-Writes to figures/:
-  tier1_v5_delta_boxplot_by_condition.png
-  tier1_v5_throughput_cdf.png
-  tier1_v5_perseed_strip.png
-  tier1_iteration_delta_boxplot.png
-  tier1_v5_throughput_vs_retransmit.png
-and outputs/tier1_result_figure_data.json
-"""
+"""CDF + boxplot figures for the current Tier-1 native-QA2C results."""
 
 from __future__ import annotations
 

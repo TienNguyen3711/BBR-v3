@@ -16,12 +16,7 @@ _BBR_STATE_CODES = {"STARTUP": 0.0, "DRAIN": 1.0, "PROBE_BW": 2.0, "PROBE_RTT": 
 
 @dataclass(frozen=True)
 class NativeActionSpace:
-    """The fixed discrete action space presented to an RL core.
-
-    The index is merely a representation of one declared BBR action.  It may
-    carry a numeric gain/inflight value, but only one fixed in the source BBR
-    action configuration.
-    """
+    """The fixed discrete action space presented to an RL core."""
 
     contract: MDPContract
 
@@ -107,12 +102,7 @@ def encode_observation(contract: MDPContract, observed: Mapping[str, object]) ->
 
 @dataclass(frozen=True)
 class NativeObservationNormalizer:
-    """Train-split-only z-score + bounded angle encoding for the QNN input.
-
-    Optional measurements are imputed only at inference by their training-set
-    mean, after their absence has been retained in the field record.  Required
-    telemetry is still rejected by ``encode_observation``.
-    """
+    """Train-split-only z-score + bounded angle encoding for the QNN input."""
 
     mean: np.ndarray
     scale: np.ndarray

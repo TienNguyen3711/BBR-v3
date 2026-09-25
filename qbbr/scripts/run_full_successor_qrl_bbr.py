@@ -1,9 +1,4 @@
-"""Run the frozen full recurrent-QDQN ablation protocol, with checkpoint/resume.
-
-This is not the primary QA2C/A2C successor path. The default is a read-only
-preflight. Training needs both explicit flags so a long simulator workload
-cannot be mistaken for a field BBR-v3 experiment.
-"""
+"""Run the frozen full recurrent-QDQN ablation protocol, with checkpoint/resume."""
 
 from __future__ import annotations
 
@@ -100,9 +95,6 @@ def _save_checkpoint(path: Path, protocol_id: str, shared_contract: dict, comple
 
 
 def _restore_checkpoint(path: Path, protocol_id: str, shared_contract: dict, agent) -> tuple[int, list[float]]:
-    # Checkpoints are local artifacts written by _save_checkpoint and include
-    # replay transitions, so PyTorch 2.6's weights-only default cannot restore
-    # them. Never point this runner at an untrusted checkpoint path.
     try:
         checkpoint = torch.load(path, map_location="cpu", weights_only=False)
     except TypeError:  # compatibility with PyTorch versions before this option
