@@ -1,4 +1,3 @@
-"""Per-second comparison figures for a finished RQ study run."""
 from __future__ import annotations
 
 import argparse
@@ -13,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CALIBRATION = ROOT / "qbbr" / "data" / "calibrated" / "per_location_constants_v14.json"
 CITIES = ["Tokyo", "SaoPaulo", "Ohio", "London", "Mumbai", "Sydney"]
 CITY_LABEL = {"SaoPaulo": "Sao Paulo"}
+DIRECTION = "downlink"  # set from --direction; a study tree may hold both directions
 ARMS = [("a2c", "Classical A2C-BBR"), ("qa2c", "Hybrid QA2C-BBR"), ("stock", "Stock BBR-v3")]
 COLOR = {"a2c": "#4f8fcf", "qa2c": "#f0a04b", "stock": "#35a893"}
 EDGE = "#4d4d4d"
@@ -24,7 +24,6 @@ PANELS = [("throughput_mbps", "Mbps", "Throughput"),
 
 
 def per_second(rows: list[dict], base_rtt_ms: float) -> dict[str, list[float]]:
-    """Accumulate decision rows into 1 s bins; RTT and rttvar time-weighted."""
     bins: dict[int, dict[str, float]] = {}
     elapsed, srtt, rttvar = 0.0, None, None
     for row in rows:
@@ -99,10 +98,10 @@ def replay_job(args: tuple[str, str]) -> dict:
 
 
 def collect(study_dir: Path, calibration: Path, workers: int) -> dict:
-    cache = study_dir / "per_second_series.json"
+    cache = study_dir / f"per_second_series_{DIRECTION}.json"
     if cache.exists():
         return json.loads(cache.read_text())
-    paths = sorted(study_dir.glob("*/result.json"))
+    paths = sorted(study_dir.glob(f"*__{DIRECTION}__*/result.json"))
     with Pool(workers) as pool:
         replays = pool.map(replay_job, [(str(p), str(calibration)) for p in paths], chunksize=1)
     data: dict = {city: {arm: {} for arm, _ in ARMS} for city in CITIES}
@@ -122,7 +121,7 @@ def pooled(data: dict, city: str, arm: str, key: str) -> np.ndarray:
 def paired_gains(study_dir: Path, city: str, arm: str) -> np.ndarray:
     """Throughput gain over stock on the same forcing, one value per (training, holdout) seed."""
     return np.asarray([e["throughput_delta_pct"]
-                       for p in sorted(study_dir.glob(f"*__{city}__*__{arm}__*/result.json"))
+                       for p in sorted(study_dir.glob(f"*__{city}__{DIRECTION}__{arm}__*/result.json"))
                        for e in json.loads(p.read_text())["evaluation"]])
 
 
@@ -165,7 +164,7 @@ def box_grid(data: dict, study_dir: Path, out: Path, note: str) -> None:
     ax.axhline(0, color=COLOR["stock"], linewidth=1.6, label="stock BBR-v3 (reference)")
     _style(ax, "Throughput gain over stock, paired per seed", "%")
     handles = [plt.Rectangle((0, 0), 1, 1, facecolor=COLOR[a], edgecolor=EDGE) for a, _ in ARMS]
-    fig.suptitle("Dedicated download, simulated Starlink paths (holdout seeds)", fontsize=15, y=0.985)
+    fig.suptitle(f"{'Download' if DIRECTION == 'downlink' else 'Upload'}, simulated Starlink paths (held-out seeds)", fontsize=15, y=0.985)
     fig.legend(handles, [label for _, label in ARMS], loc="upper center", ncol=3, frameon=False,
                fontsize=12, bbox_to_anchor=(0.5, 0.955))
     fig.text(0.5, 0.01, "\n".join(textwrap.wrap(note, 170)), ha="center", va="bottom", fontsize=9.5,
@@ -212,7 +211,7 @@ def summary_table(study_dir: Path, out: Path) -> list[dict]:
     rows = []
     for city in CITIES:
         for arm in ("a2c", "qa2c"):
-            cells = [json.loads(p.read_text()) for p in sorted(study_dir.glob(f"*__{city}__*__{arm}__*/result.json"))]
+            cells = [json.loads(p.read_text()) for p in sorted(study_dir.glob(f"*__{city}__{DIRECTION}__{arm}__*/result.json"))]
             per_seed = [dict(
                 thr=np.mean([e["throughput_delta_pct"] for e in r["evaluation"]]),
                 rtt=np.mean([e["rtt_p90_delta_ms"] for e in r["evaluation"]]),
@@ -239,18 +238,21 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=7)
     parser.add_argument("--figures", type=Path, default=ROOT / "figures")
     parser.add_argument("--note", default="Simulator-proxy evidence (fluid model calibrated on measured Starlink "
-                        "traces). Per-second samples, 3 training seeds x 5 holdout seeds per box; whiskers 1.5 IQR, "
+                        "traces). Per-second samples, 5 training seeds x 10 held-out seeds per box; whiskers 1.5 IQR, "
                         "no outliers drawn. Bottom-right: one point per (training seed, holdout seed) pair, policy vs stock on the "
                         "same capacity forcing. Congestion and receiver windows are not modelled by the simulator.")
+    parser.add_argument("--direction", choices=("downlink", "uplink"), default="downlink")
     args = parser.parse_args()
+    global DIRECTION
+    DIRECTION = args.direction
 
     data = collect(args.study, args.calibration, args.workers)
-    tag = args.study.name
+    tag = f"{args.study.name}_{DIRECTION}"
     args.figures.mkdir(exist_ok=True)
     box_grid(data, args.study, args.figures / f"comparison_boxes_{tag}.png", args.note)
     for key, unit, title in PANELS:
         time_series(data, args.figures / f"comparison_series_{key}_{tag}.png", key, unit, title)
-    rows = summary_table(args.study, args.study / "summary_by_city.csv")
+    rows = summary_table(args.study, args.study / f"summary_by_city_{DIRECTION}.csv")
     print(f"{'city':<9} {'core':<5} {'thr %':>7} {'+seeds':>6} {'dRTTp90':>8} {'dRtx/s':>7}")
     for r in rows:
         print(f"{r['city']:<9} {r['core']:<5} {r['throughput_delta_pct_median']:>+7.2f} "
