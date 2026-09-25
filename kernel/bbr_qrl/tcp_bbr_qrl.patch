@@ -1,0 +1,116 @@
+--- a/net/ipv4/tcp_bbr.c
++++ b/net/ipv4/tcp_bbr.c
+@@ -68,6 +68,7 @@
+ 
+ #include <trace/events/tcp.h>
+ #include "tcp_dctcp.h"
++#include "bbr_qrl_ctl.h"
+ 
+ #define BBR_VERSION		3
+ 
+@@ -2069,6 +2070,24 @@
+ 	bbr_bound_cwnd_for_inflight_model(sk);
+ 
+ out:
++	/* The lab controller runs even when the model takes its fast path.
++	 * Only pacing_gain changes; phase transitions/cwnd/loss logic are stock.
++	 * Native CRUISE commands latch on entry; clear/expiry restore on ACK. */
++	{
++		int phase = bbr->mode == BBR_PROBE_BW ? 4 + bbr->cycle_idx : bbr->mode;
++		int native_gain = bbr->mode == BBR_PROBE_BW ?
++			bbr_pacing_gain[bbr->cycle_idx] : bbr->pacing_gain;
++		int eligible = bbr->mode == BBR_PROBE_BW &&
++			bbr->cycle_idx == BBR_BW_PROBE_CRUISE &&
++			inet_csk(sk)->icsk_ca_state == TCP_CA_Open &&
++			rs->lost == 0 && rs->delivered_ce == 0;
++		int gain = bbr_qrl_apply(sk, phase, eligible, native_gain);
++
++		if (gain != bbr->pacing_gain) {
++			bbr->pacing_gain = gain;
++			bbr_set_pacing_rate(sk, bbr_bw(sk), gain);
++		}
++	}
+ 	bbr_advance_latest_delivery_signals(sk, rs, &ctx);
+ 	bbr->prev_ca_state = inet_csk(sk)->icsk_ca_state;
+ 	bbr->loss_in_cycle |= rs->lost > 0;
+@@ -2080,6 +2099,7 @@
+ 	struct tcp_sock *tp = tcp_sk(sk);
+ 	struct bbr *bbr = inet_csk_ca(sk);
+ 
++	bbr_qrl_attach(sk);
+ 	bbr->initialized = 1;
+ 
+ 	bbr->init_cwnd = min(0x7FU, tcp_snd_cwnd(tp));
+@@ -2340,11 +2360,22 @@
+ }
+ 
+ 
++static void bbr_qrl_release(struct sock *sk)
++{
++	struct bbr *bbr = inet_csk_ca(sk);
++	/* TCP may release an algorithm selected before connect, without init. */
++	if (bbr->initialized) {
++		bbr->initialized = 0;
++		bbr_qrl_detach(sk);
++	}
++}
++
+ static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
+ 	.flags		= TCP_CONG_NON_RESTRICTED | TCP_CONG_WANTS_CE_EVENTS,
+-	.name		= "bbr",
++	.name		= "bbr_qrl",
+ 	.owner		= THIS_MODULE,
+ 	.init		= bbr_init,
++	.release	= bbr_qrl_release,
+ 	.cong_control	= bbr_main,
+ 	.sndbuf_expand	= bbr_sndbuf_expand,
+ 	.skb_marked_lost = bbr_skb_marked_lost,
+@@ -2356,42 +2387,23 @@
+ 	.set_state	= bbr_set_state,
+ };
+ 
+-BTF_SET8_START(tcp_bbr_check_kfunc_ids)
+-#ifdef CONFIG_X86
+-#ifdef CONFIG_DYNAMIC_FTRACE
+-BTF_ID_FLAGS(func, bbr_init)
+-BTF_ID_FLAGS(func, bbr_main)
+-BTF_ID_FLAGS(func, bbr_sndbuf_expand)
+-BTF_ID_FLAGS(func, bbr_skb_marked_lost)
+-BTF_ID_FLAGS(func, bbr_undo_cwnd)
+-BTF_ID_FLAGS(func, bbr_cwnd_event)
+-BTF_ID_FLAGS(func, bbr_ssthresh)
+-BTF_ID_FLAGS(func, bbr_tso_segs)
+-BTF_ID_FLAGS(func, bbr_set_state)
+-#endif
+-#endif
+-BTF_SET8_END(tcp_bbr_check_kfunc_ids)
+-
+-static const struct btf_kfunc_id_set tcp_bbr_kfunc_set = {
+-	.owner = THIS_MODULE,
+-	.set   = &tcp_bbr_check_kfunc_ids,
+-};
+-
+ static int __init bbr_register(void)
+ {
+ 	int ret;
+ 
+ 	BUILD_BUG_ON(sizeof(struct bbr) > ICSK_CA_PRIV_SIZE);
+ 
+-	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_STRUCT_OPS, &tcp_bbr_kfunc_set);
+-	if (ret < 0)
+-		return ret;
+-	return tcp_register_congestion_control(&tcp_bbr_cong_ops);
++	ret = bbr_qrl_ctl_init();
++	if (ret) return ret;
++	ret = tcp_register_congestion_control(&tcp_bbr_cong_ops);
++	if (ret) bbr_qrl_ctl_exit();
++	return ret;
+ }
+ 
+ static void __exit bbr_unregister(void)
+ {
+ 	tcp_unregister_congestion_control(&tcp_bbr_cong_ops);
++	bbr_qrl_ctl_exit();
+ }
+ 
+ module_init(bbr_register);
