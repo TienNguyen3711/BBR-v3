@@ -9,7 +9,10 @@ change an inflight-control interface, or redefine BBR-v3 itself.
 ## Evidence boundary
 
 The repository does **not** claim a deployed Starlink or kernel-level BBR-v3
-improvement. The current experiments are simulator-proxy screens. Operational
+improvement. All learned-policy results are simulator-proxy results; no learned
+policy has been run on a real TCP stack or a live Starlink link. The only real
+transport runs (Tier 3) use stock Linux BBR, which on the testbed kernel is
+mainline BBRv1 rather than BBR-v3. Operational
 claims require multi-terminal, longitudinal Starlink measurements; physical
 telemetry; route-stability evidence; calibrated recovery dynamics; and an
 audited BBR-v3 kernel adapter. Generated reports, raw traces, fitted
@@ -25,11 +28,13 @@ calibration constants, and checkpoints are intentionally excluded from Git.
 - **State:** seven normalised BBR/LEO features: delivery-rate estimate, RTT
   ratio, inflight/BDP, queue estimate, handover ETA, failure probability, and
   reconfiguration phase.
-- **Action alphabet:** exactly five native BBR-v3 pacing gains:
-  `{0.75, 0.90, 1.00, 1.10, 1.25}`.
-- **Training reward:** delivered throughput only. RTT, retransmission, queue,
-  risk, and handover are state, safety, calibration, or reporting signals;
-  they are not reward terms.
+- **Action alphabet:** five bounded nominal pacing gains around the stock
+  gain: `{0.75, 0.90, 1.00, 1.10, 1.25}`. A kernel adapter applies them as the
+  fixed-point gains 192, 230, 256, 282, and 320 over 256.
+- **Training reward:** depends on the protocol. The successor protocol below
+  uses delivered throughput only. The final-v3 study reported in the thesis
+  uses a stock-relative difference reward with a queueing-delay penalty (see
+  [Reproduce the final-v3 study](#reproduce-the-final-v3-study-thesis-results)).
 
 The default Tier-1 protocol is
 [`qbbr/configs/tier1_native_qa2c_successor_protocol.yaml`](qbbr/configs/tier1_native_qa2c_successor_protocol.yaml).
@@ -163,9 +168,80 @@ The recurrent-QDQN core runs here under the v14 difference reward. The separate
 still declares the earlier throughput-only reward, under which every pilot
 policy froze at stock; prefer this matrix for new QDQN work.
 
-RQ4 has no counterpart entry point. `MultiFlowFluidEnv` predates the native
+RQ4 in the thesis is a stratified analysis of the RQ1 results by location and
+direction. The multi-flow RQ4 of the complete study plan has no counterpart
+entry point. `MultiFlowFluidEnv` predates the native
 action, state, and reward contract that `qbbr/study/protocol.py` enforces, and
 the application profiles are declared names with no traffic model behind them.
+
+## Reproduce the final-v3 study (thesis results)
+
+The thesis results come from `outputs/rq_study/final-v3/`, produced by the
+matrix runner above with the default `rq_study_screen.yaml` config and the
+following overrides: six locations, both directions, training seeds 0–4,
+held-out seeds 1000–1009, 30 episodes, and the queue-delay difference reward
+
+$R_t=\log(x_t/x^s_t)-\delta\log\frac{q_t+q_0}{q^s_t+q_0}-\beta\frac{\ell_t-\ell^s_t}{\ell^s_t+1}$,
+with $\delta=0.16$, $q_0=5$ ms, $\beta=0.5$, and $q_t=RTT_t-RTT_{\mathrm{prop}}$.
+Each term is scored against the simulated stock proxy (gain 1.00) on the same
+capacity forcing.
+
+```bash
+COMMON="--execute --allow-simulator-proxy --directions downlink uplink \
+  --training-seeds 0 1 2 3 4 --holdout-seeds 1000 1001 1002 1003 1004 1005 1006 1007 1008 1009 \
+  --curve-every 30 --reward-delta 0.16 --reward-delay-form queue --reward-queue-floor-ms 5"
+# RQ1 main study (QA2C and matched A2C), with Tier-2 transfer onto trace-derived capacity
+python -m qbbr.scripts.run_rq_study_matrix $COMMON --cores qa2c a2c --variants full \
+  --dataset qbbr/data/raw --out outputs/rq_study/final-v3/1a_full --shard 1/7
+# RQ2 policy-input ablation
+python -m qbbr.scripts.run_rq_study_matrix $COMMON --cores qa2c a2c \
+  --variants telemetry telemetry_queue --out outputs/rq_study/final-v3/1b_ablation --shard 1/7
+# RQ3 secondary comparison (recurrent QDQN, 205 parameters)
+python -m qbbr.scripts.run_rq_study_matrix $COMMON --cores qdqn --variants full \
+  --out outputs/rq_study/final-v3/1c_qdqn --shard 1/7
+# Training on trace-derived downlink capacity (runs 1-7), tested on runs 8-10
+python -m qbbr.scripts.run_rq_study_matrix $COMMON --directions downlink --forcing replay \
+  --cores qa2c a2c --variants full --dataset qbbr/data/raw \
+  --out outputs/rq_study/final-v3/2_replay_train --shard 1/7
+```
+
+Run each command for shards `1/7` to `7/7`. The later `--directions downlink`
+overrides the one in `$COMMON`. The analysis scripts then read these outputs,
+in this order:
+
+```bash
+python -m qbbr.scripts.rtt_tolerance          # per-path RTT pass tolerance from the measured runs
+python -m qbbr.scripts.tier3_model_error      # Tier 3: simulated stock vs Linux BBRv1 (needs the testbed report)
+python -m qbbr.scripts.eval_validation_gate   # supplementary validation gate on trace runs 1-7
+python -m qbbr.scripts.make_v3_figures        # tables, headline.json, tier/ablation/operating-point figures
+python -m qbbr.scripts.make_v3_extra_figures  # action shares and training curves
+python -m qbbr.scripts.make_final_comparison_figures --direction downlink
+```
+
+`tier3_model_error` compares against `reports/kernel_testbed_6city_clean.json`,
+produced by `run_kernel_testbed.py`. `outputs/`, `reports/`, the raw traces,
+and the calibration constants are not tracked by Git.
+
+**Summary of the final-v3 results** (simulator only; see the thesis for the
+full tables and caveats):
+
+- **Tier 1, synthetic capacity:** QA2C raised pooled median throughput by
+  3.7% on downlinks and 3.9% on uplinks, but RTT p90 rose by 4.7 ms on uplinks.
+  Only 3 of 12 location–direction cells met every pre-specified criterion.
+- **Tier 2, trace-derived capacity:** throughput fell by 1.3% (downlink) and
+  2.0% (uplink) while RTT p90 fell. No cell met every criterion, and training
+  directly on trace-derived downlink capacity did not recover the gain. A
+  supplementary validation gate rejected all 120 agents, so the gated layer
+  falls back to stock.
+- **RQ2:** adding the queue, handover, and reconfiguration features to the
+  policy input produced no appreciable median change.
+- **RQ3:** no difference between QA2C and the matched classical A2C was
+  detected at 126 parameters.
+- **Actuation:** in the main simulator, a gain above 1.00 starts a probing
+  cycle and the stock proxy does not probe on its own, so the policy controls
+  probing rather than the CRUISE gain alone. See the
+  [Sydney audit](docs/sydney_semantics_audit.md) and the
+  [kernel adapter audit](docs/kernel_adapter_audit.md).
 
 ## Run the primary Tier-1 protocol
 
