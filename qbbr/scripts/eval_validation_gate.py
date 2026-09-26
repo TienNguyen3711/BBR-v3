@@ -1,8 +1,8 @@
-"""Tier-2 deployment gate: validate synthetic-trained checkpoints on trace runs 1-7, fall back to stock if they fail.
+"""Supplementary Tier-2 validation gate: validate synthetic-trained checkpoints on trace runs 1-7, else fall back to stock.
 
-Rule (fixed before the test results were examined): an agent is deployed if, over validation runs 1-7 x seeds
-2000-2004, its median throughput delta is > 0, its median RTT p90 delta is <= the path's stock half-IQR, and its
-median retransmission delta is <= 0.25/s. Otherwise it falls back to stock and its Tier-2 test deltas are zero.
+An agent is retained if, over validation runs 1-7 x seeds 2000-2004, its median throughput delta is > 0, its median
+RTT p90 delta is within the path's RTT tolerance (rtt_tolerance.py), and its median retransmission delta is
+<= 0.25/s. Otherwise it falls back to stock and its Tier-2 test deltas are zero.
 """
 from __future__ import annotations
 
@@ -49,7 +49,9 @@ def bootstrap(values, n=10_000, seed=0) -> tuple[float, float, float]:
     return float(np.median(values)), float(np.percentile(meds, 2.5)), float(np.percentile(meds, 97.5))
 
 
-def summarize(study_dir: Path, calibration: dict) -> dict:
+def summarize(study_dir: Path) -> dict:
+    from qbbr.scripts.rtt_tolerance import load_tolerance
+    tolerance = load_tolerance()
     cells = []
     for path in sorted(study_dir.glob("*/validation.json")):
         job = json.loads(path.read_text())["job"]
@@ -57,7 +59,7 @@ def summarize(study_dir: Path, calibration: dict) -> dict:
             continue
         val = json.loads(path.read_text())["evaluation"]
         test = json.loads(path.with_name("result.json").read_text())["transfer_evaluation"]
-        tol = calibration[job["location"]][job["direction"]]["stock_rtt_p90_run_half_iqr_ms"]
+        tol = tolerance[job["location"]][job["direction"]]
         med = {k: float(np.median([e[k] for e in val])) for k in ("throughput_delta_pct", "rtt_p90_delta_ms", "retransmits_delta_per_s")}
         deploy = med["throughput_delta_pct"] > 0 and med["rtt_p90_delta_ms"] <= tol and med["retransmits_delta_per_s"] <= RTX_LIMIT
         raw = {k: float(np.mean([e[k] for e in test])) for k in med}
@@ -104,7 +106,7 @@ def main() -> None:
         with Pool(args.workers) as pool:
             for i, done in enumerate(pool.imap_unordered(validation_job, jobs), 1):
                 print(f"[{i}/{len(jobs)}] {done}", flush=True)
-    for key, row in summarize(args.study, json.loads(args.calibration.read_text())).items():
+    for key, row in summarize(args.study).items():
         print(key, {k: v for k, v in row.items() if k != "per_city"})
 
 

@@ -7,8 +7,9 @@ from pathlib import Path
 
 import numpy as np
 
+from qbbr.scripts.rtt_tolerance import load_tolerance
+
 ROOT = Path(__file__).resolve().parents[2]
-CALIBRATION = ROOT / "qbbr" / "data" / "calibrated" / "per_location_constants_v14.json"
 CITIES = ["Sydney", "Tokyo", "Mumbai", "Ohio", "London", "SaoPaulo"]
 PLOT_CITIES = ["Tokyo", "SaoPaulo", "Ohio", "London", "Mumbai", "Sydney"]
 CITY_LABEL = {"SaoPaulo": "Sao Paulo"}
@@ -279,8 +280,7 @@ def main() -> None:
     parser.add_argument("--figures", type=Path, default=ROOT / "figures")
     args = parser.parse_args()
     MODEL_ERROR.update(load_model_error(TIER3_PATH))
-    calibration = json.loads(CALIBRATION.read_text())
-    budgets = {loc: {d: calibration[loc][d]["stock_rtt_p90_run_half_iqr_ms"] for d in DIRECTIONS} for loc in CITIES}
+    budgets = load_tolerance()
     data = load(args.study)
     fig_tiers(data, args.figures / "v3_tier_deltas.png")
     fig_ablation(data, args.figures / "v3_ablation.png")
