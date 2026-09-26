@@ -18,9 +18,20 @@ SEEDS = range(5)
 CORES = [("a2c", "Classical A2C-BBR"), ("qa2c", "Hybrid QA2C-BBR"), ("qdqn", "Recurrent QDQN-BBR")]
 COLOR = {"a2c": "#4f8fcf", "qa2c": "#f0a04b", "qdqn": "#9c6fb6", "stock": "#35a893"}
 EDGE = "#4d4d4d"
-# Simulator error against real BBR on identical replayed downlink capacity (Tier 3, stock only).
-MODEL_ERROR = {"thr": {"Sydney": -1.5, "Tokyo": -7.0, "Mumbai": -23.6, "Ohio": -11.4, "London": -9.2, "SaoPaulo": 7.6},
-               "rtt": {"Sydney": 2.8, "Tokyo": 6.7, "Mumbai": 14.5, "Ohio": 5.9, "London": 8.0, "SaoPaulo": 5.4}}
+# Simulator error against real Linux BBR (BBRv1) on identical replayed downlink capacity (Tier 3, stock only).
+# outputs/ is not tracked, so tier3_model_error.py must be run first; main() fills this in.
+TIER3_PATH = ROOT / "outputs" / "rq_study" / "final-v3" / "tier3_model_error.json"
+MODEL_ERROR: dict = {}
+
+
+def load_model_error(path: Path) -> dict:
+    if not path.exists():
+        raise SystemExit(f"{path} not found; run `python -m qbbr.scripts.tier3_model_error` first.")
+    tier3 = json.loads(path.read_text())
+    return {"thr": {c: round(v["thr_err_pct"], 1) for c, v in tier3.items()},
+            "rtt": {c: round(v["rtt_err_ms"], 1) for c, v in tier3.items()}}
+
+
 KEYS = {"thr": "throughput_delta_pct", "rtt": "rtt_p90_delta_ms", "rtx": "retransmits_delta_per_s"}
 RNG = np.random.default_rng(20260920)
 
@@ -102,13 +113,13 @@ def fig_tiers(data, out: Path) -> None:
             boxes(ax, [(core, [pairs(data, "1a_full", tier, city, direction, core, metric=metric)
                                for city in PLOT_CITIES]) for core in ("a2c", "qa2c")])
             ax.axhline(0, color=COLOR["stock"], linewidth=1.6, zorder=1)
-            name = "synthetic capacity" if tier == 1 else "replayed real capacity"
+            name = "synthetic capacity" if tier == 1 else "trace-derived capacity"
             style(ax, ylabel if col == 0 else None, f"Tier {tier}, {direction}: {name}" if row == 0 else None)
     axes[0, 0].set_ylim(-8, 11)
     axes[1, 0].set_ylim(-18, 18)
     handles = [plt.Rectangle((0, 0), 1, 1, facecolor=COLOR[c], edgecolor=EDGE) for c in ("a2c", "qa2c")]
     handles += [plt.Line2D([0], [0], color=COLOR["stock"], linewidth=1.6), plt.Rectangle((0, 0), 1, 1, facecolor="#e6e6e3")]
-    labels = ["Classical A2C-BBR", "Hybrid QA2C-BBR", "Stock BBR-v3 (zero)", "Simulator error vs real BBR (Tier 3, downlink)"]
+    labels = ["Classical A2C-BBR", "Hybrid QA2C-BBR", "Simulated stock proxy (zero)", "Tier-3 discrepancy vs real Linux BBR (BBRv1, downlink)"]
     fig.legend(handles, labels, loc="upper center", ncol=4, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.995))
     fig.tight_layout(rect=(0, 0, 1, 0.94))
     fig.savefig(out, dpi=200)
@@ -267,6 +278,7 @@ def main() -> None:
     parser.add_argument("--study", type=Path, default=ROOT / "outputs" / "rq_study" / "final-v3")
     parser.add_argument("--figures", type=Path, default=ROOT / "figures")
     args = parser.parse_args()
+    MODEL_ERROR.update(load_model_error(TIER3_PATH))
     calibration = json.loads(CALIBRATION.read_text())
     budgets = {loc: {d: calibration[loc][d]["stock_rtt_p90_run_half_iqr_ms"] for d in DIRECTIONS} for loc in CITIES}
     data = load(args.study)
